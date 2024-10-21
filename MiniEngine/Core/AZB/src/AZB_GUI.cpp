@@ -6,6 +6,9 @@
 
 #include <d3d12.h>
 #include <Utility.h>
+
+// For performance metrics
+#include "EngineProfiling.h"
 //===============================================================================
 
 void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const DXGI_FORMAT& renderTargetFormat)
@@ -13,6 +16,8 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 	// Create ImGui context and get IO to set flags
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
+	// Setup ImPlot here too
+	ImPlot::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
 
 	// Enable keyboard & gamepad controls
@@ -48,9 +53,6 @@ void GUI::Run()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	// Show demo for now
-	ImGui::ShowDemoWindow();
-
 	// Taken from sample code
 	{
 		static float f = 0.0f;
@@ -69,6 +71,35 @@ void GUI::Run()
 			counter++;
 		ImGui::SameLine();
 		ImGui::Text("counter = %d", counter);
+		
+
+		// Frame data from MiniEngine profiler!
+		static std::vector<float> cpuTimes, gpuTimes, frameTimes;
+		cpuTimes.push_back(EngineProfiling::GetCPUTime());		// CPU time per frame
+		gpuTimes.push_back(EngineProfiling::GetGPUTime());		// GPU time per frame
+		frameTimes.push_back(EngineProfiling::GetFrameRate());  // Framerate
+
+		// Limit buffer size
+		if (cpuTimes.size() > 2000) cpuTimes.erase(cpuTimes.begin());
+		if (gpuTimes.size() > 2000) gpuTimes.erase(gpuTimes.begin());
+		if (frameTimes.size() > 2000) frameTimes.erase(frameTimes.begin());
+
+		// Plot the data
+		if (ImPlot::BeginPlot("Hardware Timings"))
+		{
+			// Setup axis, x then y. This will be Frame,Ms. Use autofit for now, will mess around with these later
+			ImPlot::SetupAxes("Frame", "MS", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
+			ImPlot::PlotLine("CPU Time", cpuTimes.data(), cpuTimes.size());
+			ImPlot::PlotLine("GPU Time", gpuTimes.data(), gpuTimes.size());
+			ImPlot::EndPlot();
+		}
+
+		if (ImPlot::BeginPlot("Frame Rate"))
+		{
+			ImPlot::SetupAxes("Count", "FPS", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
+			ImPlot::PlotLine("Frame Rate", frameTimes.data(), frameTimes.size());
+			ImPlot::EndPlot();
+		}
 
 		ImGui::End();
 	}
@@ -89,4 +120,5 @@ void GUI::Terminate()
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
+	ImPlot::DestroyContext();
 }
