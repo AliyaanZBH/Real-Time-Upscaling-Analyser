@@ -11,6 +11,16 @@
 // Author:  James Stanard 
 //
 
+//===============================================================================
+// desc: This is where the rendering pipeline gets created and run.
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
+/*
+   Change Log:
+   [AZB] 21/10/24: Began DLSS implementation, getting NGX SDK to properly init
+*/
+
 #include "pch.h"
 #include "GraphicsCore.h"
 #include "GameCore.h"
@@ -39,6 +49,19 @@
 #endif
 
 using namespace Math;
+
+//
+// [AZB]: Custom includes and macro mods
+//
+
+// [AZB]: Container file for code modifications and other helper tools. Contains the global "AZB_MOD" macro.
+#include "AZB_Utils.h"
+
+
+// [AZB]: These will only be included if the global modificiation macro is defined as true (==1)
+#if AZB_MOD
+#include "AZB_DLSS.h"
+#endif
 
 namespace Graphics
 {
@@ -275,6 +298,11 @@ void Graphics::Initialize(bool RequireDXRSupport)
 
             g_Device = pDevice.Detach();
 
+#if AZB_MOD
+            // [AZB]: Init DLSS with this adapter
+            DLSS::Init(pAdapter.Get());
+#endif
+
             Utility::Printf(L"Selected GPU:  %s (%u MB)\n", desc.Description, desc.DedicatedVideoMemory >> 20);
         }
     }
@@ -412,7 +440,6 @@ void Graphics::Initialize(bool RequireDXRSupport)
 
     GpuTimeManager::Initialize(4096);
     TemporalEffects::Initialize();
-    // [AZB]: Init DLSS before post-effects per NVIDIA recommendations, same applies with update
     PostEffects::Initialize();
     SSAO::Initialize();
     TextRenderer::Initialize();
