@@ -538,7 +538,9 @@
     <ClCompile Include="..\..\ThirdParty\implot\implot_items.cpp">
       <Filter>AZB_ThirdParty\ImPlot</Filter>
     </ClCompile>
-    <ClCompile Include="AZB_DLSS.cpp" />
+    <ClCompile Include="AZB_DLSS.cpp">
+      <Filter>AZB_Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BitonicSort.h" />

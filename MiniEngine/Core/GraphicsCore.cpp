@@ -299,8 +299,8 @@ void Graphics::Initialize(bool RequireDXRSupport)
             g_Device = pDevice.Detach();
 
 #if AZB_MOD
-            // [AZB]: Init DLSS with this adapter
-            DLSS::Init(pAdapter.Get());
+            // [AZB]: Init DLSS with this device and pass adapter to query hardware first
+            DLSS::Init(g_Device, pAdapter.Get());
 #endif
 
             Utility::Printf(L"Selected GPU:  %s (%u MB)\n", desc.Description, desc.DedicatedVideoMemory >> 20);
@@ -460,6 +460,11 @@ void Graphics::Shutdown( void )
 
     DestroyCommonState();
     DestroyRenderingBuffers();
+
+#if AZB_MOD
+    // [AZB]: Cleanup DLSS
+    DLSS::Terminate();
+#endif
     TemporalEffects::Shutdown();
     PostEffects::Shutdown();
     SSAO::Shutdown();
