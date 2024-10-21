@@ -412,6 +412,7 @@ void Graphics::Initialize(bool RequireDXRSupport)
 
     GpuTimeManager::Initialize(4096);
     TemporalEffects::Initialize();
+    // [AZB]: Init DLSS before post-effects per NVIDIA recommendations, same applies with update
     PostEffects::Initialize();
     SSAO::Initialize();
     TextRenderer::Initialize();
