@@ -11,6 +11,16 @@
 // Author:  James Stanard 
 //
 
+//===============================================================================
+// desc: This is a helper namespace that mainly deals with the swapchain
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
+/*
+   Change Log:
+   [AZB] 16/10/24: Tweaked swapchain data to allow it to be accessed by ImGui
+*/
+
 #include "pch.h"
 #include "Display.h"
 #include "GraphicsCore.h"
@@ -50,7 +60,6 @@ namespace GameCore { extern HWND g_hWnd; }
 #include "CompiledShaders/GenerateMipsGammaOddYCS.h"
 
 #define SWAP_CHAIN_BUFFER_COUNT 3
-
 DXGI_FORMAT SwapChainFormat = DXGI_FORMAT_R10G10B10A2_UNORM;
 
 using namespace Math;

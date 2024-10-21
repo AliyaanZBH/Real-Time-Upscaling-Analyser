@@ -12,8 +12,25 @@
 //
 
 #pragma once
+//===============================================================================
+// desc: This is a helper namespace that mainly deals with the swapchain
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
+/*
+   Change Log:
+   [AZB] 16/10/24: Tweaked swapchain data to allow it to be accessed by ImGui
+*/
+
 
 #include <cstdint>
+
+//
+// [AZB]: Custom includes
+//
+
+// [AZB]: Container file for code modifications and other helper tools. Contains the global "AZB_MOD" macro.
+#include "AZB_Utils.h"
 
 namespace Display
 {

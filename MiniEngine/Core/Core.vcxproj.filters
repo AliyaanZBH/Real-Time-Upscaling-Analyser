@@ -508,6 +508,36 @@
     <ClCompile Include="UploadBuffer.cpp" />
     <ClCompile Include="Utility.cpp" />
     <ClCompile Include="Util\CommandLineArg.cpp" />
+    <ClCompile Include="AZB\src\AZB_GUI.cpp">
+      <Filter>AZB_Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\imgui\imgui.cpp">
+      <Filter>AZB_ThirdParty\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\imgui\imgui_demo.cpp">
+      <Filter>AZB_ThirdParty\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\imgui\imgui_draw.cpp">
+      <Filter>AZB_ThirdParty\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\imgui\backends\imgui_impl_dx12.cpp">
+      <Filter>AZB_ThirdParty\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\imgui\backends\imgui_impl_win32.cpp">
+      <Filter>AZB_ThirdParty\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\imgui\imgui_tables.cpp">
+      <Filter>AZB_ThirdParty\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\imgui\imgui_widgets.cpp">
+      <Filter>AZB_ThirdParty\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\implot\implot.cpp">
+      <Filter>AZB_ThirdParty\ImPlot</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\implot\implot_items.cpp">
+      <Filter>AZB_ThirdParty\ImPlot</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BitonicSort.h" />
@@ -581,6 +611,42 @@
     <ClInclude Include="Utility.h" />
     <ClInclude Include="Util\CommandLineArg.h" />
     <ClInclude Include="VectorMath.h" />
+    <ClInclude Include="AZB\include\AZB_GUI.h">
+      <Filter>AZB_Include</Filter>
+    </ClInclude>
+    <ClInclude Include="AZB\include\AZB_Utils.h">
+      <Filter>AZB_Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\imgui\imconfig.h">
+      <Filter>AZB_ThirdParty\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\imgui\imgui.h">
+      <Filter>AZB_ThirdParty\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\imgui\backends\imgui_impl_dx12.h">
+      <Filter>AZB_ThirdParty\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\imgui\backends\imgui_impl_win32.h">
+      <Filter>AZB_ThirdParty\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\imgui\imgui_internal.h">
+      <Filter>AZB_ThirdParty\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\imgui\imstb_rectpack.h">
+      <Filter>AZB_ThirdParty\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\imgui\imstb_textedit.h">
+      <Filter>AZB_ThirdParty\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\imgui\imstb_truetype.h">
+      <Filter>AZB_ThirdParty\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\implot\implot.h">
+      <Filter>AZB_ThirdParty\ImPlot</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\implot\implot_internal.h">
+      <Filter>AZB_ThirdParty\ImPlot</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Math\Functions.inl" />
@@ -672,6 +738,21 @@
   <ItemGroup>
     <Filter Include="Shaders">
       <UniqueIdentifier>{c5df3e3a-73f5-4b5b-8688-112163941bea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AZB_Source">
+      <UniqueIdentifier>{2ee191ad-3592-446e-8d69-ef8810ee47ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AZB_Include">
+      <UniqueIdentifier>{df1c9d13-a666-416f-bc0c-2d2e55d9c2b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AZB_ThirdParty">
+      <UniqueIdentifier>{98384118-fec8-4e39-a17f-e5fb2a8f58c9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AZB_ThirdParty\ImGui">
+      <UniqueIdentifier>{1f3e1f6a-7224-4b6d-bfb7-382c70b33662}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AZB_ThirdParty\ImPlot">
+      <UniqueIdentifier>{ff8788d3-473a-4098-b741-621c810e4b66}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

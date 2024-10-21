@@ -11,9 +11,22 @@
 // Author:  James Stanard 
 //
 
+//===============================================================================
+// desc: This is the core input handler, taking precedence over GameInput.cpp
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
+/*
+   Change Log:
+   [AZB] 21/10/24: Implemented mouse accessor to enable swapping of input focus between ImGui and application
+   [AZB] 21/10/24: Removed mouse accessor and improved method by simply providing a public way to unacquire mouse access!
+*/
+
 #include "pch.h"
 #include "GameCore.h"
 #include "GameInput.h"
+
+#include "AZB_Utils.h"
 
 #ifdef _GAMING_DESKTOP
 
@@ -22,6 +35,7 @@
 #pragma comment(lib, "xinput9_1_0.lib")
 
 #define USE_KEYBOARD_MOUSE
+
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
 #pragma comment(lib, "dinput8.lib")
@@ -254,6 +268,22 @@ namespace
         HWND foreground = GetForegroundWindow();
         bool visible = IsWindowVisible(foreground) != 0;
 
+#if AZB_MOD
+        // [AZB]: Also add a flag for exclusive access to mouse
+        // [AZB]: Doing this requires reading input from ImGui to re-enable, as the engine no longer checks for input at all
+        if (foreground != GameCore::g_hWnd // wouldn't be able to acquire
+            || !visible || !g_bMouseExclusive)
+        {
+            KbmZeroInputs();
+        }
+        else
+        {
+            s_Mouse->Acquire();
+            s_Mouse->GetDeviceState(sizeof(DIMOUSESTATE2), &s_MouseState);
+            s_Keyboard->Acquire();
+            s_Keyboard->GetDeviceState(sizeof(s_Keybuffer), s_Keybuffer);
+        }
+#else   // [AZB]: Original input check
         if (foreground != GameCore::g_hWnd // wouldn't be able to acquire
             || !visible)
         {
@@ -266,6 +296,8 @@ namespace
             s_Keyboard->Acquire();
             s_Keyboard->GetDeviceState(sizeof(s_Keybuffer), s_Keybuffer);
         }
+#endif
+ 
     }
 
 #endif
@@ -444,3 +476,10 @@ float GameInput::GetTimeCorrectedAnalogInput( AnalogInput ai )
 {
     return s_AnalogsTC[ai];
 }
+
+// [AZB]: Implementation for mouse unaqcuire
+void GameInput::ReleaseMouseExclusivity()
+{
+    s_Mouse->Unacquire();
+}
+
