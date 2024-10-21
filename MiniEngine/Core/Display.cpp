@@ -12,13 +12,14 @@
 //
 
 //===============================================================================
-// desc: This is a helper namespace that mainly deals with the swapchain
+// desc: This is a helper namespace that mainly deals with the swapchain and resolution.
 // modified: Aliyaan Zulfiqar
 //===============================================================================
 
 /*
    Change Log:
    [AZB] 16/10/24: Tweaked swapchain data to allow it to be accessed by ImGui
+   [AZB] 21/10/24: Passing DLSS into this namespace as part of preliminary integration into rendering pipeline.
 */
 
 #include "pch.h"
@@ -31,6 +32,8 @@
 #include "RootSignature.h"
 #include "ImageScaling.h"
 #include "TemporalEffects.h"
+
+#include "AZB_DLSS.h"
 
 #pragma comment(lib, "dxgi.lib") 
 
