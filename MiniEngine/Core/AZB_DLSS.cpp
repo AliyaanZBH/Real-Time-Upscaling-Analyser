@@ -6,9 +6,12 @@
 #include "Utility.h"
 #include "nvsdk_ngx_helpers.h"
 
-namespace DLSS {
+// Define externals to ensure no redefinition occurs elsewhere
+namespace DLSS
+{
 	ID3D12Device* m_pD3DDevice = nullptr;
 	NVSDK_NGX_Parameter* m_DLSS_Parameters = nullptr;
+	std::array<OptimalSettings, 5> m_DLSS_Modes = {};
 }
 
 void DLSS::Init(ID3D12Device* device, IDXGIAdapter* Adapter)
@@ -108,40 +111,74 @@ void DLSS::Init(ID3D12Device* device, IDXGIAdapter* Adapter)
 
 }
 
-void DLSS::QueryOptimalSettings(const int targetWidth, const int targetHeight)
+void DLSS::QueryOptimalSettings(const int targetWidth, const int targetHeight, OptimalSettings& settings)
 {
-	unsigned int optimalRenderWidth = 0;
-	unsigned int optimalRenderHeight = 0;
+
+	// These values need a valid memory address in order for the query to work, even though the values are ultimately unused!
+	
+	// Dynamic Maximum Render Size Width	- Unused due to no dynamic rendering currently implemented
+	unsigned int maxDynamicW = 0;
+	// Dynamic Maximum Render Size Height	- ^
+	unsigned int maxDynamicH = 0;
+	// Dynamic Minimum Render Size Width	- ^ 
+	unsigned int minDynamicW = 0;
+	// Dynamic Minimum Render Size Height	- ^ 
+	unsigned int minDynamicH = 0;
+	// Sharpness							- Deprecated value, but still needs passing through as a fallback
+	float sharpness = 0;
+
+	NVSDK_NGX_Result ret = NGX_DLSS_GET_OPTIMAL_SETTINGS(
+		m_DLSS_Parameters,
+		targetWidth, targetHeight,
+		static_cast<NVSDK_NGX_PerfQuality_Value>(settings.m_PerfQualityValue),
+		&settings.m_RenderWidth, &settings.m_RenderHeight,
+		&maxDynamicW,
+		&maxDynamicH,
+		&minDynamicW,
+		&minDynamicH,
+		&sharpness
+		);
+
+	if (settings.m_RenderWidth == 0 || settings.m_RenderHeight == 0)
+	{
+		// Mode hasn't been found so inform user
+		Utility::Print("\nThis PerfQuality mode has not been made available yet.\n\n");
+		Utility::Print("\nPlease request another PerfQuality mode.\n\n");
+	}
+	else
+	{
+		// Use DLSS for this combination
+		// - Create feature with RecommendedOptimalRenderWidth, RecommendedOptimalRenderHeight
+		// - Render to (RenderWidth, RenderHeight)
+		// - Call DLSS to upscale to (TargetWidth, TargetHeight)
+		//NGX_D3D12_CREATE_DLSS_EXT();
+		//NGX_D3D12_EVALUATE_DLSS_EXT();
+
+	}
+	
+}
+
+void DLSS::PreQueryAllSettings(const int targetWidth, const int targetHeight)
+{
+	// See QueryOptimalSettings for more explanation on these values
+	unsigned int maxDW = 0;
+	unsigned int maxDH = 0;
+	unsigned int minDW = 0;
+	unsigned int minDH = 0;
+	float sharpness = 0;
 
 	// PerfQualityValue [0 MaxPerformance, 1 Balance, 2 MaxQuality, 3 UltraPerformance, 4 UltraQuality]
-	// Check all settings by loopiung through the integer values of the enum
-	for (int perfQuality = 0; perfQuality <= 4; ++perfQuality)
+	// DLAA sits here at 5, but NVIDIA recommend exposing it as a different UI option later.
+	// Check all settings by looping through the integer values of the enum
+	for (int perfQualityValue = 0; perfQualityValue <= 4; ++perfQualityValue)
 	{
-		NVSDK_NGX_Result DLSSMode = NGX_DLSS_GET_OPTIMAL_SETTINGS(
+		NVSDK_NGX_Result ret = NGX_DLSS_GET_OPTIMAL_SETTINGS(
 			m_DLSS_Parameters,
 			targetWidth, targetHeight,
-			static_cast<NVSDK_NGX_PerfQuality_Value>(perfQuality),
-			&optimalRenderWidth, &optimalRenderHeight,
-			0,																// Dynamic Maximum Render Size Width	- Unused due to no dynamic rendering currently implemented
-			0,																// Dynamic Maximum Render Size Height	- ^
-			0,																// Dynamic Minimum Render Size Width	- ^ 
-			0,																// Dynamic Minimum Render Size Height	- ^ 
-			0																// Sharpness							- Deprecated value, but may need enabling as a fallback 
-			);
-
-		if (optimalRenderWidth == 0 || optimalRenderHeight == 0)
-		{
-			// This PerfQuality mode has not been made available yet.
-			// Please request another PerfQuality mode.
-
-		}
-		else
-		{
-			// Use DLSS for this combination
-			// - Create feature with RecommendedOptimalRenderWidth, RecommendedOptimalRenderHeight
-			// - Render to (RenderWidth, RenderHeight)
-			// - Call DLSS to upscale to (TargetWidth, TargetHeight)
-		}
+			static_cast<NVSDK_NGX_PerfQuality_Value>(perfQualityValue),
+			&m_DLSS_Modes[perfQualityValue].m_RenderWidth, &m_DLSS_Modes[perfQualityValue].m_RenderHeight,
+			&maxDW, &maxDH, &minDW, &minDH, &sharpness
+		);
 	}
 }
 

@@ -20,6 +20,7 @@
    Change Log:
    [AZB] 16/10/24: Tweaked swapchain data to allow it to be accessed by ImGui
    [AZB] 21/10/24: Passing DLSS into this namespace as part of preliminary integration into rendering pipeline.
+   [AZB] 22/10/24: Querying DLSS optimal settings to begin feature creation
 */
 
 #include "pch.h"
@@ -33,13 +34,23 @@
 #include "ImageScaling.h"
 #include "TemporalEffects.h"
 
-#include "AZB_DLSS.h"
 
 #pragma comment(lib, "dxgi.lib") 
 
 // This macro determines whether to detect if there is an HDR display and enable HDR10 output.
 // Currently, with HDR display enabled, the pixel magnfication functionality is broken.
 #define CONDITIONALLY_ENABLE_HDR_OUTPUT 1
+
+
+//
+// [AZB]: Custom includes and macro mods
+//
+
+#include "AZB_Utils.h"
+#if AZB_MOD
+#include "AZB_DLSS.h"
+#endif
+
 
 namespace GameCore { extern HWND g_hWnd; }
 
@@ -341,10 +352,24 @@ void Display::Initialize(void)
 
 #undef CreatePSO
 
+    // [AZB]: This is where native resolution finally gets set so now is a good time to setup DLSS
     SetNativeResolution();
 
     g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DisplayWidth, g_DisplayHeight, 1, SwapChainFormat);
     ImageScaling::Initialize(g_PreDisplayBuffer.GetFormat());
+
+// [AZB]: Continue DLSS intialisation after creating main swap chain and buffers for the app by querying DLSS modes and their optimal settings
+#if AZB_MOD
+
+    // [AZB]: Container that will store results of query that will be needed for DLSS feature creation. By default this will check the balanced setting
+    DLSS::OptimalSettings dlssSettings;
+
+    // [AZB]: Query optimal settings based on current native resolution
+    DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
+    Utility::Print(L"Pause to test if optimal query worked");
+
+#endif
+
 }
 
 void Display::Shutdown( void )
