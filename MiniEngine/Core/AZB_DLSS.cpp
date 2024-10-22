@@ -130,7 +130,7 @@ void DLSS::QueryOptimalSettings(const int targetWidth, const int targetHeight)
 		{
 			// Use DLSS for this combination
 			// - Create feature with RecommendedOptimalRenderWidth, RecommendedOptimalRenderHeight
-			// - Render to (RenderWidth, RenderHeight) between Min and Max inclusive
+			// - Render to (RenderWidth, RenderHeight)
 			// - Call DLSS to upscale to (TargetWidth, TargetHeight)
 		}
 	}
