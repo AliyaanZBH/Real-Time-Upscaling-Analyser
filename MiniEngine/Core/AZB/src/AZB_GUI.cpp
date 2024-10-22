@@ -75,9 +75,13 @@ void GUI::Run()
 
 		// Frame data from MiniEngine profiler!
 		static std::vector<float> cpuTimes, gpuTimes, frameTimes;
+		
+		// These functions will not exist when the mod is disabled - even though this function is never called when mod is disabled, compiler will fuss.
+#if AZB_MOD
 		cpuTimes.push_back(EngineProfiling::GetCPUTime());		// CPU time per frame
 		gpuTimes.push_back(EngineProfiling::GetGPUTime());		// GPU time per frame
 		frameTimes.push_back(EngineProfiling::GetFrameRate());  // Framerate
+#endif
 
 		// Limit buffer size
 		if (cpuTimes.size() > 2000) cpuTimes.erase(cpuTimes.begin());

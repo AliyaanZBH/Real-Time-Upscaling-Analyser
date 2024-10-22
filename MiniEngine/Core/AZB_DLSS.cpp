@@ -10,6 +10,7 @@
 namespace DLSS
 {
 	ID3D12Device* m_pD3DDevice = nullptr;
+	NVSDK_NGX_Handle* m_DLSS_FeatureHandle = nullptr;
 	NVSDK_NGX_Parameter* m_DLSS_Parameters = nullptr;
 	std::array<OptimalSettings, 5> m_DLSS_Modes = {};
 }
@@ -145,17 +146,6 @@ void DLSS::QueryOptimalSettings(const int targetWidth, const int targetHeight, O
 		Utility::Print("\nThis PerfQuality mode has not been made available yet.\n\n");
 		Utility::Print("\nPlease request another PerfQuality mode.\n\n");
 	}
-	else
-	{
-		// Use DLSS for this combination
-		// - Create feature with RecommendedOptimalRenderWidth, RecommendedOptimalRenderHeight
-		// - Render to (RenderWidth, RenderHeight)
-		// - Call DLSS to upscale to (TargetWidth, TargetHeight)
-		//NGX_D3D12_CREATE_DLSS_EXT();
-		//NGX_D3D12_EVALUATE_DLSS_EXT();
-
-	}
-	
 }
 
 void DLSS::PreQueryAllSettings(const int targetWidth, const int targetHeight)
@@ -180,6 +170,18 @@ void DLSS::PreQueryAllSettings(const int targetWidth, const int targetHeight)
 			&maxDW, &maxDH, &minDW, &minDH, &sharpness
 		);
 	}
+}
+
+void DLSS::CreateDLSS(OptimalSettings& settings, DLSSRequirements& reqs)
+{
+	// Use DLSS for this combination
+	// - Create feature with RecommendedOptimalRenderWidth, RecommendedOptimalRenderHeight
+	// - Render to (RenderWidth, RenderHeight)
+	// - Call DLSS to upscale to (TargetWidth, TargetHeight)
+	
+
+	NVSDK_NGX_Result ret = NGX_D3D12_CREATE_DLSS_EXT(reqs.m_pCmdList, 0, 0, &m_DLSS_FeatureHandle, m_DLSS_Parameters, &reqs.m_DlSSFeatureParams);
+	//NGX_D3D12_EVALUATE_DLSS_EXT();
 }
 
 void DLSS::Terminate()

@@ -19,6 +19,15 @@ namespace DLSS
 		const int m_PerfQualityValue = 1;
 	};
 
+	// Data required by DLSS to create the feature
+	struct DLSSRequirements
+	{
+		ID3D12GraphicsCommandList* m_pCmdList;
+		unsigned int m_InCreationNodeMask;
+		unsigned int m_InVisibilityNodeMask;
+		NVSDK_NGX_DLSS_Create_Params m_DlSSFeatureParams;
+	};
+
 	// Initialise NDX and query for DLSS capability
 	void Init(ID3D12Device* device, IDXGIAdapter* Adapter);
 
@@ -28,6 +37,9 @@ namespace DLSS
 	// Pre-Query for all performance quality levels and store them. Useful for instantly switching at run-time, we can avoid running queries repeatedly
 	void PreQueryAllSettings(const int targetWidth, const int targetHeight);
 
+	// Create DLSS feature using the optimal settings
+	void CreateDLSS(OptimalSettings& settings, DLSSRequirements& reqs);
+
 	// Cleanly shutdown and release all resources
 	void Terminate();
 
@@ -35,10 +47,12 @@ namespace DLSS
 	// Namespace members
 	// 
 	 
-	//NVSDK_NGX_Handle*		m_DLSS_FeatureHandle	= nullptr;
+
+	// Handle to DLSS feature
+	extern NVSDK_NGX_Handle* m_DLSS_FeatureHandle;
 
 	// Handle to D3D
-	extern ID3D12Device*		m_pD3DDevice;
+	extern ID3D12Device* m_pD3DDevice;
 	
 	// Parameters for hardware capabilities and other NGX functionality
 	extern NVSDK_NGX_Parameter*	m_DLSS_Parameters;

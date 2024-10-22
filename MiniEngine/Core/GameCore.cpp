@@ -125,6 +125,7 @@ namespace GameCore
         game.RenderScene();
 
         // [AZB]: Execute DLSS before post-effects per NVIDIA recommendations
+        
         PostEffects::Render();
 
         GraphicsContext& UiContext = GraphicsContext::Begin(L"Render UI");

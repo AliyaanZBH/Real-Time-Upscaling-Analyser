@@ -122,6 +122,15 @@ namespace Graphics
     uint32_t g_DisplayHeight = 1080;
     ColorBuffer g_PreDisplayBuffer;
 
+// [AZB]: Extra values to keep track of DLSS values globally
+#if AZB_MOD
+
+    // [AZB]: These will be evaluated when the swapchain gets created in Display::Initialise(), which is when the DLSS Query will be called
+    uint32_t g_DLSSWidth = 0;
+    uint32_t g_DLSSHeight = 0;
+
+#endif
+
     void ResolutionToUINT(eResolution res, uint32_t& width, uint32_t& height)
     {
         switch (res)
@@ -154,6 +163,7 @@ namespace Graphics
         }
     }
 
+    // [AZB]: Original function for setting the pipeline native resolution
     void SetNativeResolution(void)
     {
         uint32_t NativeWidth, NativeHeight;
@@ -171,6 +181,29 @@ namespace Graphics
 
         InitializeRenderingBuffers(NativeWidth, NativeHeight);
     }
+
+// [AZB]: The new version which passes the value queried from DLSS
+#if AZB_MOD
+    void SetPipelineResolutionDLSS(uint32_t queriedWidth, uint32_t queriedHeight)
+    {
+        if (g_NativeWidth == queriedWidth && g_NativeHeight == queriedHeight)
+            return;
+        // [AZB]: Updating the print statement to signal that DLSS is responsible
+        DEBUGPRINT("Changing native resolution to match DLSS query result %ux%u", queriedWidth, queriedHeight);
+
+        // [AZB]: Still update the existing native global as it may be used in other places of the pipeline that DLSS doesn't touch (e.g. post-effects)
+        g_NativeWidth = queriedWidth;
+        g_NativeHeight = queriedHeight;
+
+        // [AZB]: Also update our DLSS globals
+        g_DLSSWidth = queriedWidth;
+        g_DLSSHeight = queriedHeight;
+
+        g_CommandManager.IdleGPU();
+
+        InitializeRenderingBuffers(queriedWidth, queriedHeight);
+    }
+#endif
 
     void SetDisplayResolution(void)
     {
@@ -352,13 +385,9 @@ void Display::Initialize(void)
 
 #undef CreatePSO
 
-    // [AZB]: This is where native resolution finally gets set so now is a good time to setup DLSS
-    SetNativeResolution();
 
-    g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DisplayWidth, g_DisplayHeight, 1, SwapChainFormat);
-    ImageScaling::Initialize(g_PreDisplayBuffer.GetFormat());
 
-// [AZB]: Continue DLSS intialisation after creating main swap chain and buffers for the app by querying DLSS modes and their optimal settings
+    // [AZB]: Continue DLSS intialisation after creating main swap chain and buffers for the app by querying DLSS modes and their optimal settings
 #if AZB_MOD
 
     // [AZB]: Container that will store results of query that will be needed for DLSS feature creation. By default this will check the balanced setting
@@ -366,9 +395,22 @@ void Display::Initialize(void)
 
     // [AZB]: Query optimal settings based on current native resolution
     DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
-    Utility::Print(L"Pause to test if optimal query worked");
 
+    // [AZB]: Call my version of setNativeRes, which skips reading the displays native resolution
+    SetPipelineResolutionDLSS(dlssSettings.m_RenderWidth, dlssSettings.m_RenderHeight);
+
+    // [AZB]: Also use DLSS resolution when creating the pre-buffer
+    g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DLSSWidth, g_DLSSHeight, 1, SwapChainFormat);
+    ImageScaling::Initialize(g_PreDisplayBuffer.GetFormat());
+
+#else
+    // [AZB]: This is where native resolution gets set originally, we need to override this with DLSS recommended lower resolution
+    SetNativeResolution();
+
+    g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DisplayWidth, g_DisplayHeight, 1, SwapChainFormat);
+    ImageScaling::Initialize(g_PreDisplayBuffer.GetFormat());
 #endif
+
 
 }
 
