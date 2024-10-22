@@ -19,6 +19,7 @@
 /*
    Change Log:
    [AZB] 21/10/24: Began DLSS implementation, getting NGX SDK to properly init
+   [AZB] 22/10/24: DLSS implementation continued, pipeline now rendering at optimal lower resolution for upscaling!
 */
 
 #include "pch.h"

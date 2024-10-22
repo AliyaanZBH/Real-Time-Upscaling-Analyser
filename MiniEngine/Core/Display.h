@@ -46,6 +46,14 @@ namespace Graphics
     extern uint32_t g_DisplayHeight;
     extern bool g_bEnableHDROutput;
 
+#if AZB_MOD
+
+    // [AZB]: These will be evaluated when the swapchain gets created in Display::Initialise(), which is when the DLSS Query will be called
+    extern uint32_t g_DLSSWidth;
+    extern uint32_t g_DLSSHeight;
+
+#endif
+
     // Returns the number of elapsed frames since application start
     uint64_t GetFrameCount(void);
 

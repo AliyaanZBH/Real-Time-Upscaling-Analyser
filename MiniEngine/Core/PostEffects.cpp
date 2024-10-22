@@ -48,6 +48,23 @@
 #include "CompiledShaders/AverageLumaCS.h"
 #include "CompiledShaders/CopyBackPostBufferCS.h"
 
+
+//===============================================================================
+// desc: This is a helper namespace that mainly deals postFX part of the rendering pipeline. DLSS needs to execute first before all of that!
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
+/*
+   Change Log:
+   [AZB] 22/10/24: DLSS implementation continued, attempting to create the feature at start of Render()
+*/
+
+#include "AZB_Utils.h"
+
+#if AZB_MOD
+#include "AZB_DLSS.h"
+#endif
+
 using namespace Graphics;
 
 namespace SSAO
@@ -483,6 +500,20 @@ void PostEffects::Render( void )
     Context.SetRootSignature(PostEffectsRS);
 
     Context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+    // [AZB]: Execute DLSS here before anything else
+#if AZB_MOD
+
+    // [AZB]: Fill in requirements struct ready for the feature creation
+    DLSS::DLSSRequirements reqs;
+
+    reqs.m_pCmdList = Context.GetCommandList();
+    NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, NVSDK_NGX_PerfQuality_Value_Balanced };
+    reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{dlssParams, NVSDK_NGX_DLSS_Feature_Flags_MVJittered } ;
+
+    DLSS::CreateDLSS(reqs);
+#endif
+
 
     if (EnableHDR && !SSAO::DebugDraw && !(DepthOfField::Enable && DepthOfField::DebugMode >= 3))
         ProcessHDR(Context);

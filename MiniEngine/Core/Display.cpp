@@ -21,6 +21,7 @@
    [AZB] 16/10/24: Tweaked swapchain data to allow it to be accessed by ImGui
    [AZB] 21/10/24: Passing DLSS into this namespace as part of preliminary integration into rendering pipeline.
    [AZB] 22/10/24: Querying DLSS optimal settings to begin feature creation
+   [AZB] 22/10/24: DLSS implementation continued, pipeline now rendering at optimal lower resolution for upscaling!
 */
 
 #include "pch.h"
@@ -46,7 +47,6 @@
 // [AZB]: Custom includes and macro mods
 //
 
-#include "AZB_Utils.h"
 #if AZB_MOD
 #include "AZB_DLSS.h"
 #endif
@@ -86,7 +86,7 @@ namespace
     uint64_t s_FrameIndex = 0;
     int64_t s_FrameStartTick = 0;
 
-    BoolVar s_EnableVSync("Timing/VSync", true);
+    BoolVar s_EnableVSync("Timing/VSync", false);
     BoolVar s_LimitTo30Hz("Timing/Limit To 30Hz", false);
     BoolVar s_DropRandomFrames("Timing/Drop Random Frames", false);
 }
