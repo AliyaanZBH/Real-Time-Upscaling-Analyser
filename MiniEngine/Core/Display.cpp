@@ -257,8 +257,22 @@ void Display::Resize(uint32_t width, uint32_t height)
 
     DEBUGPRINT("Changing display resolution to %ux%u", width, height);
 
-    g_PreDisplayBuffer.Create(L"PreDisplay Buffer", width, height, 1, SwapChainFormat);
+// [AZB]: Requery DLSS - repeat steps in Initialise()
+#if AZB_MOD
 
+    DLSS::OptimalSettings dlssSettings;
+    DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
+    SetPipelineResolutionDLSS(dlssSettings.m_RenderWidth, dlssSettings.m_RenderHeight);
+
+    // [AZB]: Recreate this buffer with DLSS data
+    g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DLSSWidth, g_DLSSHeight, 1, SwapChainFormat);
+
+#else
+    // [AZB]: Original pre-buffer creation
+    g_PreDisplayBuffer.Create(L"PreDisplay Buffer", width, height, 1, SwapChainFormat);
+#endif
+
+    // [AZB]: Continue with regular swap chain creation, this should be unaffected by DLSS as it our render targets will eventually upscale up to here
     for (uint32_t i = 0; i < SWAP_CHAIN_BUFFER_COUNT; ++i)
         g_DisplayPlane[i].Destroy();
 
@@ -269,6 +283,7 @@ void Display::Resize(uint32_t width, uint32_t height)
     {
         ComPtr<ID3D12Resource> DisplayPlane;
         ASSERT_SUCCEEDED(s_SwapChain1->GetBuffer(i, MY_IID_PPV_ARGS(&DisplayPlane)));
+        // [AZB]: This does not need to match DLSS as it should match the display buffer
         g_DisplayPlane[i].CreateFromSwapChain(L"Primary SwapChain Buffer", DisplayPlane.Detach());
     }
 
@@ -276,6 +291,7 @@ void Display::Resize(uint32_t width, uint32_t height)
 
     g_CommandManager.IdleGPU();
 
+    // [AZB]: This does not need to match DLSS as it should match the display buffer
     ResizeDisplayDependentBuffers(g_NativeWidth, g_NativeHeight);
 }
 
@@ -387,7 +403,7 @@ void Display::Initialize(void)
 
 
 
-    // [AZB]: Continue DLSS intialisation after creating main swap chain and buffers for the app by querying DLSS modes and their optimal settings
+// [AZB]: Continue DLSS intialisation after creating main swap chain by querying DLSS modes and their optimal settings to determine the resolution of our render targets
 #if AZB_MOD
 
     // [AZB]: Container that will store results of query that will be needed for DLSS feature creation. By default this will check the balanced setting
@@ -604,8 +620,15 @@ void Display::Present(void)
     ++s_FrameIndex;
 
     TemporalEffects::Update((uint32_t)s_FrameIndex);
+    
+#if AZB_MOD
+    // [AZB]: Resize according to DLSS
+    SetPipelineResolutionDLSS(g_DLSSWidth, g_DLSSHeight);
+#else
 
+    // [AZB]: Original call here to resize internal rendering resolution
     SetNativeResolution();
+#endif
     SetDisplayResolution();
 }
 

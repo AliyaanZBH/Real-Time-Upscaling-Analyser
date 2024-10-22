@@ -129,7 +129,7 @@ namespace GameCore
         PostEffects::Render();
 
         GraphicsContext& UiContext = GraphicsContext::Begin(L"Render UI");
-        UiContext.TransitionResource(g_OverlayBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+        //UiContext.TransitionResource(g_OverlayBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
         UiContext.ClearColor(g_OverlayBuffer);
         UiContext.SetRenderTarget(g_OverlayBuffer.GetRTV());
         UiContext.SetViewportAndScissor(0, 0, g_OverlayBuffer.GetWidth(), g_OverlayBuffer.GetHeight());
@@ -152,13 +152,14 @@ namespace GameCore
 
         // [AZB]: Setup ImGui buffer using the GraphicsContext API
         GraphicsContext& ImGuiContext = GraphicsContext::Begin(L"Render ImGui");
-        ImGuiContext.TransitionResource(g_ImGuiBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+        //ImGuiContext.TransitionResource(g_ImGuiBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
         ImGuiContext.ClearColor(g_ImGuiBuffer);
         // [AZB]: Using the overlay buffer render target - can't use the one from g_imGuiBuffer
         ImGuiContext.SetRenderTarget(g_OverlayBuffer.GetRTV());
         ImGuiContext.SetViewportAndScissor(0, 0, g_ImGuiBuffer.GetWidth(), g_ImGuiBuffer.GetHeight());
 
         ImGuiContext.GetCommandList()->SetDescriptorHeaps(1, &AZB_GUI->m_pSrvDescriptorHeap);
+        //ImGuiContext.GetCommandList()->SetPipelineState()
 
         ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), ImGuiContext.GetCommandList());
 
