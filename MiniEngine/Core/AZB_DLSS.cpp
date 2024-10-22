@@ -7,11 +7,15 @@
 #include "nvsdk_ngx_helpers.h"
 
 namespace DLSS {
+	ID3D12Device* m_pD3DDevice = nullptr;
 	NVSDK_NGX_Parameter* m_DLSS_Parameters = nullptr;
 }
 
 void DLSS::Init(ID3D12Device* device, IDXGIAdapter* Adapter)
 {
+	// Set up device pointer as we may need it later e.g. for shutdown
+	m_pD3DDevice = device;
+
 	// Contains information common to all NGX Features - required for Feature discovery, Initialization and Logging
 	NVSDK_NGX_FeatureDiscoveryInfo FeatureDiscoveryInfo;
 
@@ -49,7 +53,12 @@ void DLSS::Init(ID3D12Device* device, IDXGIAdapter* Adapter)
 		// Init NGX!
 		NVSDK_NGX_D3D12_Init(12345678910112021, appDataPath, device);
 	else
+	{
+		// Either we're not on an RTX card OR the dll file is likely missing. 
+		Utility::Print("\nNVIDIA DLSS not implemented - have you got the right hardware and software?\n\n");
+		// Exit early to avoid undefined behaviour in further checks
 		return;
+	}
 
 	// Secondary runtime check after device and NGX init
 	// Successful initialization of the NGX SDK instance indicates that the target system is capable of running NGX features. However, each feature can have additional dependencies
@@ -143,5 +152,5 @@ void DLSS::Terminate()
 	m_DLSS_Parameters = nullptr;
 
 	// Shutdown NGX Cleanly
-	NVSDK_NGX_D3D12_Shutdown();
+	NVSDK_NGX_D3D12_Shutdown1(m_pD3DDevice);
 }

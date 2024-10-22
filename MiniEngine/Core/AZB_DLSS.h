@@ -17,5 +17,6 @@ namespace DLSS
 	void Terminate();
 
 	//NVSDK_NGX_Handle*		m_DLSS_FeatureHandle	= nullptr;
+	extern ID3D12Device*		m_pD3DDevice;
 	extern NVSDK_NGX_Parameter*	m_DLSS_Parameters;
 };
