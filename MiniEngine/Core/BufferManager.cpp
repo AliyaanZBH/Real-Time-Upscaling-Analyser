@@ -244,12 +244,13 @@ void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t buffer
             g_GenMipsBuffer.Create(L"GenMips", bufferWidth, bufferHeight, 0, DXGI_FORMAT_R11G11B10_FLOAT, esram );
         esram.PopStack();
 
-        g_OverlayBuffer.Create( L"UI Overlay", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R8G8B8A8_UNORM, esram );
+        // [AZB]: Changed this format to match ImGui as we are using the render target here. Was previously R8G8B8A8_UNORM
+        g_OverlayBuffer.Create( L"UI Overlay", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R10G10B10A2_UNORM, esram );
         g_HorizontalBuffer.Create( L"Bicubic Intermediate", g_DisplayWidth, bufferHeight, 1, DefaultHdrColorFormat, esram );
 
 #if AZB_MOD
         // [AZB]: Create a buffer for ImGui
-        g_ImGuiBuffer.Create(L"ImGui Heap", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R8G8B8A8_UNORM, esram);
+        g_ImGuiBuffer.Create(L"ImGui Heap", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R10G10B10A2_UNORM, esram);
 #endif
 
     esram.PopStack(); // End final image
@@ -260,12 +261,12 @@ void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t buffer
 void Graphics::ResizeDisplayDependentBuffers(uint32_t NativeWidth, uint32_t NativeHeight)
 {
     (NativeWidth);
-    g_OverlayBuffer.Create( L"UI Overlay", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R8G8B8A8_UNORM );
+    g_OverlayBuffer.Create( L"UI Overlay", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R10G10B10A2_UNORM);
     g_HorizontalBuffer.Create( L"Bicubic Intermediate", g_DisplayWidth, NativeHeight, 1, DefaultHdrColorFormat );
 
 #if AZB_MOD
     // [AZB]: ImGui may need resizing
-    g_ImGuiBuffer.Create(L"ImGui Heap", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
+    g_ImGuiBuffer.Create(L"ImGui Heap", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R10G10B10A2_UNORM);
 #endif
 
 }
