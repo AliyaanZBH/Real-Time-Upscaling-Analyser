@@ -37,6 +37,7 @@ namespace Graphics
     ColorBuffer g_SceneColorBuffer;
     ColorBuffer g_SceneNormalBuffer;
     ColorBuffer g_PostEffectsBuffer;
+    // [AZB]: Motion vectors live here!
     ColorBuffer g_VelocityBuffer;
     ColorBuffer g_OverlayBuffer;
     ColorBuffer g_HorizontalBuffer;

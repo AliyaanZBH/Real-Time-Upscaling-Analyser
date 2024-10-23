@@ -27,8 +27,9 @@ void DLSS::Init(ID3D12Device* device, IDXGIAdapter* Adapter)
 	NVSDK_NGX_Application_Identifier appID = { NVSDK_NGX_Application_Identifier_Type_Application_Id,  projectDesc };
 
 	// Another couple setup structs, used to find fallback paths for DLSS DLL and more
-	wchar_t const* dlssPath = L"../\../\ThirdParty/\DLSS/\lib/\dev";
-	const wchar_t* appDataPath = L"C:/\ProgramData/\RTUA/\DLSS_Data";
+	wchar_t const* dlssPath = L"./../../ThirdParty/DLSS/lib/dev/";
+	//const wchar_t* appDataPath = L"C:/\ProgramData/\RTUA/\DLSS_Data";
+	const wchar_t* appDataPath = L"./../../DLSS_Data/";
 
 
 	NVSDK_NGX_PathListInfo pathListInfo = { &dlssPath, 1 };
@@ -177,7 +178,6 @@ void DLSS::Create(CreationRequirements& reqs)
 	// - Create feature with RecommendedOptimalRenderWidth, RecommendedOptimalRenderHeight
 	// - Render to (RenderWidth, RenderHeight)
 	// - Call DLSS to upscale to (TargetWidth, TargetHeight)
-
 
 	NVSDK_NGX_Result ret = NGX_D3D12_CREATE_DLSS_EXT(reqs.m_pCmdList, 0, 0, &m_DLSS_FeatureHandle, m_DLSS_Parameters, &reqs.m_DlSSCreateParams);
 	if (NVSDK_NGX_FAILED(ret))

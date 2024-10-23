@@ -20,6 +20,7 @@
    Change Log:
    [AZB] 21/10/24: Began DLSS implementation, getting NGX SDK to properly init
    [AZB] 22/10/24: DLSS implementation continued, pipeline now rendering at optimal lower resolution for upscaling!
+   [AZB] 23/10/24: Fixed bug where DLSS was being Init multiple times due to iGPU and APUs
    [AZB] 23/10/24: Moved DLSS feature creation outside of display initialisation
 */
 
@@ -267,7 +268,10 @@ void Graphics::Initialize(bool RequireDXRSupport)
     if (!bUseWarpDriver)
     {
         SIZE_T MaxSize = 0;
-
+#if AZB_MOD
+        // [AZB]: We need the device to init DLSS, but we only have access to it within the upcoming loop. Create a flag to ensure the SDK only gets init once - ignoring iGPUs or APUs
+        bool isDLSSInit = false;
+#endif
         for (uint32_t Idx = 0; DXGI_ERROR_NOT_FOUND != dxgiFactory->EnumAdapters1(Idx, &pAdapter); ++Idx)
         {
             DXGI_ADAPTER_DESC1 desc;
@@ -301,8 +305,13 @@ void Graphics::Initialize(bool RequireDXRSupport)
             g_Device = pDevice.Detach();
 
 #if AZB_MOD
-            // [AZB]: Init DLSS with this device and pass adapter to query hardware first
-            DLSS::Init(g_Device, pAdapter.Get());
+            if (!isDLSSInit)
+            {
+                // [AZB]: Init DLSS with this device and pass adapter to query hardware first
+                DLSS::Init(g_Device, pAdapter.Get());
+                // [AZB]: Flip our dirty flag to ensure we don't try to init the SDK again, which would effectively de-init DLSS!
+                isDLSSInit = true;
+            }
 #endif
 
             Utility::Printf(L"Selected GPU:  %s (%u MB)\n", desc.Description, desc.DedicatedVideoMemory >> 20);
@@ -459,7 +468,7 @@ void Graphics::Initialize(bool RequireDXRSupport)
     reqs.m_pCmdList = Context.GetCommandList();
 
     NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, NVSDK_NGX_PerfQuality_Value_Balanced };
-    reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_MVJittered };
+    reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_AutoExposure };
     DLSS::Create(reqs);
 
     Context.Finish();
