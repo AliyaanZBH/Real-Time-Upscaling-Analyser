@@ -269,8 +269,10 @@ void Graphics::Initialize(bool RequireDXRSupport)
     {
         SIZE_T MaxSize = 0;
 #if AZB_MOD
-        // [AZB]: We need the device to init DLSS, but we only have access to it within the upcoming loop. Create a flag to ensure the SDK only gets init once - ignoring iGPUs or APUs
-        bool isDLSSInit = false;
+        // [AZB]: We need the adapter to query for NXG, but we only have access to it within the upcoming loop. Create a flag to ensure the SDK only gets queried once - ignoring iGPUs or APUs
+        // [AZB]: IMPORTANT: This was causing alot of issues for me as my GPU was appearing twice in the list and the device was being created and deleted after NGX init.
+        //        The cause was identified as Parsec! It had created a Virtual Adapter, which I was able to uninstall in device manager. Something to check if things break!
+        bool isNGXQueried = false;
 #endif
         for (uint32_t Idx = 0; DXGI_ERROR_NOT_FOUND != dxgiFactory->EnumAdapters1(Idx, &pAdapter); ++Idx)
         {
@@ -305,12 +307,12 @@ void Graphics::Initialize(bool RequireDXRSupport)
             g_Device = pDevice.Detach();
 
 #if AZB_MOD
-            if (!isDLSSInit)
+            if (!isNGXQueried)
             {
-                // [AZB]: Init DLSS with this device and pass adapter to query hardware first
-                DLSS::Init(g_Device, pAdapter.Get());
-                // [AZB]: Flip our dirty flag to ensure we don't try to init the SDK again, which would effectively de-init DLSS!
-                isDLSSInit = true;
+                // [AZB]: Query for hardware for NGX capability with the current adapter query hardware first
+                DLSS::QueryFeatureRequirements(pAdapter.Get());
+                // [AZB]: Flip our dirty flag to ensure we don't try to query the SDK again, which would lead to the query failing (due to not being an RTX adapter), which would effectively de-init DLSS!
+                isNGXQueried = true;
             }
 #endif
 
@@ -449,6 +451,8 @@ void Graphics::Initialize(bool RequireDXRSupport)
 
     // [AZB]: As the swap chain and other buffers are created here, DLSS first queries for optimal render resolution here too
     //        However, in order to create DLSS, the rest of the engine must initalise first, so it is postponed until slightly later
+        // [AZB]: Init DLSS with the global device
+    DLSS::Init(g_Device);
     Display::Initialize();
 
     GpuTimeManager::Initialize(4096);
@@ -461,6 +465,9 @@ void Graphics::Initialize(bool RequireDXRSupport)
 
 #if AZB_MOD    // [AZB]: Now we can create DLSS
     
+    // [AZB]: Init DLSS with the global device
+    //DLSS::Init(g_Device);
+
     // [AZB]: Create context for DLSS as we need to grab a command list and pass motion vector data etc.
     GraphicsContext& Context = GraphicsContext::Begin(L"DLSS Creation");
     // [AZB]: Fill in requirements struct ready for the feature creation
@@ -469,7 +476,6 @@ void Graphics::Initialize(bool RequireDXRSupport)
 
     NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, NVSDK_NGX_PerfQuality_Value_Balanced };
     reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_AutoExposure };
-    DLSS::SetD3DDevice(g_Device);
     DLSS::Create(reqs);
 
     Context.Finish();

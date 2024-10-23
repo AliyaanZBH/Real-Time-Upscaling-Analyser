@@ -38,8 +38,11 @@ namespace DLSS
 		NVSDK_NGX_D3D12_DLSS_Eval_Params m_DlSSEvalParams;	// Actual necessary date (e.g. Motion Vectors) are contained in here
 	};
 
-	// Initialise NDX and query for DLSS capability
-	void Init(ID3D12Device* device, IDXGIAdapter* Adapter);
+	// Query for NGX capabilities - ensuring that DLSS is possible on this device!
+	void QueryFeatureRequirements(IDXGIAdapter* Adapter);
+
+	// Initialise NDX
+	void Init(ID3D12Device* device);
 
 	// Query optimal resolution settings for a given DLSS Mode
 	void QueryOptimalSettings(const int targetWidth, const int targetHeight, OptimalSettings& settings);
@@ -75,5 +78,9 @@ namespace DLSS
 	// Array indices map to DLSS modes e.g. 0 = MaxPerformance etc
 	extern std::array<OptimalSettings, 5> m_DLSS_Modes;
 
+	// Flag that is determined by feauture capability query
+	extern bool m_bIsNGXSupported;
 
+	// Place to store debug logs from NGX
+	extern const wchar_t* m_AppDataPath;
 };

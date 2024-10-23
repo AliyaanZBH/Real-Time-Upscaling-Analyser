@@ -12,13 +12,13 @@ namespace DLSS
 	NVSDK_NGX_Handle* m_DLSS_FeatureHandle = nullptr;
 	NVSDK_NGX_Parameter* m_DLSS_Parameters = nullptr;
 	std::array<OptimalSettings, 5> m_DLSS_Modes = {};
+
+	const wchar_t* m_AppDataPath = L"./../../DLSS_Data/";
+	bool m_bIsNGXSupported = false;
 }
 
-void DLSS::Init(ID3D12Device* device, IDXGIAdapter* Adapter)
+void DLSS::QueryFeatureRequirements(IDXGIAdapter* Adapter)
 {
-	// Set up device pointer as we may need it later e.g. for shutdown
-	m_pD3DDevice = device;
-
 	// Contains information common to all NGX Features - required for Feature discovery, Initialization and Logging
 	NVSDK_NGX_FeatureDiscoveryInfo FeatureDiscoveryInfo;
 
@@ -28,9 +28,6 @@ void DLSS::Init(ID3D12Device* device, IDXGIAdapter* Adapter)
 
 	// Another couple setup structs, used to find fallback paths for DLSS DLL and more
 	wchar_t const* dlssPath = L"./../../ThirdParty/DLSS/lib/dev/";
-	//const wchar_t* appDataPath = L"C:/\ProgramData/\RTUA/\DLSS_Data";
-	const wchar_t* appDataPath = L"./../../DLSS_Data/";
-
 
 	NVSDK_NGX_PathListInfo pathListInfo = { &dlssPath, 1 };
 	NVSDK_NGX_FeatureCommonInfo ftInfo = { pathListInfo };
@@ -40,7 +37,7 @@ void DLSS::Init(ID3D12Device* device, IDXGIAdapter* Adapter)
 	FeatureDiscoveryInfo.FeatureID = NVSDK_NGX_Feature_SuperSampling;	// This is DLSS!
 	FeatureDiscoveryInfo.Identifier = appID;
 
-	FeatureDiscoveryInfo.ApplicationDataPath = appDataPath;
+	FeatureDiscoveryInfo.ApplicationDataPath = m_AppDataPath;
 	FeatureDiscoveryInfo.FeatureInfo = &ftInfo;
 
 
@@ -54,17 +51,33 @@ void DLSS::Init(ID3D12Device* device, IDXGIAdapter* Adapter)
 
 	// Assert that ret != fail
 	if (NVSDK_NGX_SUCCEED(ret))
-		// Init NGX!
-		NVSDK_NGX_D3D12_Init(12345678910112021, appDataPath, device);
+		// Set flag to indicate this device is NGX capable, ready to init and create features!
+		m_bIsNGXSupported = true;
 	else
+		// Either we're not on an RTX card OR the dll file could be missing. 
+		Utility::Print("\nNVIDIA DLSS not supported - have you got the right hardware and software?\n\n");
+}
+
+
+void DLSS::Init(ID3D12Device* device)
+{
+	NVSDK_NGX_Result ret;
+
+	// Set up device pointer as we may need it later e.g. for shutdown
+	m_pD3DDevice = device;
+	// Check our flag based on the earlier query!
+	if (m_bIsNGXSupported)
 	{
-		// Either we're not on an RTX card OR the dll file is likely missing. 
-		Utility::Print("\nNVIDIA DLSS not implemented - have you got the right hardware and software?\n\n");
-		// Exit early to avoid undefined behaviour in further checks
-		return;
+		// Init NGX!
+		ret = NVSDK_NGX_D3D12_Init(12345678910112021, m_AppDataPath, m_pD3DDevice);
+		if (NVSDK_NGX_FAILED(ret))
+			Utility::Print("\nNGX Failed to init, check D3D device!\n\n");
 	}
 
-	// Secondary runtime check after device and NGX init
+
+	//
+
+	// Secondary runtime check specifically for DLSS after device and NGX init
 	// Successful initialization of the NGX SDK instance indicates that the target system is capable of running NGX features. However, each feature can have additional dependencies
 
 	int DLSS_Supported = 0;
@@ -181,7 +194,7 @@ void DLSS::Create(CreationRequirements& reqs)
 
 	
 	// Supposedly device could not be found
-	NVSDK_NGX_Result ret = NGX_D3D12_CREATE_DLSS_EXT(reqs.m_pCmdList, 0, 0, &m_DLSS_FeatureHandle, m_DLSS_Parameters, &reqs.m_DlSSCreateParams);
+	NVSDK_NGX_Result ret = NGX_D3D12_CREATE_DLSS_EXT(reqs.m_pCmdList, 1, 1, &m_DLSS_FeatureHandle, m_DLSS_Parameters, &reqs.m_DlSSCreateParams);
 	if (NVSDK_NGX_FAILED(ret))
 		Utility::Print("\nDLSS could not be created - something is not integrated correctly within the rendering pipeline\n\n");
 
