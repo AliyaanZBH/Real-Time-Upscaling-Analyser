@@ -504,14 +504,7 @@ void PostEffects::Render( void )
     // [AZB]: Execute DLSS here before anything else
 #if AZB_MOD
 
-    // [AZB]: Fill in requirements struct ready for the feature creation
-    DLSS::DLSSRequirements reqs;
-
-    reqs.m_pCmdList = Context.GetCommandList();
-    NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, NVSDK_NGX_PerfQuality_Value_Balanced };
-    reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{dlssParams, NVSDK_NGX_DLSS_Feature_Flags_MVJittered } ;
-
-    DLSS::CreateDLSS(reqs);
+    //DLSS::Execute();
 #endif
 
 

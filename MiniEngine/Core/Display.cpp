@@ -415,6 +415,16 @@ void Display::Initialize(void)
     // [AZB]: Call my version of setNativeRes, which skips reading the displays native resolution
     SetPipelineResolutionDLSS(dlssSettings.m_RenderWidth, dlssSettings.m_RenderHeight);
 
+    // [AZB]: Fill in requirements struct ready for the feature creation
+    DLSS::CreationRequirements reqs;
+    //reqs.m_pCmdList = Context.GetCommandList();
+
+   // reqs.m_pCmdList = g_CommandManager.GetCommandQueue();
+    NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, NVSDK_NGX_PerfQuality_Value_Balanced };
+    reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_MVJittered };
+
+    //DLSS::Create(reqs);
+
     // [AZB]: Also use DLSS resolution when creating the pre-buffer
     g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DLSSWidth, g_DLSSHeight, 1, SwapChainFormat);
     ImageScaling::Initialize(g_PreDisplayBuffer.GetFormat());
@@ -525,6 +535,12 @@ void Graphics::PreparePresentSDR(void)
     {
         Context.TransitionResource(g_OverlayBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         Context.SetDynamicDescriptor(0, 1, g_OverlayBuffer.GetSRV());
+
+#if AZB_MOD
+        // [AZB]: Repeat for ImGuiBuffer
+        Context.TransitionResource(g_ImGuiBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        Context.SetDynamicDescriptor(0, 1, g_ImGuiBuffer.GetSRV());
+#endif
         Context.SetPipelineState(NeedsScaling ? ScaleAndCompositeSDRPS : CompositeSDRPS);
         Context.SetConstants(1, 0.7071f / g_NativeWidth, 0.7071f / g_NativeHeight);
         Context.TransitionResource(g_DisplayPlane[g_CurrentBuffer], D3D12_RESOURCE_STATE_RENDER_TARGET);

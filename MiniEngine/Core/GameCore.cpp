@@ -153,13 +153,19 @@ namespace GameCore
         // [AZB]: Setup ImGui buffer using the GraphicsContext API
         GraphicsContext& ImGuiContext = GraphicsContext::Begin(L"Render ImGui");
         ImGuiContext.TransitionResource(g_ImGuiBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+        
+        // [AZB]: This also calls ClearRTV()
         ImGuiContext.ClearColor(g_ImGuiBuffer);
+
         // [AZB]: Using the overlay buffer render target - can't use the one from g_ImGuiBuffer
-        ImGuiContext.SetRenderTarget(g_OverlayBuffer.GetRTV());
+        ImGuiContext.SetRenderTarget(g_ImGuiBuffer.GetRTV());
         ImGuiContext.SetViewportAndScissor(0, 0, g_ImGuiBuffer.GetWidth(), g_ImGuiBuffer.GetHeight());
 
         // [AZB]: Set the descriptor heap that we set up in the GUI class
         ImGuiContext.GetCommandList()->SetDescriptorHeaps(1, &AZB_GUI->m_pSrvDescriptorHeap);
+        //ImGuiContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, AZB_GUI->m_pSrvDescriptorHeap);
+        
+        // [AZB]: Use the ImGui draw call
         ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), ImGuiContext.GetCommandList());
 
         // [AZB]: This will execute and then close the command list and do some other super optimal context flushing

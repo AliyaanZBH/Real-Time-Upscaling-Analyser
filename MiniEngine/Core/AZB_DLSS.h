@@ -22,7 +22,7 @@ namespace DLSS
 	};
 
 	// Data required by DLSS to create the feature
-	struct DLSSRequirements
+	struct CreationRequirements
 	{
 		ID3D12GraphicsCommandList* m_pCmdList;
 		unsigned int m_InCreationNodeMask = 1;					// These only matter for Multi GPU (default 1)
@@ -30,6 +30,12 @@ namespace DLSS
 		NVSDK_NGX_DLSS_Create_Params m_DlSSCreateParams;
 		NVSDK_NGX_D3D12_DLSS_Eval_Params m_DlSSEvalParams;	// Actual necessary date (e.g. Motion Vectors) are contained in here
 
+	};
+
+	struct ExecutionRequirements
+	{
+		ID3D12GraphicsCommandList* m_pCmdList;
+		NVSDK_NGX_D3D12_DLSS_Eval_Params m_DlSSEvalParams;	// Actual necessary date (e.g. Motion Vectors) are contained in here
 	};
 
 	// Initialise NDX and query for DLSS capability
@@ -42,7 +48,9 @@ namespace DLSS
 	void PreQueryAllSettings(const int targetWidth, const int targetHeight);
 
 	// Create DLSS feature using the optimal settings
-	void CreateDLSS(DLSSRequirements& reqs);
+	void Create(CreationRequirements& reqs);
+
+	void Execute(ExecutionRequirements& params);
 
 	// Cleanly shutdown and release all resources
 	void Terminate();

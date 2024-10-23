@@ -171,19 +171,24 @@ void DLSS::PreQueryAllSettings(const int targetWidth, const int targetHeight)
 	}
 }
 
-void DLSS::CreateDLSS(DLSSRequirements& reqs)
+void DLSS::Create(CreationRequirements& reqs)
 {
 	// Use DLSS for this combination
 	// - Create feature with RecommendedOptimalRenderWidth, RecommendedOptimalRenderHeight
 	// - Render to (RenderWidth, RenderHeight)
 	// - Call DLSS to upscale to (TargetWidth, TargetHeight)
-	
+
 
 	NVSDK_NGX_Result ret = NGX_D3D12_CREATE_DLSS_EXT(reqs.m_pCmdList, 0, 0, &m_DLSS_FeatureHandle, m_DLSS_Parameters, &reqs.m_DlSSCreateParams);
 	if (NVSDK_NGX_FAILED(ret))
 		Utility::Print("\nDLSS could not be created - something is not integrated correctly within the rendering pipeline\n\n");
 
-	ret = NGX_D3D12_EVALUATE_DLSS_EXT(reqs.m_pCmdList, m_DLSS_FeatureHandle, m_DLSS_Parameters, &reqs.m_DlSSEvalParams);
+}
+
+void DLSS::Execute(ExecutionRequirements& params)
+{
+
+	NVSDK_NGX_Result ret = NGX_D3D12_EVALUATE_DLSS_EXT(params.m_pCmdList, m_DLSS_FeatureHandle, m_DLSS_Parameters, &params.m_DlSSEvalParams);
 	if (NVSDK_NGX_FAILED(ret))
 		Utility::Print("\nDLSS could not be evaluated - something is not integrated correctly within the rendering pipeline\n\n");
 }
