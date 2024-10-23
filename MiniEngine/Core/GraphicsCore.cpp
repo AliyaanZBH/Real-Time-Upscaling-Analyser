@@ -469,6 +469,7 @@ void Graphics::Initialize(bool RequireDXRSupport)
 
     NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, NVSDK_NGX_PerfQuality_Value_Balanced };
     reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_AutoExposure };
+    DLSS::SetD3DDevice(g_Device);
     DLSS::Create(reqs);
 
     Context.Finish();

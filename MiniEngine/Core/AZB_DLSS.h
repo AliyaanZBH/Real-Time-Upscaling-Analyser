@@ -52,6 +52,8 @@ namespace DLSS
 
 	void Execute(ExecutionRequirements& params);
 
+	void SetD3DDevice(ID3D12Device* device);
+
 	// Cleanly shutdown and release all resources
 	void Terminate();
 
