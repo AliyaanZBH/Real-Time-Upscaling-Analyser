@@ -27,6 +27,11 @@
 #include "GraphicsCore.h"
 #include <vector>
 
+//===============================================================================
+// desc: This is a collection of helpers that allows for graphics context control.
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
 class ColorBuffer;
 class DepthBuffer;
 class Texture;

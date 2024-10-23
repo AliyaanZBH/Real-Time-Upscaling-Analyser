@@ -20,6 +20,7 @@
    Change Log:
    [AZB] 21/10/24: Began DLSS implementation, getting NGX SDK to properly init
    [AZB] 22/10/24: DLSS implementation continued, pipeline now rendering at optimal lower resolution for upscaling!
+   [AZB] 23/10/24: Moved DLSS feature creation outside of display initialisation
 */
 
 #include "pch.h"
@@ -437,6 +438,8 @@ void Graphics::Initialize(bool RequireDXRSupport)
     // Common state was moved to GraphicsCommon.*
     InitializeCommonState();
 
+    // [AZB]: As the swap chain and other buffers are created here, DLSS first queries for optimal render resolution here too
+    //        However, in order to create DLSS, the rest of the engine must initalise first, so it is postponed until slightly later
     Display::Initialize();
 
     GpuTimeManager::Initialize(4096);
@@ -446,6 +449,22 @@ void Graphics::Initialize(bool RequireDXRSupport)
     TextRenderer::Initialize();
     GraphRenderer::Initialize();
     ParticleEffectManager::Initialize(3840, 2160);
+
+#if AZB_MOD    // [AZB]: Now we can create DLSS
+    
+    // [AZB]: Create context for DLSS as we need to grab a command list and pass motion vector data etc.
+    GraphicsContext& Context = GraphicsContext::Begin(L"DLSS Creation");
+    // [AZB]: Fill in requirements struct ready for the feature creation
+    DLSS::CreationRequirements reqs;
+    reqs.m_pCmdList = Context.GetCommandList();
+
+    NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, NVSDK_NGX_PerfQuality_Value_Balanced };
+    reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_MVJittered };
+    DLSS::Create(reqs);
+
+    Context.Finish();
+
+#endif
 }
 
 void Graphics::Shutdown( void )

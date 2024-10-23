@@ -22,6 +22,7 @@
    [AZB] 21/10/24: Passing DLSS into this namespace as part of preliminary integration into rendering pipeline.
    [AZB] 22/10/24: Querying DLSS optimal settings to begin feature creation
    [AZB] 22/10/24: DLSS implementation continued, pipeline now rendering at optimal lower resolution for upscaling!
+   [AZB] 23/10/24: DLSS creation continued, decided it was more appropriate to postpone creation until after the rest of the engine is initalised as GraphicsContext requires some timing to be setup
 */
 
 #include "pch.h"
@@ -422,15 +423,8 @@ void Display::Initialize(void)
     // [AZB]: Call my version of setNativeRes, which skips reading the displays native resolution
     SetPipelineResolutionDLSS(dlssSettings.m_RenderWidth, dlssSettings.m_RenderHeight);
 
-    // [AZB]: Fill in requirements struct ready for the feature creation
-    DLSS::CreationRequirements reqs;
-    //reqs.m_pCmdList = Context.GetCommandList();
-
-   // reqs.m_pCmdList = g_CommandManager.GetCommandQueue();
-    NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, NVSDK_NGX_PerfQuality_Value_Balanced };
-    reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_MVJittered };
-
-    //DLSS::Create(reqs);
+    // [AZB]: At this point we could create DLSS however we can't create a graphics context just yet as the rest of the engine needs to initalise first. 
+    //        DLSS creation is therefore postponed until after these steps.
 
     // [AZB]: Also use DLSS resolution when creating the pre-buffer
     g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DLSSWidth, g_DLSSHeight, 1, SwapChainFormat);
