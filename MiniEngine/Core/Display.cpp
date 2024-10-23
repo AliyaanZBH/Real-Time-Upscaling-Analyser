@@ -86,7 +86,14 @@ namespace
     uint64_t s_FrameIndex = 0;
     int64_t s_FrameStartTick = 0;
 
-    BoolVar s_EnableVSync("Timing/VSync", false);
+    // [AZB]: TODO Figure out how to correctly disable VSync!
+    // 
+    // [AZB]: We need VSync disabled in the final app but this is not (atleast not the ONLY) place to change it
+    //        When this is set to false, we get a warning from D3D: 
+    //          D3D12 WARNING: ID3D12CommandList::Dispatch: No threads will be dispatched, because at least one of {ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ} is 0.
+    //          [ EXECUTION WARNING #1254: EMPTY_DISPATCH]
+
+    BoolVar s_EnableVSync("Timing/VSync", true);
     BoolVar s_LimitTo30Hz("Timing/Limit To 30Hz", false);
     BoolVar s_DropRandomFrames("Timing/Drop Random Frames", false);
 }
