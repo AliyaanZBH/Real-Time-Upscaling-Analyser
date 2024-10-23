@@ -533,14 +533,17 @@ void Graphics::PreparePresentSDR(void)
     // On Windows, prefer scaling and compositing in one step via pixel shader
     if (DebugZoom == kDebugZoomOff && (UpsampleFilter == kSharpening || !NeedsScaling))
     {
+//#if AZB_MOD
+//        // [AZB]: Set both imgui buffer and existing UI buffer descriptors
+//        Context.TransitionResource(g_OverlayBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+//        Context.TransitionResource(g_ImGuiBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+//        const D3D12_CPU_DESCRIPTOR_HANDLE handles[] = { g_OverlayBuffer.GetSRV(), g_ImGuiBuffer.GetSRV() };
+//        Context.SetDynamicDescriptors(0, 1, 2, handles);
+//#else
+        // [AZB]: Original descriptor set for UI overlay
         Context.TransitionResource(g_OverlayBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         Context.SetDynamicDescriptor(0, 1, g_OverlayBuffer.GetSRV());
-
-#if AZB_MOD
-        // [AZB]: Repeat for ImGuiBuffer
-        Context.TransitionResource(g_ImGuiBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        Context.SetDynamicDescriptor(0, 1, g_ImGuiBuffer.GetSRV());
-#endif
+//#endif
         Context.SetPipelineState(NeedsScaling ? ScaleAndCompositeSDRPS : CompositeSDRPS);
         Context.SetConstants(1, 0.7071f / g_NativeWidth, 0.7071f / g_NativeHeight);
         Context.TransitionResource(g_DisplayPlane[g_CurrentBuffer], D3D12_RESOURCE_STATE_RENDER_TARGET);

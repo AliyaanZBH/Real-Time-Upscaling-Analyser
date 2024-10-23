@@ -158,8 +158,8 @@ namespace GameCore
         ImGuiContext.ClearColor(g_ImGuiBuffer);
 
         // [AZB]: Using the overlay buffer render target - can't use the one from g_ImGuiBuffer
-        ImGuiContext.SetRenderTarget(g_ImGuiBuffer.GetRTV());
-        ImGuiContext.SetViewportAndScissor(0, 0, g_ImGuiBuffer.GetWidth(), g_ImGuiBuffer.GetHeight());
+        ImGuiContext.SetRenderTarget(g_OverlayBuffer.GetRTV());
+        ImGuiContext.SetViewportAndScissor(0, 0, g_OverlayBuffer.GetWidth(), g_OverlayBuffer.GetHeight());
 
         // [AZB]: Set the descriptor heap that we set up in the GUI class
         ImGuiContext.GetCommandList()->SetDescriptorHeaps(1, &AZB_GUI->m_pSrvDescriptorHeap);
