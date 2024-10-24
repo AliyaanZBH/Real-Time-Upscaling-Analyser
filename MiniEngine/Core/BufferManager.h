@@ -42,6 +42,7 @@ namespace Graphics
 
 #if AZB_MOD
     extern ColorBuffer g_ImGuiBuffer;     // [AZB]: For ImGui R10G10B10A2_UNORM
+    extern ColorBuffer g_DLSSOutputBuffer;     // [AZB]: For DLSS to Upscale to R10G10B10A2_UNORM
 #endif
     extern ColorBuffer g_VelocityBuffer;    // R10G10B10  (3D velocity)
     extern ShadowBuffer g_ShadowBuffer;

@@ -45,6 +45,7 @@ namespace Graphics
 #if AZB_MOD
     // [AZB]: Create a buffer for ImGui
     ColorBuffer g_ImGuiBuffer;
+    ColorBuffer g_DLSSOutputBuffer;
 #endif
 
     ShadowBuffer g_ShadowBuffer;
@@ -131,7 +132,13 @@ void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t buffer
 
         g_SceneColorBuffer.Create( L"Main Color Buffer", bufferWidth, bufferHeight, 1, DefaultHdrColorFormat, esram );
         g_SceneNormalBuffer.Create( L"Normals Buffer", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R16G16B16A16_FLOAT, esram );
-        g_VelocityBuffer.Create( L"Motion Vectors", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32_UINT );
+
+#if AZB_MOD
+        // [AZB]: DLSS wants it's motion vectors in a different format to what MiniEngine originally provides
+        g_VelocityBuffer.Create( L"Motion Vectors", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32G32_FLOAT);
+#else
+        g_VelocityBuffer.Create( L"Motion Vectors", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32_UINT);
+#endif
         g_PostEffectsBuffer.Create( L"Post Effects Buffer", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32_UINT );
 
         esram.PushStack();	// Render HDR image
@@ -252,6 +259,7 @@ void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t buffer
 #if AZB_MOD
         // [AZB]: Create a buffer for ImGui
         g_ImGuiBuffer.Create(L"ImGui Heap", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R10G10B10A2_UNORM, esram);
+        g_DLSSOutputBuffer.Create(L"DLSS Output Buffer", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R10G10B10A2_UNORM, esram);
 #endif
 
     esram.PopStack(); // End final image
@@ -266,8 +274,9 @@ void Graphics::ResizeDisplayDependentBuffers(uint32_t NativeWidth, uint32_t Nati
     g_HorizontalBuffer.Create( L"Bicubic Intermediate", g_DisplayWidth, NativeHeight, 1, DefaultHdrColorFormat );
 
 #if AZB_MOD
-    // [AZB]: ImGui may need resizing
+    // [AZB]: ImGui and DLSS need resizing
     g_ImGuiBuffer.Create(L"ImGui Heap", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R10G10B10A2_UNORM);
+    g_DLSSOutputBuffer.Create(L"DLSS Output Buffer", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R10G10B10A2_UNORM);
 #endif
 
 }

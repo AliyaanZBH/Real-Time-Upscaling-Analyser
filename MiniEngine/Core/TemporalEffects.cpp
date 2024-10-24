@@ -164,7 +164,10 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
 // [AZB]: Execute DLSS instead of TAA
 #if AZB_MOD
 
+    //ScopedTimer _prof(L"DLSS Temporal Resolve", BaseContext);
+
     GraphicsContext& dlssContext = GraphicsContext::Begin(L"DLSS Execute");
+    //GraphicsContext& dlssContext = BaseContext.GetGraphicsContext();
 
     // [AZB]: Create requirement struct - we need motion vectors, output colour buffer
     DLSS::ExecutionRequirements reqs;
@@ -173,13 +176,19 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
     // [AZB]: This where the bulk of data needed for DLSS needs to go
     NVSDK_NGX_D3D12_DLSS_Eval_Params execParams = {};
 
+    // [AZB]: Before we can actually use the resources, they need to be transitioned
+    dlssContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE );
+    dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    dlssContext.TransitionResource(g_SceneDepthBuffer,D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    dlssContext.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+
     // [AZB]: Input color buffer and output buffer for the fully processed frame. Could potentially output back to scene color?
-    execParams.Feature = NVSDK_NGX_D3D12_Feature_Eval_Params{ g_SceneColorBuffer.GetResource(), Graphics::g_DisplayPlane[g_CurrentBuffer].GetResource() };
+    execParams.Feature = NVSDK_NGX_D3D12_Feature_Eval_Params{ g_SceneColorBuffer.GetResource(), g_DLSSOutputBuffer.GetResource() };
     execParams.pInDepth = g_SceneDepthBuffer.GetResource();
     execParams.pInMotionVectors = g_VelocityBuffer.GetResource();
     execParams.InJitterOffsetX = s_JitterX;
     execParams.InJitterOffsetY = s_JitterY;
-    execParams.InRenderSubrectDimensions = NVSDK_NGX_Dimensions{ g_DisplayWidth, g_DisplayHeight };
+    execParams.InRenderSubrectDimensions = NVSDK_NGX_Dimensions{ g_DLSSWidth, g_DLSSHeight };
 
 
     reqs.m_DlSSEvalParams = execParams;
@@ -187,7 +196,8 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
 
     dlssContext.Finish();
 
-#else
+//#else
+#endif
     ScopedTimer _prof(L"Temporal Resolve", BaseContext);
 
     ComputeContext& Context = BaseContext.GetComputeContext();
@@ -211,7 +221,7 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
         SharpenImage(Context, g_TemporalColor[Dst]);
     }
 
-#endif
+//#endif
 }
 
 void TemporalEffects::ApplyTemporalAA(ComputeContext& Context)

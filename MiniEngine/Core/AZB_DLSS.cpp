@@ -187,11 +187,6 @@ void DLSS::PreQueryAllSettings(const int targetWidth, const int targetHeight)
 
 void DLSS::Create(CreationRequirements& reqs)
 {
-	// Use DLSS for this combination
-	// - Create feature with RecommendedOptimalRenderWidth, RecommendedOptimalRenderHeight
-	// - Render to (RenderWidth, RenderHeight)
-	// - Call DLSS to upscale to (TargetWidth, TargetHeight)
-	
 	// Supposedly device could not be found
 	NVSDK_NGX_Result ret = NGX_D3D12_CREATE_DLSS_EXT(reqs.m_pCmdList, 1, 1, &m_DLSS_FeatureHandle, m_DLSS_Parameters, &reqs.m_DlSSCreateParams);
 	if (NVSDK_NGX_SUCCEED(ret))
