@@ -449,10 +449,10 @@ void Graphics::Initialize(bool RequireDXRSupport)
     // Common state was moved to GraphicsCommon.*
     InitializeCommonState();
 
+    // [AZB]: Init DLSS with the global device
+    DLSS::Init(g_Device);
     // [AZB]: As the swap chain and other buffers are created here, DLSS first queries for optimal render resolution here too
     //        However, in order to create DLSS, the rest of the engine must initalise first, so it is postponed until slightly later
-        // [AZB]: Init DLSS with the global device
-    DLSS::Init(g_Device);
     Display::Initialize();
 
     GpuTimeManager::Initialize(4096);
@@ -463,11 +463,8 @@ void Graphics::Initialize(bool RequireDXRSupport)
     GraphRenderer::Initialize();
     ParticleEffectManager::Initialize(3840, 2160);
 
-#if AZB_MOD    // [AZB]: Now we can create DLSS
+#if AZB_MOD    // [AZB]: Now we can actually create the DLSS feature
     
-    // [AZB]: Init DLSS with the global device
-    //DLSS::Init(g_Device);
-
     // [AZB]: Create context for DLSS as we need to grab a command list and pass motion vector data etc.
     GraphicsContext& Context = GraphicsContext::Begin(L"DLSS Creation");
     // [AZB]: Fill in requirements struct ready for the feature creation
