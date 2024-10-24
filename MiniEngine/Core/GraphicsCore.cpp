@@ -448,9 +448,10 @@ void Graphics::Initialize(bool RequireDXRSupport)
 
     // Common state was moved to GraphicsCommon.*
     InitializeCommonState();
-
+#if AZB_MOD 
     // [AZB]: Init DLSS with the global device
     DLSS::Init(g_Device);
+#endif
     // [AZB]: As the swap chain and other buffers are created here, DLSS first queries for optimal render resolution here too
     //        However, in order to create DLSS, the rest of the engine must initalise first, so it is postponed until slightly later
     Display::Initialize();
@@ -496,7 +497,7 @@ void Graphics::Shutdown( void )
 
 #if AZB_MOD
     // [AZB]: Cleanup DLSS
-    //DLSS::Terminate();
+    DLSS::Terminate();
 #endif
     TemporalEffects::Shutdown();
     PostEffects::Shutdown();

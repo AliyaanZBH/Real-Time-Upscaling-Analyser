@@ -32,6 +32,10 @@
 // [AZB]: Container file for code modifications and other helper tools. Contains the global "AZB_MOD" macro.
 #include "AZB_Utils.h"
 
+#if AZB_MOD
+// [AZB]: Forward declares
+class ColorBuffer;
+#endif
 namespace Display
 {
     void Initialize(void);
@@ -52,6 +56,9 @@ namespace Graphics
     extern uint32_t g_DLSSWidth;
     extern uint32_t g_DLSSHeight;
 
+    // [AZB]: These variables already exist but they aren't made external. We need these for DLSS.
+    extern ColorBuffer g_DisplayPlane[];
+    extern UINT g_CurrentBuffer;
 #endif
 
     // Returns the number of elapsed frames since application start

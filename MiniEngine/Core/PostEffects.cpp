@@ -57,6 +57,8 @@
 /*
    Change Log:
    [AZB] 22/10/24: DLSS implementation continued, attempting to create the feature at start of Render()
+   [AZB] 24/10/24: DLSS moved to TemporalEffects
+
 */
 
 #include "AZB_Utils.h"
@@ -495,18 +497,36 @@ void PostEffects::CopyBackPostBuffer( ComputeContext& Context )
 
 void PostEffects::Render( void )
 {
+
+// [AZB]: Execute DLSS here before anything else
+//#if AZB_MOD
+//
+//    GraphicsContext& dlssContext = GraphicsContext::Begin(L"DLSS Execute");
+//
+//    // [AZB]: Create requirement struct - we need motion vectors, output colour buffer
+//    DLSS::ExecutionRequirements reqs;
+//    reqs.m_pCmdList = dlssContext.GetCommandList();
+//
+//    // [AZB]: This where the bulk of data needed for DLSS needs to go
+//    NVSDK_NGX_D3D12_DLSS_Eval_Params execParams;
+//
+//    // [AZB]: Input color buffer and output buffer for the fully processed frame. Could potentially output back to scene color?
+//    execParams.Feature = NVSDK_NGX_D3D12_Feature_Eval_Params{ g_SceneColorBuffer.GetResource(), g_DisplayPlane[g_CurrentBuffer].GetResource() };
+//    execParams.pInDepth = g_SceneDepthBuffer.GetResource();
+//    execParams.pInMotionVectors = g_VelocityBuffer.GetResource();
+//    execParams.InJitterOffsetX = TemporalEffects::GetJitterX
+//    execParams.InJitterOffsetY = g_VelocityBuffer.GetResource();
+//    reqs.m_DlSSEvalParams = execParams;
+//    DLSS::Execute(reqs);
+//
+//    dlssContext.Finish();
+//#endif
+
     ComputeContext& Context = ComputeContext::Begin(L"Post Effects");
 
     Context.SetRootSignature(PostEffectsRS);
 
     Context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
-    // [AZB]: Execute DLSS here before anything else
-#if AZB_MOD
-
-    //DLSS::Execute();
-#endif
-
 
     if (EnableHDR && !SSAO::DebugDraw && !(DepthOfField::Enable && DepthOfField::DebugMode >= 3))
         ProcessHDR(Context);

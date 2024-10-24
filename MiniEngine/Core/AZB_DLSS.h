@@ -28,8 +28,6 @@ namespace DLSS
 		unsigned int m_InCreationNodeMask = 1;					// These only matter for Multi GPU (default 1)
 		unsigned int m_InVisibilityNodeMask = 1;				// These only matter for Multi GPU (default 1)
 		NVSDK_NGX_DLSS_Create_Params m_DlSSCreateParams;
-		NVSDK_NGX_D3D12_DLSS_Eval_Params m_DlSSEvalParams;	// Actual necessary date (e.g. Motion Vectors) are contained in here
-
 	};
 
 	struct ExecutionRequirements
