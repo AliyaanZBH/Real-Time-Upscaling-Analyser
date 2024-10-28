@@ -41,10 +41,10 @@ private:
 	//
 
 	// Situate window on the left side, just underneath the existing profiling
-	const ImVec2 kMainWindowStartPos = { 0.f, 200.f };
+	const ImVec2 kMainWindowStartPos = { 0.f, 50.f };
 
 	// How big is the window at program start?
-	const ImVec2 kMainWindowStartSize = { 1180.f, 720.f };
+	const ImVec2 kMainWindowStartSize = { 680.f, 850.f };
 
 	// Common window pivot positions
 	const ImVec2 kTopLeftPivot = { 0.f, 0.f };

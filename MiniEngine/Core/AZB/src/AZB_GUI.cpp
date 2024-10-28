@@ -28,6 +28,8 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	//io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
+	// Disable ini file so that window settings don't save, I want the app to start in the same configuration every time!
+	io.IniFilename = NULL;
 	// Setup Platform/Renderer backends
 	ImGui_ImplWin32_Init(Hwnd);
 
