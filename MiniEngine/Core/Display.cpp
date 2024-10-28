@@ -527,7 +527,7 @@ void Graphics::PreparePresentSDR(void)
 #if AZB_MOD
     // [AZB]: Our color buffer is was downscaled and used as an input for DLSS, so instead read from the DLSS output!
     Context.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
-        D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
     Context.SetDynamicDescriptor(0, 0, g_DLSSOutputBuffer.GetSRV());
 #else
     // We're going to be reading these buffers to write to the swap chain buffer(s)
@@ -650,7 +650,7 @@ void Display::Present(void)
     
 #if AZB_MOD
     // [AZB]: Resize according to DLSS
-    SetPipelineResolutionDLSS(g_DLSSWidth, g_DLSSHeight);
+    //SetPipelineResolutionDLSS(g_DLSSWidth, g_DLSSHeight);
 #else
 
     // [AZB]: Original call here to resize internal rendering resolution

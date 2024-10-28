@@ -178,7 +178,7 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
 
     // [AZB]: Before we can actually use the resources, they need to be transitioned
     dlssContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE );
-    dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
     dlssContext.TransitionResource(g_SceneDepthBuffer,D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     dlssContext.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 

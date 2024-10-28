@@ -29,7 +29,6 @@ public:
 
 private:
 
-
 	//
 	//	Functions to break up smaller sections of the UI
 	//
@@ -81,4 +80,15 @@ private:
 		CenterNextTextItem(titleText);
 		ImGui::Text(titleText);
 	}
+
+
+	//
+	//	Helper structs to organise data
+	//
+
+	struct Resolution
+	{
+		int m_Width = 0;
+		int m_Height = 0;
+	};
 };

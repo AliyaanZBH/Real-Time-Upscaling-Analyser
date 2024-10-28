@@ -77,38 +77,91 @@ void GUI::Run()
 		// Display our lovely formatted title
 		MainWindowTitle();
 		
-		// Frame data from MiniEngine profiler!
-		static std::vector<float> cpuTimes, gpuTimes, frameTimes;
-		
-		// These functions will not exist when the mod is disabled - even though this function is never called when mod is disabled, compiler will fuss.
+
+
+
+
+		if (ImGui::CollapsingHeader("Resolution Settings")) 
+		{
+
+			// HACK: Clean this up!
+			// Create pre-made resolutions
+			std::vector<std::pair<std::string, Resolution>> resolutionPresets;
+
+			resolutionPresets.push_back(std::pair<std::string, Resolution>("1080p", Resolution{ 1920, 1080 }));
+			resolutionPresets.push_back(std::pair<std::string, Resolution>("1050p", Resolution{ 1680, 1050 }));
+			resolutionPresets.push_back(std::pair<std::string, Resolution>("900p", Resolution{ 1600, 900 }));
+			resolutionPresets.push_back(std::pair<std::string, Resolution>("768p", Resolution{ 1366, 768 }));
+			resolutionPresets.push_back(std::pair<std::string, Resolution>("720p", Resolution{ 1280, 720 }));
+			resolutionPresets.push_back(std::pair<std::string, Resolution>("540p", Resolution{ 960, 540 }));
+			resolutionPresets.push_back(std::pair<std::string, Resolution>("360p", Resolution{ 640, 360 }));
+
+			static int item_current_idx = resolutionPresets.size() - 1;
+			const char* combo_preview_value = resolutionPresets[item_current_idx].first.c_str();
+			if(ImGui::BeginCombo("Output Resolution", combo_preview_value))
+			{
+				for (int n = 0; n < resolutionPresets.size(); n++)
+				{
+					const bool is_selected = (item_current_idx == n);
+					if (ImGui::Selectable(resolutionPresets[n].first.c_str(), is_selected))
+					{
+						item_current_idx = n;
+						// TODO:
+						// Select resolution and requery DLSS
+					}
+
+					// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+
+			// Apply changes
+			//if (renderWidth != currentRenderWidth || renderHeight != currentRenderHeight ||
+			//	outputWidth != currentOutputWidth || outputHeight != currentOutputHeight) {
+			//	currentRenderWidth = renderWidth;
+			//	currentRenderHeight = renderHeight;
+			//	currentOutputWidth = outputWidth;
+			//	currentOutputHeight = outputHeight;
+			//	ReconfigureDLSS(currentRenderWidth, currentRenderHeight, currentOutputWidth, currentOutputHeight);
+			//}
+		}
+
+		if (ImGui::CollapsingHeader("Performance Metrics"))
+		{
+			// Frame data from MiniEngine profiler!
+			static std::vector<float> cpuTimes, gpuTimes, frameTimes;
+
+			// These functions will not exist when the mod is disabled - even though this function is never called when mod is disabled, compiler will fuss.
 #if AZB_MOD
-		cpuTimes.push_back(EngineProfiling::GetCPUTime());		// CPU time per frame
-		gpuTimes.push_back(EngineProfiling::GetGPUTime());		// GPU time per frame
-		frameTimes.push_back(EngineProfiling::GetFrameRate());  // Framerate
+			cpuTimes.push_back(EngineProfiling::GetCPUTime());		// CPU time per frame
+			gpuTimes.push_back(EngineProfiling::GetGPUTime());		// GPU time per frame
+			frameTimes.push_back(EngineProfiling::GetFrameRate());  // Framerate
 #endif
 
-		// Limit buffer size
-		if (cpuTimes.size() > 1000) cpuTimes.erase(cpuTimes.begin());
-		if (gpuTimes.size() > 1000) gpuTimes.erase(gpuTimes.begin());
-		if (frameTimes.size() > 1000) frameTimes.erase(frameTimes.begin());
+			// Limit buffer size
+			if (cpuTimes.size() > 1000) cpuTimes.erase(cpuTimes.begin());
+			if (gpuTimes.size() > 1000) gpuTimes.erase(gpuTimes.begin());
+			if (frameTimes.size() > 1000) frameTimes.erase(frameTimes.begin());
 
-		// Plot the data
-		if (ImPlot::BeginPlot("Hardware Timings"))
-		{
-			// Setup axis, x then y. This will be Frame,Ms. Use autofit for now, will mess around with these later
-			ImPlot::SetupAxes("Frame", "Speed(ms)", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
-			ImPlot::PlotLine("CPU Time", cpuTimes.data(), cpuTimes.size());
-			ImPlot::PlotLine("GPU Time", gpuTimes.data(), gpuTimes.size());
-			ImPlot::EndPlot();
+			// Plot the data
+			if (ImPlot::BeginPlot("Hardware Timings"))
+			{
+				// Setup axis, x then y. This will be Frame,Ms. Use autofit for now, will mess around with these later
+				ImPlot::SetupAxes("Frame", "Speed(ms)", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
+				ImPlot::PlotLine("CPU Time", cpuTimes.data(), cpuTimes.size());
+				ImPlot::PlotLine("GPU Time", gpuTimes.data(), gpuTimes.size());
+				ImPlot::EndPlot();
+			}
+
+			if (ImPlot::BeginPlot("Frame Rate"))
+			{
+				ImPlot::SetupAxes("Count", "FPS", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
+				ImPlot::PlotLine("Frame Rate", frameTimes.data(), frameTimes.size());
+				ImPlot::EndPlot();
+			}
 		}
-
-		if (ImPlot::BeginPlot("Frame Rate"))
-		{
-			ImPlot::SetupAxes("Count", "FPS", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
-			ImPlot::PlotLine("Frame Rate", frameTimes.data(), frameTimes.size());
-			ImPlot::EndPlot();
-		}
-
 		ImGui::End();
 	}
 }
