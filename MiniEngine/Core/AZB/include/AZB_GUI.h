@@ -40,7 +40,7 @@ private:
 	//
 
 	// Situate window on the left side, just underneath the existing profiling
-	const ImVec2 kMainWindowStartPos = { 0.f, 50.f };
+	const ImVec2 kMainWindowStartPos = { 0.f, 75.f };
 
 	// How big is the window at program start?
 	const ImVec2 kMainWindowStartSize = { 680.f, 850.f };

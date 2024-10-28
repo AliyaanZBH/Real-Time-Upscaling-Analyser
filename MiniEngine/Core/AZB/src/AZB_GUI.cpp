@@ -6,9 +6,10 @@
 
 #include <d3d12.h>
 #include <Utility.h>
-
+#include <array>
 // For performance metrics
 #include "EngineProfiling.h"
+
 //===============================================================================
 
 void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const DXGI_FORMAT& renderTargetFormat)
@@ -86,15 +87,14 @@ void GUI::Run()
 
 			// HACK: Clean this up!
 			// Create pre-made resolutions
-			std::vector<std::pair<std::string, Resolution>> resolutionPresets;
-
-			resolutionPresets.push_back(std::pair<std::string, Resolution>("1080p", Resolution{ 1920, 1080 }));
-			resolutionPresets.push_back(std::pair<std::string, Resolution>("1050p", Resolution{ 1680, 1050 }));
-			resolutionPresets.push_back(std::pair<std::string, Resolution>("900p", Resolution{ 1600, 900 }));
-			resolutionPresets.push_back(std::pair<std::string, Resolution>("768p", Resolution{ 1366, 768 }));
-			resolutionPresets.push_back(std::pair<std::string, Resolution>("720p", Resolution{ 1280, 720 }));
-			resolutionPresets.push_back(std::pair<std::string, Resolution>("540p", Resolution{ 960, 540 }));
-			resolutionPresets.push_back(std::pair<std::string, Resolution>("360p", Resolution{ 640, 360 }));
+			static std::array<std::pair<std::string, Resolution>, 7> resolutionPresets{  std::pair<std::string, Resolution>("360p", Resolution{ 640, 360 }),
+																						 std::pair<std::string, Resolution>("540p", Resolution{ 960, 540 }),
+																						 std::pair<std::string, Resolution>("720p", Resolution{ 1280, 720 }),
+																						 std::pair<std::string, Resolution>("768p", Resolution{ 1366, 768 }),
+																						 std::pair<std::string, Resolution>("900p", Resolution{ 1600, 900 }),
+																						 std::pair<std::string, Resolution>("1050p", Resolution{ 1680, 1050 }),
+																						 std::pair<std::string, Resolution>("1080p", Resolution{ 1920, 1080 })
+			};
 
 			static int item_current_idx = resolutionPresets.size() - 1;
 			const char* combo_preview_value = resolutionPresets[item_current_idx].first.c_str();
@@ -110,7 +110,6 @@ void GUI::Run()
 						// Select resolution and requery DLSS
 					}
 
-					// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 					if (is_selected)
 						ImGui::SetItemDefaultFocus();
 				}
@@ -126,6 +125,31 @@ void GUI::Run()
 			//	currentOutputHeight = outputHeight;
 			//	ReconfigureDLSS(currentRenderWidth, currentRenderHeight, currentOutputWidth, currentOutputHeight);
 			//}
+		}
+
+		if (ImGui::CollapsingHeader("DLSS Mode")) {
+			static int dlssMode = 1; // 0: Performance, 1: Balanced, 2: Quality, etc.
+			const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance", "Ultra Quality" };
+
+			if(ImGui::BeginCombo("Mode", modes[dlssMode]))
+			{
+
+				for (int n = 0; n < std::size(modes); n++)
+				{
+					const bool is_selected = (dlssMode == n);
+					if (ImGui::Selectable(modes[n], is_selected))
+					{
+						dlssMode = n;
+						// TODO:
+						// Select setting and requery DLSS
+					}
+
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+
+			}
 		}
 
 		if (ImGui::CollapsingHeader("Performance Metrics"))
