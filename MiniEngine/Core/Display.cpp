@@ -426,6 +426,11 @@ void Display::Initialize(void)
     // [AZB]: Query optimal settings based on current native resolution
     DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
 
+    // [AZB]: Pre-query all settings for current native resolution
+    //DLSS::PreQueryAllSettings(g_DisplayWidth, g_DisplayHeight);
+    // [AZB]: // Balanced by default
+   // DLSS::OptimalSettings dlssSettings = DLSS::m_DLSS_Modes[1];  
+
     // [AZB]: Call my version of setNativeRes, which skips reading the displays native resolution
     SetPipelineResolutionDLSS(dlssSettings.m_RenderWidth, dlssSettings.m_RenderHeight);
 
