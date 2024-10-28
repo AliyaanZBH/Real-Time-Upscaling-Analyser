@@ -511,6 +511,7 @@ void InitializeRaytracingStateObjects(const ModelH3D &model, UINT numMeshes)
     defaultSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
     defaultSampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
     defaultSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    // [AZB]: This may need changing for DLSS! See Sampler.h for more info and section 3.5 of NVIDIA Docs for more info!
     defaultSampler.MipLODBias = 0.0f;
     defaultSampler.MaxAnisotropy = 16;
     defaultSampler.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;

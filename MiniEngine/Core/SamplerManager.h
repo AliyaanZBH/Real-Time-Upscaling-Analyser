@@ -16,6 +16,12 @@
 #include "pch.h"
 #include "Color.h"
 
+//===============================================================================
+// desc: This is a helper class for samplers within the engine. DLSS requires that mip-map bias is set to a value lower than 0, ensuring that textures are sampled at display resolution instead of the downscaled render resolution!
+//       See NVIDIA Docs section 3.5 for more info!
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
 class SamplerDesc : public D3D12_SAMPLER_DESC
 {
 public:
