@@ -164,10 +164,10 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
 // [AZB]: Execute DLSS instead of TAA
 #if AZB_MOD
 
-    //ScopedTimer _prof(L"DLSS Temporal Resolve", BaseContext);
+    ScopedTimer _prof(L"DLSS Temporal Resolve", BaseContext);
 
-    GraphicsContext& dlssContext = GraphicsContext::Begin(L"DLSS Execute");
-    //GraphicsContext& dlssContext = BaseContext.GetGraphicsContext();
+    //GraphicsContext& dlssContext = GraphicsContext::Begin(L"DLSS Execute");
+    GraphicsContext& dlssContext = BaseContext.GetGraphicsContext();
 
     // [AZB]: Create requirement struct - we need motion vectors, output colour buffer
     DLSS::ExecutionRequirements reqs;
@@ -194,10 +194,9 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
     reqs.m_DlSSEvalParams = execParams;
     DLSS::Execute(reqs);
 
-    dlssContext.Finish();
+    //dlssContext.Finish();
 
-//#else
-#endif
+#else
     ScopedTimer _prof(L"Temporal Resolve", BaseContext);
 
     ComputeContext& Context = BaseContext.GetComputeContext();
@@ -221,7 +220,7 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
         SharpenImage(Context, g_TemporalColor[Dst]);
     }
 
-//#endif
+#endif
 }
 
 void TemporalEffects::ApplyTemporalAA(ComputeContext& Context)
