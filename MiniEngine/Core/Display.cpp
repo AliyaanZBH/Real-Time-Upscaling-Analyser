@@ -12,13 +12,17 @@
 //
 
 //===============================================================================
-// desc: This is a helper namespace that mainly deals with the swapchain
+// desc: This is a helper namespace that mainly deals with the swapchain and resolution.
 // modified: Aliyaan Zulfiqar
 //===============================================================================
 
 /*
    Change Log:
    [AZB] 16/10/24: Tweaked swapchain data to allow it to be accessed by ImGui
+   [AZB] 21/10/24: Passing DLSS into this namespace as part of preliminary integration into rendering pipeline.
+   [AZB] 22/10/24: Querying DLSS optimal settings to begin feature creation
+   [AZB] 22/10/24: DLSS implementation continued, pipeline now rendering at optimal lower resolution for upscaling!
+   [AZB] 23/10/24: DLSS creation continued, decided it was more appropriate to postpone creation until after the rest of the engine is initalised as GraphicsContext requires some timing to be setup
 */
 
 #include "pch.h"
@@ -32,11 +36,22 @@
 #include "ImageScaling.h"
 #include "TemporalEffects.h"
 
+
 #pragma comment(lib, "dxgi.lib") 
 
 // This macro determines whether to detect if there is an HDR display and enable HDR10 output.
 // Currently, with HDR display enabled, the pixel magnfication functionality is broken.
 #define CONDITIONALLY_ENABLE_HDR_OUTPUT 1
+
+
+//
+// [AZB]: Custom includes and macro mods
+//
+
+#if AZB_MOD
+#include "AZB_DLSS.h"
+#endif
+
 
 namespace GameCore { extern HWND g_hWnd; }
 
@@ -71,6 +86,13 @@ namespace
     float s_FrameTime = 0.0f;
     uint64_t s_FrameIndex = 0;
     int64_t s_FrameStartTick = 0;
+
+    // [AZB]: TODO Figure out how to correctly disable VSync!
+    // 
+    // [AZB]: We need VSync disabled in the final app but this is not (atleast not the ONLY) place to change it
+    //        When this is set to false, we get a warning from D3D: 
+    //          D3D12 WARNING: ID3D12CommandList::Dispatch: No threads will be dispatched, because at least one of {ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ} is 0.
+    //          [ EXECUTION WARNING #1254: EMPTY_DISPATCH]
 
     BoolVar s_EnableVSync("Timing/VSync", true);
     BoolVar s_LimitTo30Hz("Timing/Limit To 30Hz", false);
@@ -108,6 +130,15 @@ namespace Graphics
     uint32_t g_DisplayHeight = 1080;
     ColorBuffer g_PreDisplayBuffer;
 
+// [AZB]: Extra values to keep track of DLSS values globally
+#if AZB_MOD
+
+    // [AZB]: These will be evaluated when the swapchain gets created in Display::Initialise(), which is when the DLSS Query will be called
+    uint32_t g_DLSSWidth = 0;
+    uint32_t g_DLSSHeight = 0;
+
+#endif
+
     void ResolutionToUINT(eResolution res, uint32_t& width, uint32_t& height)
     {
         switch (res)
@@ -140,6 +171,7 @@ namespace Graphics
         }
     }
 
+    // [AZB]: Original function for setting the pipeline native resolution
     void SetNativeResolution(void)
     {
         uint32_t NativeWidth, NativeHeight;
@@ -157,6 +189,29 @@ namespace Graphics
 
         InitializeRenderingBuffers(NativeWidth, NativeHeight);
     }
+
+// [AZB]: The new version which passes the value queried from DLSS
+#if AZB_MOD
+    void SetPipelineResolutionDLSS(uint32_t queriedWidth, uint32_t queriedHeight)
+    {
+        if (g_NativeWidth == queriedWidth && g_NativeHeight == queriedHeight)
+            return;
+        // [AZB]: Updating the print statement to signal that DLSS is responsible
+        DEBUGPRINT("Changing native resolution to match DLSS query result %ux%u", queriedWidth, queriedHeight);
+
+        // [AZB]: Still update the existing native global as it may be used in other places of the pipeline that DLSS doesn't touch (e.g. post-effects)
+        g_NativeWidth = queriedWidth;
+        g_NativeHeight = queriedHeight;
+
+        // [AZB]: Also update our DLSS globals
+        g_DLSSWidth = queriedWidth;
+        g_DLSSHeight = queriedHeight;
+
+        g_CommandManager.IdleGPU();
+
+        InitializeRenderingBuffers(queriedWidth, queriedHeight);
+    }
+#endif
 
     void SetDisplayResolution(void)
     {
@@ -210,8 +265,22 @@ void Display::Resize(uint32_t width, uint32_t height)
 
     DEBUGPRINT("Changing display resolution to %ux%u", width, height);
 
-    g_PreDisplayBuffer.Create(L"PreDisplay Buffer", width, height, 1, SwapChainFormat);
+// [AZB]: Requery DLSS - repeat steps in Initialise()
+#if AZB_MOD
 
+    DLSS::OptimalSettings dlssSettings;
+    DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
+    SetPipelineResolutionDLSS(dlssSettings.m_RenderWidth, dlssSettings.m_RenderHeight);
+
+    // [AZB]: Recreate this buffer with DLSS data
+    g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DLSSWidth, g_DLSSHeight, 1, SwapChainFormat);
+
+#else
+    // [AZB]: Original pre-buffer creation
+    g_PreDisplayBuffer.Create(L"PreDisplay Buffer", width, height, 1, SwapChainFormat);
+#endif
+
+    // [AZB]: Continue with regular swap chain creation, this should be unaffected by DLSS as it our render targets will eventually upscale up to here
     for (uint32_t i = 0; i < SWAP_CHAIN_BUFFER_COUNT; ++i)
         g_DisplayPlane[i].Destroy();
 
@@ -222,6 +291,7 @@ void Display::Resize(uint32_t width, uint32_t height)
     {
         ComPtr<ID3D12Resource> DisplayPlane;
         ASSERT_SUCCEEDED(s_SwapChain1->GetBuffer(i, MY_IID_PPV_ARGS(&DisplayPlane)));
+        // [AZB]: This does not need to match DLSS as it should match the display buffer
         g_DisplayPlane[i].CreateFromSwapChain(L"Primary SwapChain Buffer", DisplayPlane.Detach());
     }
 
@@ -229,6 +299,7 @@ void Display::Resize(uint32_t width, uint32_t height)
 
     g_CommandManager.IdleGPU();
 
+    // [AZB]: This does not need to match DLSS as it should match the display buffer
     ResizeDisplayDependentBuffers(g_NativeWidth, g_NativeHeight);
 }
 
@@ -338,10 +409,36 @@ void Display::Initialize(void)
 
 #undef CreatePSO
 
+
+
+// [AZB]: Continue DLSS intialisation after creating main swap chain by querying DLSS modes and their optimal settings to determine the resolution of our render targets
+#if AZB_MOD
+
+    // [AZB]: Container that will store results of query that will be needed for DLSS feature creation. By default this will check the balanced setting
+    DLSS::OptimalSettings dlssSettings;
+
+    // [AZB]: Query optimal settings based on current native resolution
+    DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
+
+    // [AZB]: Call my version of setNativeRes, which skips reading the displays native resolution
+    SetPipelineResolutionDLSS(dlssSettings.m_RenderWidth, dlssSettings.m_RenderHeight);
+
+    // [AZB]: At this point we could create DLSS however we can't create a graphics context just yet as the rest of the engine needs to initalise first. 
+    //        DLSS creation is therefore postponed until after these steps.
+
+    // [AZB]: Also use DLSS resolution when creating the pre-buffer
+    g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DLSSWidth, g_DLSSHeight, 1, SwapChainFormat);
+    ImageScaling::Initialize(g_PreDisplayBuffer.GetFormat());
+
+#else
+    // [AZB]: This is where native resolution gets set originally, we need to override this with DLSS recommended lower resolution
     SetNativeResolution();
 
     g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DisplayWidth, g_DisplayHeight, 1, SwapChainFormat);
     ImageScaling::Initialize(g_PreDisplayBuffer.GetFormat());
+#endif
+
+
 }
 
 void Display::Shutdown( void )
@@ -427,18 +524,34 @@ void Graphics::PreparePresentSDR(void)
     Context.SetRootSignature(s_PresentRS);
     Context.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+#if AZB_MOD
+    // [AZB]: Our color buffer is was downscaled and used as an input for DLSS, so instead read from the DLSS output!
+    Context.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+        D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    Context.SetDynamicDescriptor(0, 0, g_DLSSOutputBuffer.GetSRV());
+#else
     // We're going to be reading these buffers to write to the swap chain buffer(s)
     Context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | 
         D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     Context.SetDynamicDescriptor(0, 0, g_SceneColorBuffer.GetSRV());
+#endif
 
     bool NeedsScaling = g_NativeWidth != g_DisplayWidth || g_NativeHeight != g_DisplayHeight;
 
     // On Windows, prefer scaling and compositing in one step via pixel shader
     if (DebugZoom == kDebugZoomOff && (UpsampleFilter == kSharpening || !NeedsScaling))
     {
+//#if AZB_MOD
+//        // [AZB]: Set both imgui buffer and existing UI buffer descriptors
+//        Context.TransitionResource(g_OverlayBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+//        Context.TransitionResource(g_ImGuiBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+//        const D3D12_CPU_DESCRIPTOR_HANDLE handles[] = { g_OverlayBuffer.GetSRV(), g_ImGuiBuffer.GetSRV() };
+//        Context.SetDynamicDescriptors(0, 1, 2, handles);
+//#else
+        // [AZB]: Original descriptor set for UI overlay
         Context.TransitionResource(g_OverlayBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         Context.SetDynamicDescriptor(0, 1, g_OverlayBuffer.GetSRV());
+//#endif
         Context.SetPipelineState(NeedsScaling ? ScaleAndCompositeSDRPS : CompositeSDRPS);
         Context.SetConstants(1, 0.7071f / g_NativeWidth, 0.7071f / g_NativeHeight);
         Context.TransitionResource(g_DisplayPlane[g_CurrentBuffer], D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -534,8 +647,15 @@ void Display::Present(void)
     ++s_FrameIndex;
 
     TemporalEffects::Update((uint32_t)s_FrameIndex);
+    
+#if AZB_MOD
+    // [AZB]: Resize according to DLSS
+    SetPipelineResolutionDLSS(g_DLSSWidth, g_DLSSHeight);
+#else
 
+    // [AZB]: Original call here to resize internal rendering resolution
     SetNativeResolution();
+#endif
     SetDisplayResolution();
 }
 

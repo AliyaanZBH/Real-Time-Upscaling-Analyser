@@ -11,6 +11,19 @@
 // Author:  James Stanard 
 //
 
+//===============================================================================
+// desc: This is where the rendering pipeline gets created and run.
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
+/*
+   Change Log:
+   [AZB] 21/10/24: Began DLSS implementation, getting NGX SDK to properly init
+   [AZB] 22/10/24: DLSS implementation continued, pipeline now rendering at optimal lower resolution for upscaling!
+   [AZB] 23/10/24: Fixed bug where DLSS was being Init multiple times due to iGPU and APUs
+   [AZB] 23/10/24: Moved DLSS feature creation outside of display initialisation
+*/
+
 #include "pch.h"
 #include "GraphicsCore.h"
 #include "GameCore.h"
@@ -39,6 +52,19 @@
 #endif
 
 using namespace Math;
+
+//
+// [AZB]: Custom includes and macro mods
+//
+
+// [AZB]: Container file for code modifications and other helper tools. Contains the global "AZB_MOD" macro.
+#include "AZB_Utils.h"
+
+
+// [AZB]: These will only be included if the global modificiation macro is defined as true (==1)
+#if AZB_MOD
+#include "AZB_DLSS.h"
+#endif
 
 namespace Graphics
 {
@@ -242,7 +268,12 @@ void Graphics::Initialize(bool RequireDXRSupport)
     if (!bUseWarpDriver)
     {
         SIZE_T MaxSize = 0;
-
+#if AZB_MOD
+        // [AZB]: We need the adapter to query for NXG, but we only have access to it within the upcoming loop. Create a flag to ensure the SDK only gets queried once - ignoring iGPUs or APUs
+        // [AZB]: IMPORTANT: This was causing alot of issues for me as my GPU was appearing twice in the list and the device was being created and deleted after NGX init.
+        //        The cause was identified as Parsec! It had created a Virtual Adapter, which I was able to uninstall in device manager. Something to check if things break!
+        bool isNGXQueried = false;
+#endif
         for (uint32_t Idx = 0; DXGI_ERROR_NOT_FOUND != dxgiFactory->EnumAdapters1(Idx, &pAdapter); ++Idx)
         {
             DXGI_ADAPTER_DESC1 desc;
@@ -274,6 +305,16 @@ void Graphics::Initialize(bool RequireDXRSupport)
                 g_Device->Release();
 
             g_Device = pDevice.Detach();
+
+#if AZB_MOD
+            if (!isNGXQueried)
+            {
+                // [AZB]: Query for hardware for NGX capability with the current adapter query hardware first
+                DLSS::QueryFeatureRequirements(pAdapter.Get());
+                // [AZB]: Flip our dirty flag to ensure we don't try to query the SDK again, which would lead to the query failing (due to not being an RTX adapter), which would effectively de-init DLSS!
+                isNGXQueried = true;
+            }
+#endif
 
             Utility::Printf(L"Selected GPU:  %s (%u MB)\n", desc.Description, desc.DedicatedVideoMemory >> 20);
         }
@@ -407,7 +448,12 @@ void Graphics::Initialize(bool RequireDXRSupport)
 
     // Common state was moved to GraphicsCommon.*
     InitializeCommonState();
-
+#if AZB_MOD 
+    // [AZB]: Init DLSS with the global device
+    DLSS::Init(g_Device);
+#endif
+    // [AZB]: As the swap chain and other buffers are created here, DLSS first queries for optimal render resolution here too
+    //        However, in order to create DLSS, the rest of the engine must initalise first, so it is postponed until slightly later
     Display::Initialize();
 
     GpuTimeManager::Initialize(4096);
@@ -417,6 +463,23 @@ void Graphics::Initialize(bool RequireDXRSupport)
     TextRenderer::Initialize();
     GraphRenderer::Initialize();
     ParticleEffectManager::Initialize(3840, 2160);
+
+#if AZB_MOD    // [AZB]: Now we can actually create the DLSS feature
+    
+    // [AZB]: Create context for DLSS as we need to grab a command list and pass motion vector data etc.
+    GraphicsContext& Context = GraphicsContext::Begin(L"DLSS Creation");
+    // [AZB]: Fill in requirements struct ready for the feature creation
+    DLSS::CreationRequirements reqs;
+    reqs.m_pCmdList = Context.GetCommandList();
+
+    NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, NVSDK_NGX_PerfQuality_Value_Balanced };
+    // [AZB]: Even though we may not render to HDR, our color buffer is infact in HDR format, so set the appropriate flag!
+    reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_None /*| NVSDK_NGX_DLSS_Feature_Flags_IsHDR*/ };
+    DLSS::Create(reqs);
+
+    Context.Finish();
+
+#endif
 }
 
 void Graphics::Shutdown( void )
@@ -432,6 +495,11 @@ void Graphics::Shutdown( void )
 
     DestroyCommonState();
     DestroyRenderingBuffers();
+
+#if AZB_MOD
+    // [AZB]: Cleanup DLSS
+    DLSS::Terminate();
+#endif
     TemporalEffects::Shutdown();
     PostEffects::Shutdown();
     SSAO::Shutdown();

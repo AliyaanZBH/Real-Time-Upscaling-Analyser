@@ -538,6 +538,9 @@
     <ClCompile Include="..\..\ThirdParty\implot\implot_items.cpp">
       <Filter>AZB_ThirdParty\ImPlot</Filter>
     </ClCompile>
+    <ClCompile Include="AZB_DLSS.cpp">
+      <Filter>AZB_Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BitonicSort.h" />
@@ -647,6 +650,27 @@
     <ClInclude Include="..\..\ThirdParty\implot\implot_internal.h">
       <Filter>AZB_ThirdParty\ImPlot</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\DLSS\include\nvsdk_ngx.h">
+      <Filter>AZB_ThirdParty\DLSS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\DLSS\include\nvsdk_ngx_defs.h">
+      <Filter>AZB_ThirdParty\DLSS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\DLSS\include\nvsdk_ngx_helpers.h">
+      <Filter>AZB_ThirdParty\DLSS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\DLSS\include\nvsdk_ngx_helpers_vk.h">
+      <Filter>AZB_ThirdParty\DLSS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\DLSS\include\nvsdk_ngx_params.h">
+      <Filter>AZB_ThirdParty\DLSS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\DLSS\include\nvsdk_ngx_vk.h">
+      <Filter>AZB_ThirdParty\DLSS</Filter>
+    </ClInclude>
+    <ClInclude Include="AZB_DLSS.h">
+      <Filter>AZB_Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Math\Functions.inl" />
@@ -753,6 +777,9 @@
     </Filter>
     <Filter Include="AZB_ThirdParty\ImPlot">
       <UniqueIdentifier>{ff8788d3-473a-4098-b741-621c810e4b66}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AZB_ThirdParty\DLSS">
+      <UniqueIdentifier>{97fd1b12-f547-4fa2-825b-917b09b2d8a1}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

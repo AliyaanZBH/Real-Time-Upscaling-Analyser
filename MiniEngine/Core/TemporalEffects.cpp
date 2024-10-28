@@ -29,6 +29,24 @@ using namespace Graphics;
 using namespace Math;
 using namespace TemporalEffects;
 
+//===============================================================================
+// desc: This is a helper namespace dedcicated to TAA and other temporal effects within the rendering pipeline. DLSS needs to replace that!
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
+/*
+   Change Log:
+   [AZB] 24/10/24: DLSS moved to TemporalEffects
+*/
+
+#include "AZB_Utils.h"
+
+#if AZB_MOD
+#include "AZB_DLSS.h"
+// [AZB]: For g_DisplayPlane
+#include "Display.h"
+#endif
+
 namespace TemporalEffects
 {
     BoolVar EnableTAA("Graphics/AA/TAA/Enable", false);
@@ -142,6 +160,43 @@ void TemporalEffects::ClearHistory( CommandContext& Context )
 
 void TemporalEffects::ResolveImage( CommandContext& BaseContext )
 {
+
+// [AZB]: Execute DLSS instead of TAA
+#if AZB_MOD
+
+    ScopedTimer _prof(L"DLSS Temporal Resolve", BaseContext);
+
+    //GraphicsContext& dlssContext = GraphicsContext::Begin(L"DLSS Execute");
+    GraphicsContext& dlssContext = BaseContext.GetGraphicsContext();
+
+    // [AZB]: Create requirement struct - we need motion vectors, output colour buffer
+    DLSS::ExecutionRequirements reqs;
+    reqs.m_pCmdList = dlssContext.GetCommandList();
+
+    // [AZB]: This where the bulk of data needed for DLSS needs to go
+    NVSDK_NGX_D3D12_DLSS_Eval_Params execParams = {};
+
+    // [AZB]: Before we can actually use the resources, they need to be transitioned
+    dlssContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE );
+    dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    dlssContext.TransitionResource(g_SceneDepthBuffer,D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    dlssContext.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+
+    // [AZB]: Input color buffer and output buffer for the fully processed frame. Could potentially output back to scene color?
+    execParams.Feature = NVSDK_NGX_D3D12_Feature_Eval_Params{ g_SceneColorBuffer.GetResource(), g_DLSSOutputBuffer.GetResource() };
+    execParams.pInDepth = g_SceneDepthBuffer.GetResource();
+    execParams.pInMotionVectors = g_VelocityBuffer.GetResource();
+    execParams.InJitterOffsetX = s_JitterX;
+    execParams.InJitterOffsetY = s_JitterY;
+    execParams.InRenderSubrectDimensions = NVSDK_NGX_Dimensions{ g_DLSSWidth, g_DLSSHeight };
+
+
+    reqs.m_DlSSEvalParams = execParams;
+    DLSS::Execute(reqs);
+
+    //dlssContext.Finish();
+
+#else
     ScopedTimer _prof(L"Temporal Resolve", BaseContext);
 
     ComputeContext& Context = BaseContext.GetComputeContext();
@@ -164,6 +219,8 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
         ApplyTemporalAA(Context);
         SharpenImage(Context, g_TemporalColor[Dst]);
     }
+
+#endif
 }
 
 void TemporalEffects::ApplyTemporalAA(ComputeContext& Context)

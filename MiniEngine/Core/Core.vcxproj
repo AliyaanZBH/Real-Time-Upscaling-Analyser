@@ -59,6 +59,12 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\ThirdParty\DLSS\include\nvsdk_ngx.h" />
+    <ClInclude Include="..\..\ThirdParty\DLSS\include\nvsdk_ngx_defs.h" />
+    <ClInclude Include="..\..\ThirdParty\DLSS\include\nvsdk_ngx_helpers.h" />
+    <ClInclude Include="..\..\ThirdParty\DLSS\include\nvsdk_ngx_helpers_vk.h" />
+    <ClInclude Include="..\..\ThirdParty\DLSS\include\nvsdk_ngx_params.h" />
+    <ClInclude Include="..\..\ThirdParty\DLSS\include\nvsdk_ngx_vk.h" />
     <ClInclude Include="..\..\ThirdParty\imgui\backends\imgui_impl_dx12.h" />
     <ClInclude Include="..\..\ThirdParty\imgui\backends\imgui_impl_win32.h" />
     <ClInclude Include="..\..\ThirdParty\imgui\imconfig.h" />
@@ -71,6 +77,7 @@
     <ClInclude Include="..\..\ThirdParty\implot\implot_internal.h" />
     <ClInclude Include="AZB\include\AZB_GUI.h" />
     <ClInclude Include="AZB\include\AZB_Utils.h" />
+    <ClInclude Include="AZB_DLSS.h" />
     <ClInclude Include="BitonicSort.h" />
     <ClInclude Include="BuddyAllocator.h" />
     <ClInclude Include="BufferManager.h" />
@@ -172,6 +179,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="AZB\src\AZB_GUI.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="AZB_DLSS.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="BitonicSort.cpp" />
@@ -478,9 +488,15 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>.\AZB\include;.\AZB\src;..\..\ThirdParty\imgui;..\..\ThirdParty\imgui\backends;..\..\ThirdParty\implot;..\..\Packages\WinPixEventRuntime.1.0.210209001\Include\WinPixEventRuntime;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\AZB\include;..\..\ThirdParty\dlss\include;.\AZB\src;..\..\ThirdParty\imgui;..\..\ThirdParty\imgui\backends;..\..\ThirdParty\implot;..\..\Packages\WinPixEventRuntime.1.0.210209001\Include\WinPixEventRuntime;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_GAMING_DESKTOP;__WRL_NO_DEFAULT_LIB__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <Lib>
+      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">nvsdk_ngx_d_dbg.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
+    <Lib>
+      <AdditionalLibraryDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\ThirdParty\DLSS\lib\Windows_x86_64\x86_64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Lib>
   </ItemDefinitionGroup>
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\..\Packages\WinPixEventRuntime.1.0.240308001\build\WinPixEventRuntime.targets" Condition="Exists('..\..\Packages\WinPixEventRuntime.1.0.240308001\build\WinPixEventRuntime.targets')" />

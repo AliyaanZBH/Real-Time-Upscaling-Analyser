@@ -75,20 +75,24 @@ void GUI::Run()
 
 		// Frame data from MiniEngine profiler!
 		static std::vector<float> cpuTimes, gpuTimes, frameTimes;
+		
+		// These functions will not exist when the mod is disabled - even though this function is never called when mod is disabled, compiler will fuss.
+#if AZB_MOD
 		cpuTimes.push_back(EngineProfiling::GetCPUTime());		// CPU time per frame
 		gpuTimes.push_back(EngineProfiling::GetGPUTime());		// GPU time per frame
 		frameTimes.push_back(EngineProfiling::GetFrameRate());  // Framerate
+#endif
 
 		// Limit buffer size
-		if (cpuTimes.size() > 2000) cpuTimes.erase(cpuTimes.begin());
-		if (gpuTimes.size() > 2000) gpuTimes.erase(gpuTimes.begin());
-		if (frameTimes.size() > 2000) frameTimes.erase(frameTimes.begin());
+		if (cpuTimes.size() > 1000) cpuTimes.erase(cpuTimes.begin());
+		if (gpuTimes.size() > 1000) gpuTimes.erase(gpuTimes.begin());
+		if (frameTimes.size() > 1000) frameTimes.erase(frameTimes.begin());
 
 		// Plot the data
 		if (ImPlot::BeginPlot("Hardware Timings"))
 		{
 			// Setup axis, x then y. This will be Frame,Ms. Use autofit for now, will mess around with these later
-			ImPlot::SetupAxes("Frame", "MS", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
+			ImPlot::SetupAxes("Frame", "Speed(ms)", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
 			ImPlot::PlotLine("CPU Time", cpuTimes.data(), cpuTimes.size());
 			ImPlot::PlotLine("GPU Time", gpuTimes.data(), gpuTimes.size());
 			ImPlot::EndPlot();

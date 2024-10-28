@@ -37,6 +37,7 @@ namespace Graphics
     ColorBuffer g_SceneColorBuffer;
     ColorBuffer g_SceneNormalBuffer;
     ColorBuffer g_PostEffectsBuffer;
+    // [AZB]: Motion vectors live here!
     ColorBuffer g_VelocityBuffer;
     ColorBuffer g_OverlayBuffer;
     ColorBuffer g_HorizontalBuffer;
@@ -44,6 +45,7 @@ namespace Graphics
 #if AZB_MOD
     // [AZB]: Create a buffer for ImGui
     ColorBuffer g_ImGuiBuffer;
+    ColorBuffer g_DLSSOutputBuffer;
 #endif
 
     ShadowBuffer g_ShadowBuffer;
@@ -130,7 +132,13 @@ void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t buffer
 
         g_SceneColorBuffer.Create( L"Main Color Buffer", bufferWidth, bufferHeight, 1, DefaultHdrColorFormat, esram );
         g_SceneNormalBuffer.Create( L"Normals Buffer", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R16G16B16A16_FLOAT, esram );
-        g_VelocityBuffer.Create( L"Motion Vectors", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32_UINT );
+
+#if AZB_MOD
+        // [AZB]: DLSS wants it's motion vectors in a different format to what MiniEngine originally provides
+        g_VelocityBuffer.Create( L"Motion Vectors", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32G32_FLOAT);
+#else
+        g_VelocityBuffer.Create( L"Motion Vectors", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32_UINT);
+#endif
         g_PostEffectsBuffer.Create( L"Post Effects Buffer", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32_UINT );
 
         esram.PushStack();	// Render HDR image
@@ -244,12 +252,14 @@ void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t buffer
             g_GenMipsBuffer.Create(L"GenMips", bufferWidth, bufferHeight, 0, DXGI_FORMAT_R11G11B10_FLOAT, esram );
         esram.PopStack();
 
-        g_OverlayBuffer.Create( L"UI Overlay", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R8G8B8A8_UNORM, esram );
+        // [AZB]: Changed this format to match ImGui as we are using the render target here. Was previously R8G8B8A8_UNORM
+        g_OverlayBuffer.Create( L"UI Overlay", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R10G10B10A2_UNORM, esram );
         g_HorizontalBuffer.Create( L"Bicubic Intermediate", g_DisplayWidth, bufferHeight, 1, DefaultHdrColorFormat, esram );
 
 #if AZB_MOD
         // [AZB]: Create a buffer for ImGui
-        g_ImGuiBuffer.Create(L"ImGui Heap", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R8G8B8A8_UNORM, esram);
+        g_ImGuiBuffer.Create(L"ImGui Heap", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R10G10B10A2_UNORM, esram);
+        g_DLSSOutputBuffer.Create(L"DLSS Output Buffer", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R10G10B10A2_UNORM, esram);
 #endif
 
     esram.PopStack(); // End final image
@@ -260,12 +270,13 @@ void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t buffer
 void Graphics::ResizeDisplayDependentBuffers(uint32_t NativeWidth, uint32_t NativeHeight)
 {
     (NativeWidth);
-    g_OverlayBuffer.Create( L"UI Overlay", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R8G8B8A8_UNORM );
+    g_OverlayBuffer.Create( L"UI Overlay", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R10G10B10A2_UNORM);
     g_HorizontalBuffer.Create( L"Bicubic Intermediate", g_DisplayWidth, NativeHeight, 1, DefaultHdrColorFormat );
 
 #if AZB_MOD
-    // [AZB]: ImGui may need resizing
-    g_ImGuiBuffer.Create(L"ImGui Heap", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
+    // [AZB]: ImGui and DLSS need resizing
+    g_ImGuiBuffer.Create(L"ImGui Heap", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R10G10B10A2_UNORM);
+    g_DLSSOutputBuffer.Create(L"DLSS Output Buffer", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R10G10B10A2_UNORM);
 #endif
 
 }

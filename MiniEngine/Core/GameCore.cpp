@@ -21,6 +21,7 @@
    Change Log:
    [AZB] 16/10/24: Implemented ImGui and custom UI class into main program
    [AZB] 21/10/24: Implemented mouse accessor to enable swapping of input focus between ImGui and application
+   [AZB] 22/10/24: Tweaked ImGui implementation and added comments ready for DLSS
 */
 
 #include "pch.h"
@@ -124,6 +125,7 @@ namespace GameCore
         game.Update(DeltaTime);
         game.RenderScene();
 
+        // [AZB]: Execute DLSS at start of post-effects, but before any other per NVIDIA recommendations
         PostEffects::Render();
 
         GraphicsContext& UiContext = GraphicsContext::Begin(L"Render UI");
@@ -151,13 +153,19 @@ namespace GameCore
         // [AZB]: Setup ImGui buffer using the GraphicsContext API
         GraphicsContext& ImGuiContext = GraphicsContext::Begin(L"Render ImGui");
         ImGuiContext.TransitionResource(g_ImGuiBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+        
+        // [AZB]: This also calls ClearRTV()
         ImGuiContext.ClearColor(g_ImGuiBuffer);
-        // [AZB]: Using the overlay buffer render target - can't use the one from g_imGuiBuffer
+
+        // [AZB]: Using the overlay buffer render target - can't use the one from g_ImGuiBuffer
         ImGuiContext.SetRenderTarget(g_OverlayBuffer.GetRTV());
-        ImGuiContext.SetViewportAndScissor(0, 0, g_ImGuiBuffer.GetWidth(), g_ImGuiBuffer.GetHeight());
+        ImGuiContext.SetViewportAndScissor(0, 0, g_OverlayBuffer.GetWidth(), g_OverlayBuffer.GetHeight());
 
+        // [AZB]: Set the descriptor heap that we set up in the GUI class
         ImGuiContext.GetCommandList()->SetDescriptorHeaps(1, &AZB_GUI->m_pSrvDescriptorHeap);
-
+        //ImGuiContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, AZB_GUI->m_pSrvDescriptorHeap);
+        
+        // [AZB]: Use the ImGui draw call
         ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), ImGuiContext.GetCommandList());
 
         // [AZB]: This will execute and then close the command list and do some other super optimal context flushing

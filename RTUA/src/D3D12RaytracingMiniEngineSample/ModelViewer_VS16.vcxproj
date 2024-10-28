@@ -59,7 +59,7 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\..\ThirdParty\imgui\;..\..\..\ThirdParty\imgui\backends;..\..\..\MiniEngine\Core;..\..\..\MiniEngine\Core\AZB\include;..\..\..\MiniEngine\Core\AZB\src;..\..\..\MiniEngine\Model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\ThirdParty\DLSS\include;..\..\..\ThirdParty\imgui\;..\..\..\ThirdParty\imgui\backends;..\..\..\MiniEngine\Core;..\..\..\MiniEngine\Core\AZB\include;..\..\..\MiniEngine\Core\AZB\src;..\..\..\MiniEngine\Model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link Condition="'$(Configuration)'=='Debug'">
       <AdditionalOptions>/nodefaultlib:MSVCRT %(AdditionalOptions)</AdditionalOptions>
@@ -67,7 +67,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
     <Link>
-      <AdditionalDependencies>Core.lib;Model.lib;d3d12.lib;dxgi.lib;runtimeobject.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Core.lib;Model.lib;nvsdk_ngx_d_dbg.lib;d3d12.lib;dxgi.lib;runtimeobject.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -217,7 +217,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ItemDefinitionGroup>
     <Link>
-      <AdditionalLibraryDirectories>..\..\..\Packages\directxtex_desktop_win10.2024.6.5.1\lib\x64\Release;..\..\..\Packages\directxmesh_desktop_win10.2024.6.5.1\lib\x64\Release;$(OutDir)..\Model;$(OutDir)..\Core\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\Packages\directxtex_desktop_win10.2024.6.5.1\lib\x64\Release;..\..\..\Packages\directxmesh_desktop_win10.2024.6.5.1\lib\x64\Release;$(OutDir)..\Model;$(OutDir)..\Core\;..\..\..\ThirdParty\DLSS\lib\Windows_x86_64\x86_64;..\..\..\ThirdParty\DLSS\lib\Windows_x86_64\dev;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/nodefaultlib:LIBCMT %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ProjectReference>
