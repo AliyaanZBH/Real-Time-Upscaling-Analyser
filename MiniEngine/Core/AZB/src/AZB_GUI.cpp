@@ -44,6 +44,9 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 	// Set ImGui up with his heap
 	ImGui_ImplDX12_Init(pDevice, numFramesInFlight, renderTargetFormat, m_pSrvDescriptorHeap,
 		m_pSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), m_pSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+
+	// Set app to use our custom style!
+	ImGui::RTUAStyle(&ImGui::GetStyle());
 }
 
 void GUI::Run()
@@ -53,26 +56,25 @@ void GUI::Run()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	// Taken from sample code
 	{
-		static float f = 0.0f;
-		static int counter = 0;
+		int renderWidth = 1920;
+		int renderHeight = 1080;
+		int outputWidth = 1920;
+		int outputHeight = 1080;
 
-		ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+		ImGui::SetNextWindowPos(kMainWindowStartPos, ImGuiCond_FirstUseEver, kTopLeftPivot);
+		ImGui::SetNextWindowSize(kMainWindowStartSize, ImGuiCond_FirstUseEver);
 
-		ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-		ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-		ImGui::Checkbox("Another Window", &show_another_window);
+		if(!ImGui::Begin("RTUA"))
+		{
+			// Early out if the window is collapsed, as an optimization.
+			ImGui::End();
+			return;
+		}
 
-		ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-		ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-		if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-			counter++;
-		ImGui::SameLine();
-		ImGui::Text("counter = %d", counter);
+		// Display our lovely formatted title
+		MainWindowTitle();
 		
-
 		// Frame data from MiniEngine profiler!
 		static std::vector<float> cpuTimes, gpuTimes, frameTimes;
 		
@@ -107,16 +109,6 @@ void GUI::Run()
 
 		ImGui::End();
 	}
-
-	// 3. Show another simple window.
-	if (show_another_window)
-	{
-		ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-		ImGui::Text("Hello from another window!");
-		if (ImGui::Button("Close Me"))
-			show_another_window = false;
-		ImGui::End();
-	}
 }
 
 void GUI::Terminate()
@@ -125,4 +117,28 @@ void GUI::Terminate()
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
 	ImPlot::DestroyContext();
+}
+
+void GUI::MainWindowTitle()
+{
+	DoubleLineBreak();
+
+	SectionTitle("Welcome to Real-Time Upscaling Analyser!");
+
+
+	Separator();
+
+	ImGui::TextWrapped("From this main window you can:");
+	SingleLineBreak();
+	SingleTabSpace();
+	ImGui::BulletText("View performance metrics and debug data about the current upscaler");
+	SingleLineBreak();
+	SingleTabSpace();
+	ImGui::BulletText("Tweak settings relating to the implementation of the current upscaler");
+	SingleLineBreak();
+	SingleTabSpace();
+	ImGui::BulletText("Change the currently implemented upscaler or disable it entirely!");
+
+
+	Separator();
 }
