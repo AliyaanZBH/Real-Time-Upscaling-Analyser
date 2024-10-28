@@ -7,8 +7,10 @@
 #include <d3d12.h>
 #include <Utility.h>
 #include <array>
+
 // For performance metrics
 #include "EngineProfiling.h"
+#include "AZB_DLSS.h"
 
 //===============================================================================
 
@@ -127,7 +129,15 @@ void GUI::Run()
 			//}
 		}
 
-		if (ImGui::CollapsingHeader("DLSS Mode")) {
+		if (ImGui::CollapsingHeader("DLSS Settings")) {
+
+			static bool useDLSS = true;
+
+			if (ImGui::Checkbox("Enable DLSS", &useDLSS))
+			{
+				DLSS::ToggleDLSS(useDLSS); 
+			}
+
 			static int dlssMode = 1; // 0: Performance, 1: Balanced, 2: Quality, etc.
 			const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance", "Ultra Quality" };
 

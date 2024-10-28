@@ -267,13 +267,19 @@ void Display::Resize(uint32_t width, uint32_t height)
 
 // [AZB]: Requery DLSS - repeat steps in Initialise()
 #if AZB_MOD
+    // [AZB]: Additional flag so that we can toggle DLSS at run-time
+    if (DLSS::m_DLSS_Enabled)
+    {
+        DLSS::OptimalSettings dlssSettings;
+        DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
+        SetPipelineResolutionDLSS(dlssSettings.m_RenderWidth, dlssSettings.m_RenderHeight);
 
-    DLSS::OptimalSettings dlssSettings;
-    DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
-    SetPipelineResolutionDLSS(dlssSettings.m_RenderWidth, dlssSettings.m_RenderHeight);
-
-    // [AZB]: Recreate this buffer with DLSS data
-    g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DLSSWidth, g_DLSSHeight, 1, SwapChainFormat);
+        // [AZB]: Recreate this buffer with DLSS data
+        g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DLSSWidth, g_DLSSHeight, 1, SwapChainFormat);
+    }
+    else
+        // [AZB]: Original pre-buffer creation
+        g_PreDisplayBuffer.Create(L"PreDisplay Buffer", width, height, 1, SwapChainFormat);
 
 #else
     // [AZB]: Original pre-buffer creation
@@ -525,10 +531,21 @@ void Graphics::PreparePresentSDR(void)
     Context.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 #if AZB_MOD
-    // [AZB]: Our color buffer is was downscaled and used as an input for DLSS, so instead read from the DLSS output!
-    Context.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
-        D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
-    Context.SetDynamicDescriptor(0, 0, g_DLSSOutputBuffer.GetSRV());
+    //[AZB]: Additional check as DLSS may be toggled off
+    if (DLSS::m_DLSS_Enabled)
+    {
+        // [AZB]: Our color buffer is was downscaled and used as an input for DLSS, so instead read from the DLSS output!
+        Context.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+            D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
+        Context.SetDynamicDescriptor(0, 0, g_DLSSOutputBuffer.GetSRV());
+    }
+    else
+    {
+        // [AZB]: Use the regular, non-upscaled colour buffer
+        Context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+            D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        Context.SetDynamicDescriptor(0, 0, g_SceneColorBuffer.GetSRV());
+    }
 #else
     // We're going to be reading these buffers to write to the swap chain buffer(s)
     Context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | 
@@ -650,7 +667,10 @@ void Display::Present(void)
     
 #if AZB_MOD
     // [AZB]: Resize according to DLSS
-    //SetPipelineResolutionDLSS(g_DLSSWidth, g_DLSSHeight);
+   // if (DLSS::m_DLSS_Enabled)
+       // SetPipelineResolutionDLSS(g_DLSSWidth, g_DLSSHeight);
+    //else
+        //SetNativeResolution();
 #else
 
     // [AZB]: Original call here to resize internal rendering resolution

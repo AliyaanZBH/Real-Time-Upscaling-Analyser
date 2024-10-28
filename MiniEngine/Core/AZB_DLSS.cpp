@@ -15,6 +15,8 @@ namespace DLSS
 
 	const wchar_t* m_AppDataPath = L"./../../DLSS_Data/";
 	bool m_bIsNGXSupported = false;
+	bool m_DLSS_Enabled = true;
+
 }
 
 void DLSS::QueryFeatureRequirements(IDXGIAdapter* Adapter)
@@ -203,6 +205,11 @@ void DLSS::Execute(ExecutionRequirements& params)
 		Utility::Print("\nDLSS executed!!\nCheck that the final image looks right!\n\n");
 	else
 		Utility::Print("\nDLSS could not be evaluated - something is not integrated correctly within the rendering pipeline\n\n");
+}
+
+void DLSS::ToggleDLSS(bool toggle)
+{
+	m_DLSS_Enabled = toggle;
 }
 
 void DLSS::SetD3DDevice(ID3D12Device* device)

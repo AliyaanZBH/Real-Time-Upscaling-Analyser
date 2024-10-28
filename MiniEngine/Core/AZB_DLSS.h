@@ -51,7 +51,11 @@ namespace DLSS
 	// Create DLSS feature using the optimal settings
 	void Create(CreationRequirements& reqs);
 
+	// Execute the upscale step
 	void Execute(ExecutionRequirements& params);
+
+	// Turn DLSS on or off
+	void ToggleDLSS(bool toggle);
 
 	void SetD3DDevice(ID3D12Device* device);
 
@@ -81,4 +85,7 @@ namespace DLSS
 
 	// Place to store debug logs from NGX
 	extern const wchar_t* m_AppDataPath;
+
+	// Flag to allow for runtime toggling of DLSS
+	extern bool m_DLSS_Enabled;
 };

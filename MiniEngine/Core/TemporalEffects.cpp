@@ -161,40 +161,68 @@ void TemporalEffects::ClearHistory( CommandContext& Context )
 void TemporalEffects::ResolveImage( CommandContext& BaseContext )
 {
 
-// [AZB]: Execute DLSS instead of TAA
 #if AZB_MOD
+    // [AZB]: Execute DLSS instead of TAA
+    if (DLSS::m_DLSS_Enabled)
+    {
 
-    ScopedTimer _prof(L"DLSS Temporal Resolve", BaseContext);
+        ScopedTimer _prof(L"DLSS Temporal Resolve", BaseContext);
 
-    //GraphicsContext& dlssContext = GraphicsContext::Begin(L"DLSS Execute");
-    GraphicsContext& dlssContext = BaseContext.GetGraphicsContext();
+        GraphicsContext& dlssContext = BaseContext.GetGraphicsContext();
 
-    // [AZB]: Create requirement struct - we need motion vectors, output colour buffer
-    DLSS::ExecutionRequirements reqs;
-    reqs.m_pCmdList = dlssContext.GetCommandList();
+        // [AZB]: Create requirement struct - we need motion vectors, output colour buffer
+        DLSS::ExecutionRequirements reqs;
+        reqs.m_pCmdList = dlssContext.GetCommandList();
 
-    // [AZB]: This where the bulk of data needed for DLSS needs to go
-    NVSDK_NGX_D3D12_DLSS_Eval_Params execParams = {};
+        // [AZB]: This where the bulk of data needed for DLSS needs to go
+        NVSDK_NGX_D3D12_DLSS_Eval_Params execParams = {};
 
-    // [AZB]: Before we can actually use the resources, they need to be transitioned
-    dlssContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE );
-    dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
-    dlssContext.TransitionResource(g_SceneDepthBuffer,D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-    dlssContext.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        // [AZB]: Before we can actually use the resources, they need to be transitioned
+        dlssContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
+        dlssContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        dlssContext.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-    // [AZB]: Input color buffer and output buffer for the fully processed frame. Could potentially output back to scene color?
-    execParams.Feature = NVSDK_NGX_D3D12_Feature_Eval_Params{ g_SceneColorBuffer.GetResource(), g_DLSSOutputBuffer.GetResource() };
-    execParams.pInDepth = g_SceneDepthBuffer.GetResource();
-    execParams.pInMotionVectors = g_VelocityBuffer.GetResource();
-    execParams.InJitterOffsetX = s_JitterX;
-    execParams.InJitterOffsetY = s_JitterY;
-    execParams.InRenderSubrectDimensions = NVSDK_NGX_Dimensions{ g_DLSSWidth, g_DLSSHeight };
+        // [AZB]: Input color buffer and output buffer for the fully processed frame. Could potentially output back to scene color?
+        execParams.Feature = NVSDK_NGX_D3D12_Feature_Eval_Params{ g_SceneColorBuffer.GetResource(), g_DLSSOutputBuffer.GetResource() };
+        execParams.pInDepth = g_SceneDepthBuffer.GetResource();
+        execParams.pInMotionVectors = g_VelocityBuffer.GetResource();
+        execParams.InJitterOffsetX = s_JitterX;
+        execParams.InJitterOffsetY = s_JitterY;
+        execParams.InRenderSubrectDimensions = NVSDK_NGX_Dimensions{ g_DLSSWidth, g_DLSSHeight };
 
 
-    reqs.m_DlSSEvalParams = execParams;
-    DLSS::Execute(reqs);
+        reqs.m_DlSSEvalParams = execParams;
+        DLSS::Execute(reqs);
+    }
+    else
+    {
+        // [AZB]: TODO: Turn these repeated code blocks into functions or macros!
+        // [AZB]: Revert back to TAA
+        //ScopedTimer _prof(L"Temporal Resolve", BaseContext);
 
-    //dlssContext.Finish();
+        //ComputeContext& Context = BaseContext.GetComputeContext();
+
+        //static bool s_EnableTAA = false;
+        //static bool s_EnableCBR = false;
+
+        //if (EnableTAA != s_EnableTAA || EnableCBR && !s_EnableCBR || TriggerReset)
+        //{
+        //    ClearHistory(Context);
+        //    s_EnableTAA = EnableTAA;
+        //    s_EnableCBR = EnableCBR;
+        //    TriggerReset = false;
+        //}
+
+        //uint32_t Src = s_FrameIndexMod2;
+        //uint32_t Dst = Src ^ 1;
+
+        //{
+        //    ApplyTemporalAA(Context);
+        //    SharpenImage(Context, g_TemporalColor[Dst]);
+        //}
+    }
+
 
 #else
     ScopedTimer _prof(L"Temporal Resolve", BaseContext);
