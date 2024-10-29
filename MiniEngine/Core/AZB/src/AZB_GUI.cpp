@@ -51,7 +51,8 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 		m_pSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), m_pSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
 	// Set app to use our custom style!
-	ImGui::RTUAStyle(&ImGui::GetStyle());
+	// TODO: Remember that because Dear ImGui is a submodule, I need to fork it and commit stuff there in order for the changes to be reflected in Git!!!!
+	//ImGui::RTUAStyle(&ImGui::GetStyle());
 }
 
 void GUI::Run()
