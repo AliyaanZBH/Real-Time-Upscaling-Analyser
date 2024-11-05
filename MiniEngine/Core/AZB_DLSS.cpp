@@ -212,6 +212,8 @@ void DLSS::Execute(ExecutionRequirements& params)
 void DLSS::ToggleDLSS(bool toggle)
 {
 	m_DLSS_Enabled = toggle;
+
+	// If we are going from disabled to enabled, we need to requery based on the current resolution!
 }
 
 void DLSS::SetD3DDevice(ID3D12Device* device)

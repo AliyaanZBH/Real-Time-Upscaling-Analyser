@@ -15,6 +15,9 @@
 // To allow ImGui to trigger swapchain resize!
 #include "Display.h"
 
+// TODO: Improve this tmp
+constexpr int kResolutionArraySize = 8;
+
 //===============================================================================
 
 void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const DXGI_FORMAT& renderTargetFormat)
@@ -91,20 +94,24 @@ void GUI::Run()
 		if (ImGui::CollapsingHeader("Resolution Settings")) 
 		{
 			// Create pre-made resolutions - App should start at 1080p
-			static std::array<std::pair<std::string, Resolution>, 7> resolutionPresets{  std::pair<std::string, Resolution>("360p", Resolution{ 640, 360 }),
+			static std::array<std::pair<std::string, Resolution>, kResolutionArraySize> resolutionPresets{  std::pair<std::string, Resolution>("360p", Resolution{ 640, 360 }),
 																						 std::pair<std::string, Resolution>("540p", Resolution{ 960, 540 }),
 																						 std::pair<std::string, Resolution>("720p", Resolution{ 1280, 720 }),
 																						 std::pair<std::string, Resolution>("768p", Resolution{ 1366, 768 }),
 																						 std::pair<std::string, Resolution>("900p", Resolution{ 1600, 900 }),
 																						 std::pair<std::string, Resolution>("1050p", Resolution{ 1680, 1050 }),
-																						 std::pair<std::string, Resolution>("1080p", Resolution{ 1920, 1080 })
+																						 std::pair<std::string, Resolution>("1080p", Resolution{ 1920, 1080 }),
+																						 std::pair<std::string, Resolution>("Custom", Resolution{ 1920, 1080 })	// Leave it as max for now
+
 			};
 
-			static int item_current_idx = resolutionPresets.size() - 1;
+
+			static int item_current_idx = kResolutionArraySize - 1;
 			const char* combo_preview_value = resolutionPresets[item_current_idx].first.c_str();
+
 			if(ImGui::BeginCombo("Output Resolution", combo_preview_value))
 			{
-				for (int n = 0; n < resolutionPresets.size(); n++)
+				for (int n = 0; n < kResolutionArraySize; n++)
 				{
 					const bool is_selected = (item_current_idx == n);
 					if (ImGui::Selectable(resolutionPresets[n].first.c_str(), is_selected))
@@ -112,8 +119,10 @@ void GUI::Run()
 						item_current_idx = n;
 						// TODO:
 						// Select resolution and resize swapchain, which should in turn requery DLSS!
-						//Display::Resize(resolutionPresets[n].second.m_Width, resolutionPresets[n].second.m_Height);
 						Display::SetResolution(resolutionPresets[n].second.m_Width, resolutionPresets[n].second.m_Height);
+
+						// This version maintains the display - something interesting worth investigating!
+						//Display::Resize(resolutionPresets[n].second.m_Width, resolutionPresets[n].second.m_Height);
 					}
 
 					if (is_selected)
@@ -121,6 +130,10 @@ void GUI::Run()
 				}
 				ImGui::EndCombo();
 			}
+			
+			// Check if the window has been resized manually - set the dropdown to custom if so
+			if (Graphics::g_DisplayHeight != resolutionPresets[item_current_idx].second.m_Height)
+				item_current_idx = kResolutionArraySize - 1;
 
 			// Apply changes
 			//if (renderWidth != currentRenderWidth || renderHeight != currentRenderHeight ||

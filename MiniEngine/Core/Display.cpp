@@ -267,11 +267,12 @@ void Display::Resize(uint32_t width, uint32_t height)
 
 // [AZB]: Requery DLSS - repeat steps in Initialise()
 #if AZB_MOD
+    // [AZB]: Even when DLSS is disabled, query the settings here so that we can safely and corectly enable later!
+    DLSS::OptimalSettings dlssSettings;
+    DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
     // [AZB]: Additional flag so that we can toggle DLSS at run-time
     if (DLSS::m_DLSS_Enabled)
     {
-        DLSS::OptimalSettings dlssSettings;
-        DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
         SetPipelineResolutionDLSS(dlssSettings.m_RenderWidth, dlssSettings.m_RenderHeight);
 
         // [AZB]: Recreate this buffer with DLSS data
@@ -686,7 +687,7 @@ void Display::Present(void)
    //if (DLSS::m_DLSS_Enabled)
    //     SetPipelineResolutionDLSS(g_DLSSWidth, g_DLSSHeight);
    // else
-   //     SetNativeResolution();
+   SetNativeResolution();
 #else
 
     // [AZB]: Original call here to resize internal rendering resolution
@@ -702,7 +703,7 @@ void Display::Present(void)
 void Display::SetResolution(uint32_t width, uint32_t height)
 {
    static int SelectedDisplayRes = DisplayResolution;
-   //ResolutionToUINT((eResolution)SelectedDisplayRes, width, height);
+   ResolutionToUINT((eResolution)SelectedDisplayRes, width, height);
    DEBUGPRINT("Changing display resolution to %ux%u", width, height);
 
    g_CommandManager.IdleGPU();
