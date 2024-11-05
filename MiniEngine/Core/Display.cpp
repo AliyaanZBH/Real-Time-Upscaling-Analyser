@@ -699,18 +699,14 @@ void Display::Present(void)
 
 #if AZB_MOD
 
-// [AZB]: This function is essentially a copy of SetDisplayResolution further up, but with a passed in resolution
+// [AZB]: This function is essentially a copy of SetDisplayResolution at the top, but with a passed in resolution, and stripping away some of the extra steps it was taken
 void Display::SetResolution(uint32_t width, uint32_t height)
 {
-   static int SelectedDisplayRes = DisplayResolution;
-   ResolutionToUINT((eResolution)SelectedDisplayRes, width, height);
-   DEBUGPRINT("Changing display resolution to %ux%u", width, height);
-
    g_CommandManager.IdleGPU();
 
-   Display::Resize(width, height);
-
-   SetWindowPos(GameCore::g_hWnd, 0, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+   // [AZB]: The offsets here are necessary to account for the windows title bar
+   //          NB: This function triggers WM_SIZE which in turn calls Display::Resize
+   SetWindowPos(GameCore::g_hWnd, 0, 0, 0, width + kWindowTitleX, height + kWindowTitleY, SWP_NOZORDER| SWP_NOACTIVATE);
 }
 
 #endif

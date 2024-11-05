@@ -13,6 +13,10 @@
 constexpr int SWAP_CHAIN_BUFFER_COUNT = 3;
 constexpr DXGI_FORMAT SWAP_CHAIN_FORMAT = DXGI_FORMAT_R10G10B10A2_UNORM;
 
+// Used to adjust window size in ImGui due to the extra size added by the windows title
+constexpr int kWindowTitleX = 16;
+constexpr int kWindowTitleY = 39;
+
 // Set in GameCore.cpp
 extern bool g_bMouseExclusive;	// Used to keep track of if the mouse is being exclusively used by the MiniEngine. Set to 0 by default, app starts non-exclusive
 
