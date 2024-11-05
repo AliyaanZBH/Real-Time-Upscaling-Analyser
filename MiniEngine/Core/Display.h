@@ -42,6 +42,11 @@ namespace Display
     void Shutdown(void);
     void Resize(uint32_t width, uint32_t height);
     void Present(void);
+
+#if AZB_MOD
+    // [AZB]: Making this function public so that resolution can be changed in ImGui
+    void SetResolution(uint32_t width, uint32_t height);
+#endif
 }
 
 namespace Graphics

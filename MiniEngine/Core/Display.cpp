@@ -419,28 +419,39 @@ void Display::Initialize(void)
 
 // [AZB]: Continue DLSS intialisation after creating main swap chain by querying DLSS modes and their optimal settings to determine the resolution of our render targets
 #if AZB_MOD
+  
+        // [AZB]: Container that will store results of query that will be needed for DLSS feature creation. By default this will check the balanced setting
+        DLSS::OptimalSettings dlssSettings;
 
-    // [AZB]: Container that will store results of query that will be needed for DLSS feature creation. By default this will check the balanced setting
-    DLSS::OptimalSettings dlssSettings;
+        // [AZB]: Query optimal settings based on current native resolution
+        DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
 
-    // [AZB]: Query optimal settings based on current native resolution
-    DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
+        // [AZB]: Pre-query all settings for current native resolution
+        //DLSS::PreQueryAllSettings(g_DisplayWidth, g_DisplayHeight);
+        // [AZB]: // Balanced by default
+       // DLSS::OptimalSettings dlssSettings = DLSS::m_DLSS_Modes[1];  
 
-    // [AZB]: Pre-query all settings for current native resolution
-    //DLSS::PreQueryAllSettings(g_DisplayWidth, g_DisplayHeight);
-    // [AZB]: // Balanced by default
-   // DLSS::OptimalSettings dlssSettings = DLSS::m_DLSS_Modes[1];  
+        // [AZB]: Call my version of setNativeRes, which skips reading the displays native resolution
+        SetPipelineResolutionDLSS(dlssSettings.m_RenderWidth, dlssSettings.m_RenderHeight);
 
-    // [AZB]: Call my version of setNativeRes, which skips reading the displays native resolution
-    SetPipelineResolutionDLSS(dlssSettings.m_RenderWidth, dlssSettings.m_RenderHeight);
+        // [AZB]: At this point we could create DLSS however we can't create a graphics context just yet as the rest of the engine needs to initalise first. 
+        //        DLSS creation is therefore postponed until after these steps.
 
-    // [AZB]: At this point we could create DLSS however we can't create a graphics context just yet as the rest of the engine needs to initalise first. 
-    //        DLSS creation is therefore postponed until after these steps.
+    // [AZB]: Extra check as we don't necessarily ant to start with DLSS enabled
+    if (DLSS::m_DLSS_Enabled)
+    {
+        // [AZB]: Also use DLSS resolution when creating the pre-buffer
+        g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DLSSWidth, g_DLSSHeight, 1, SwapChainFormat);
+        ImageScaling::Initialize(g_PreDisplayBuffer.GetFormat());
+    }
+    else
+    {
+        // [AZB]: Start at native high resolution
+        SetNativeResolution();
 
-    // [AZB]: Also use DLSS resolution when creating the pre-buffer
-    g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DLSSWidth, g_DLSSHeight, 1, SwapChainFormat);
-    ImageScaling::Initialize(g_PreDisplayBuffer.GetFormat());
-
+        g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DisplayWidth, g_DisplayHeight, 1, SwapChainFormat);
+        ImageScaling::Initialize(g_PreDisplayBuffer.GetFormat());
+    }
 #else
     // [AZB]: This is where native resolution gets set originally, we need to override this with DLSS recommended lower resolution
     SetNativeResolution();
@@ -671,11 +682,11 @@ void Display::Present(void)
     TemporalEffects::Update((uint32_t)s_FrameIndex);
     
 #if AZB_MOD
-    // [AZB]: Resize according to DLSS
-   // if (DLSS::m_DLSS_Enabled)
-       // SetPipelineResolutionDLSS(g_DLSSWidth, g_DLSSHeight);
-    //else
-        //SetNativeResolution();
+   // [AZB]: Resize according to DLSS
+   //if (DLSS::m_DLSS_Enabled)
+   //     SetPipelineResolutionDLSS(g_DLSSWidth, g_DLSSHeight);
+   // else
+   //     SetNativeResolution();
 #else
 
     // [AZB]: Original call here to resize internal rendering resolution
@@ -683,6 +694,25 @@ void Display::Present(void)
 #endif
     SetDisplayResolution();
 }
+
+
+#if AZB_MOD
+
+// [AZB]: This function is essentially a copy of SetDisplayResolution further up, but with a passed in resolution
+void Display::SetResolution(uint32_t width, uint32_t height)
+{
+   static int SelectedDisplayRes = DisplayResolution;
+   //ResolutionToUINT((eResolution)SelectedDisplayRes, width, height);
+   DEBUGPRINT("Changing display resolution to %ux%u", width, height);
+
+   g_CommandManager.IdleGPU();
+
+   Display::Resize(width, height);
+
+   SetWindowPos(GameCore::g_hWnd, 0, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
+#endif
 
 uint64_t Graphics::GetFrameCount(void)
 {

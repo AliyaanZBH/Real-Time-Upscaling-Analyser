@@ -17,6 +17,7 @@ namespace DLSS
 	bool m_bIsNGXSupported = false;
 	bool m_DLSS_Enabled = false;
 
+	Resolution m_NativeResolution = {};
 }
 
 void DLSS::QueryFeatureRequirements(IDXGIAdapter* Adapter)
@@ -42,7 +43,6 @@ void DLSS::QueryFeatureRequirements(IDXGIAdapter* Adapter)
 	FeatureDiscoveryInfo.ApplicationDataPath = m_AppDataPath;
 	FeatureDiscoveryInfo.FeatureInfo = &ftInfo;
 
-
 	// This is a pointer to a NVSDK_NGX_FeatureRequirement structure. Check the values returned in OutSupported if NVSDK_NGX_Result_Success is returned
 	NVSDK_NGX_FeatureRequirement OutSupported;
 
@@ -60,7 +60,6 @@ void DLSS::QueryFeatureRequirements(IDXGIAdapter* Adapter)
 		Utility::Print("\nNVIDIA DLSS not supported - have you got the right hardware and software?\n\n");
 }
 
-
 void DLSS::Init(ID3D12Device* device)
 {
 	NVSDK_NGX_Result ret;
@@ -75,9 +74,6 @@ void DLSS::Init(ID3D12Device* device)
 		if (NVSDK_NGX_FAILED(ret))
 			Utility::Print("\nNGX Failed to init, check D3D device!\n\n");
 	}
-
-
-	//
 
 	// Secondary runtime check specifically for DLSS after device and NGX init
 	// Successful initialization of the NGX SDK instance indicates that the target system is capable of running NGX features. However, each feature can have additional dependencies
@@ -161,6 +157,9 @@ void DLSS::QueryOptimalSettings(const int targetWidth, const int targetHeight, O
 		Utility::Print("\nThis PerfQuality mode has not been made available yet.\n\n");
 		Utility::Print("\nPlease request another PerfQuality mode.\n\n");
 	}
+
+	// Store target resolution for later use
+	m_NativeResolution = { targetWidth, targetHeight };
 }
 
 void DLSS::PreQueryAllSettings(const int targetWidth, const int targetHeight)
@@ -185,6 +184,9 @@ void DLSS::PreQueryAllSettings(const int targetWidth, const int targetHeight)
 			&maxDW, &maxDH, &minDW, &minDH, &sharpness
 		);
 	}
+
+	// Store target resolution for later use
+	m_NativeResolution = { targetWidth, targetHeight };
 }
 
 void DLSS::Create(CreationRequirements& reqs)

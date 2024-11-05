@@ -12,6 +12,9 @@
 #include "EngineProfiling.h"
 #include "AZB_DLSS.h"
 
+// To allow ImGui to trigger swapchain resize!
+#include "Display.h"
+
 //===============================================================================
 
 void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const DXGI_FORMAT& renderTargetFormat)
@@ -87,9 +90,7 @@ void GUI::Run()
 
 		if (ImGui::CollapsingHeader("Resolution Settings")) 
 		{
-
-			// HACK: Clean this up!
-			// Create pre-made resolutions
+			// Create pre-made resolutions - App should start at 1080p
 			static std::array<std::pair<std::string, Resolution>, 7> resolutionPresets{  std::pair<std::string, Resolution>("360p", Resolution{ 640, 360 }),
 																						 std::pair<std::string, Resolution>("540p", Resolution{ 960, 540 }),
 																						 std::pair<std::string, Resolution>("720p", Resolution{ 1280, 720 }),
@@ -110,7 +111,9 @@ void GUI::Run()
 					{
 						item_current_idx = n;
 						// TODO:
-						// Select resolution and requery DLSS
+						// Select resolution and resize swapchain, which should in turn requery DLSS!
+						//Display::Resize(resolutionPresets[n].second.m_Width, resolutionPresets[n].second.m_Height);
+						Display::SetResolution(resolutionPresets[n].second.m_Width, resolutionPresets[n].second.m_Height);
 					}
 
 					if (is_selected)

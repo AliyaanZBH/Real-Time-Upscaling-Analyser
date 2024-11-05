@@ -76,19 +76,9 @@ private:
 
 
 	// Reusable section title function
-	const void SectionTitle(const char* titleText) {
+	const void SectionTitle(const char* titleText)
+	{
 		CenterNextTextItem(titleText);
 		ImGui::Text(titleText);
 	}
-
-
-	//
-	//	Helper structs to organise data
-	//
-
-	struct Resolution
-	{
-		int m_Width = 0;
-		int m_Height = 0;
-	};
 };

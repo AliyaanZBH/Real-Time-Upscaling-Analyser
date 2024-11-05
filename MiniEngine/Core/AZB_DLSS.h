@@ -5,6 +5,7 @@
 //===============================================================================
 #include "nvsdk_ngx.h"
 #include "nvsdk_ngx_helpers.h"
+#include "AZB_Utils.h"
 
 #include <array>
 
@@ -64,8 +65,7 @@ namespace DLSS
 
 	//
 	// Namespace members
-	// 
-	 
+	//  
 
 	// Handle to DLSS feature
 	extern NVSDK_NGX_Handle* m_DLSS_FeatureHandle;
@@ -88,4 +88,7 @@ namespace DLSS
 
 	// Flag to allow for runtime toggling of DLSS
 	extern bool m_DLSS_Enabled;
+
+	// Track the current native resolution
+	extern Resolution m_CurrentNativeResolution;
 };
