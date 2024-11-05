@@ -132,7 +132,7 @@ void GUI::Run()
 
 		if (ImGui::CollapsingHeader("DLSS Settings")) {
 
-			static bool useDLSS = true;
+			static bool useDLSS = false;
 
 			if (ImGui::Checkbox("Enable DLSS", &useDLSS))
 			{

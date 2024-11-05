@@ -15,7 +15,7 @@ namespace DLSS
 
 	const wchar_t* m_AppDataPath = L"./../../DLSS_Data/";
 	bool m_bIsNGXSupported = false;
-	bool m_DLSS_Enabled = true;
+	bool m_DLSS_Enabled = false;
 
 }
 
