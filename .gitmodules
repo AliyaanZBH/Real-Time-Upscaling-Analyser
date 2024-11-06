@@ -8,3 +8,7 @@
 [submodule "ThirdParty/DLSS"]
 	path = ThirdParty/DLSS
 	url = https://github.com/NVIDIA/DLSS.git
+[submodule "ThirdParty/imgui-AZB_MOD"]
+	path = ThirdParty/imgui-AZB_MOD
+	url = https://github.com/AliyaanZBH/imgui-AZB_MOD
+	branch = docking
