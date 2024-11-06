@@ -314,6 +314,8 @@ void Graphics::Initialize(bool RequireDXRSupport)
                 // [AZB]: Flip our dirty flag to ensure we don't try to query the SDK again, which would lead to the query failing (due to not being an RTX adapter), which would effectively de-init DLSS!
                 isNGXQueried = true;
             }
+
+            // [AZB]: Also query display possibilities to get maximum resolution!
 #endif
 
             Utility::Printf(L"Selected GPU:  %s (%u MB)\n", desc.Description, desc.DedicatedVideoMemory >> 20);

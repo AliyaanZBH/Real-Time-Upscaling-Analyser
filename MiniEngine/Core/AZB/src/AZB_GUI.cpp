@@ -90,9 +90,6 @@ void GUI::Run()
 
 		// Display our lovely formatted title
 		MainWindowTitle();
-		
-
-
 
 
 		if (ImGui::CollapsingHeader("Resolution Settings")) 
@@ -148,6 +145,29 @@ void GUI::Run()
 			//	currentOutputHeight = outputHeight;
 			//	ReconfigureDLSS(currentRenderWidth, currentRenderHeight, currentOutputWidth, currentOutputHeight);
 			//}
+
+
+			// Add a checkbox to control fullscreen
+			static bool bFullscreen = false;
+			// wb for Windows Bool - have to use this when querying the swapchain!
+			BOOL wbFullscreen = FALSE;
+			Display::GetSwapchain()->GetFullscreenState(&wbFullscreen, nullptr);
+
+			bFullscreen = wbFullscreen;
+
+			if (ImGui::Checkbox("Enable fullscreen mode", &bFullscreen))
+			{
+				HRESULT hr = Display::GetSwapchain()->SetFullscreenState(!wbFullscreen, nullptr);
+				if (SUCCEEDED(hr))
+				{
+					bFullscreen = wbFullscreen;
+					DEBUGPRINT("Switched to %s mode", bFullscreen ? "Fullscreen" : "Windowed");
+				}
+				else
+				{
+					DEBUGPRINT("\nFailed to toggle fullscreen mode.\n");
+				}
+			}
 		}
 
 		if (ImGui::CollapsingHeader("DLSS Settings")) {

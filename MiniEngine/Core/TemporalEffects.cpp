@@ -169,6 +169,7 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
         ScopedTimer _prof(L"DLSS Temporal Resolve", BaseContext);
 
         GraphicsContext& dlssContext = BaseContext.GetGraphicsContext();
+        //ComputeContext& dlssContext = BaseContext.GetComputeContext();
 
         // [AZB]: Create requirement struct - we need motion vectors, output colour buffer
         DLSS::ExecutionRequirements reqs;

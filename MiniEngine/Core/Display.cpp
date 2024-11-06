@@ -709,6 +709,11 @@ void Display::SetResolution(uint32_t width, uint32_t height)
    SetWindowPos(GameCore::g_hWnd, 0, 0, 0, width + kWindowTitleX, height + kWindowTitleY, SWP_NOZORDER| SWP_NOACTIVATE);
 }
 
+IDXGISwapChain1* Display::GetSwapchain()
+{
+    return s_SwapChain1;
+}
+
 #endif
 
 uint64_t Graphics::GetFrameCount(void)
