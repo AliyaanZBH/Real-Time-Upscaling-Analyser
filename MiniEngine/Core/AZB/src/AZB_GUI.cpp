@@ -58,7 +58,11 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 
 	// Set app to use our custom style!
 	// TODO: Remember that because Dear ImGui is a submodule, I need to fork it and commit stuff there in order for the changes to be reflected in Git!!!!
+	//
 	//ImGui::RTUAStyle(&ImGui::GetStyle());
+	// 
+	// TMP - added style in header of this file
+	SetStyle();
 }
 
 void GUI::Run()
