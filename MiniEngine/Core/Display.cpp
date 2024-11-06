@@ -265,11 +265,27 @@ void Display::Resize(uint32_t width, uint32_t height)
 
     DEBUGPRINT("Changing display resolution to %ux%u", width, height);
 
-// [AZB]: Requery DLSS - repeat steps in Initialise()
+// [AZB]: Create DLSS - repeat steps in Initialise() but also release the old feature and create a new one
 #if AZB_MOD
+
+    DLSS::Release();
     // [AZB]: Even when DLSS is disabled, query the settings here so that we can safely and corectly enable later!
     DLSS::OptimalSettings dlssSettings;
     DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
+
+    // [AZB]: These steps are similar to those we perform in GraphicsCore.cpp, Initialize()
+    GraphicsContext& Context = GraphicsContext::Begin(L"DLSS Resize");
+    // [AZB]: Fill in requirements struct ready for the feature creation
+    DLSS::CreationRequirements reqs;
+    reqs.m_pCmdList = Context.GetCommandList();
+
+    NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, NVSDK_NGX_PerfQuality_Value_Balanced };
+    // [AZB]: Even though we may not render to HDR, our color buffer is infact in HDR format, so set the appropriate flag!
+    reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_None /*| NVSDK_NGX_DLSS_Feature_Flags_IsHDR*/ };
+    DLSS::Create(reqs);
+
+    Context.Finish();
+
     // [AZB]: Additional flag so that we can toggle DLSS at run-time
     if (DLSS::m_DLSS_Enabled)
     {

@@ -12,12 +12,14 @@ namespace DLSS
 	NVSDK_NGX_Handle* m_DLSS_FeatureHandle = nullptr;
 	NVSDK_NGX_Parameter* m_DLSS_Parameters = nullptr;
 	std::array<OptimalSettings, 5> m_DLSS_Modes = {};
+	Resolution m_NativeResolution = {};
 
 	const wchar_t* m_AppDataPath = L"./../../DLSS_Data/";
+
 	bool m_bIsNGXSupported = false;
 	bool m_DLSS_Enabled = false;
+	bool m_bNeedsReleasing = false;
 
-	Resolution m_NativeResolution = {};
 }
 
 void DLSS::QueryFeatureRequirements(IDXGIAdapter* Adapter)
@@ -191,10 +193,11 @@ void DLSS::PreQueryAllSettings(const int targetWidth, const int targetHeight)
 
 void DLSS::Create(CreationRequirements& reqs)
 {
-	// Supposedly device could not be found
 	NVSDK_NGX_Result ret = NGX_D3D12_CREATE_DLSS_EXT(reqs.m_pCmdList, 1, 1, &m_DLSS_FeatureHandle, m_DLSS_Parameters, &reqs.m_DlSSCreateParams);
 	if (NVSDK_NGX_SUCCEED(ret))
-		Utility::Print("\nDLSS created succesfully! Get motion vectors for evaluation\n\n");
+	{
+		Utility::Print("\nDLSS created for the current resolution succesfully!\n\n");
+	}
 	else
 		Utility::Print("\nDLSS could not be created - something is not integrated correctly within the rendering pipeline\n\n");
 
@@ -209,11 +212,31 @@ void DLSS::Execute(ExecutionRequirements& params)
 		Utility::Print("\nDLSS could not be evaluated - something is not integrated correctly within the rendering pipeline\n\n");
 }
 
+void DLSS::Release()
+{
+	NVSDK_NGX_D3D12_ReleaseFeature(m_DLSS_FeatureHandle);
+}
+
 void DLSS::ToggleDLSS(bool toggle)
 {
 	m_DLSS_Enabled = toggle;
 
-	// If we are going from disabled to enabled, we need to requery based on the current resolution!
+	// If we are going from disabled to enabled, we may need to recreate the feature based if the target resolution has changed!
+	if (m_DLSS_Enabled)
+	{
+		// First, release the current feature if our flag has been set
+		//if (m_bNeedsReleasing)
+		//{
+		//	Release();
+		//	// Reset flag
+		//	m_bNeedsReleasing = false;
+		//}
+		// Otherwise begin creating the feature and executing it in the next frames TemporalResolve! See TemproalEffects.cpp, ResolveImage() to see implementation
+	}
+
+	// Now create it again with new creation reqs
+
+
 }
 
 void DLSS::SetD3DDevice(ID3D12Device* device)

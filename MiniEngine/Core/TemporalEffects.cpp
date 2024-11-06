@@ -171,6 +171,19 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
         GraphicsContext& dlssContext = BaseContext.GetGraphicsContext();
         //ComputeContext& dlssContext = BaseContext.GetComputeContext();
 
+        // [AZB]: Check if the feature already exists, create it if not
+        if (!DLSS::m_DLSS_FeatureHandle)
+        {
+            // [AZB]: Fill in requirements struct ready for the feature creation
+            DLSS::CreationRequirements reqs;
+            reqs.m_pCmdList = dlssContext.GetCommandList();
+
+            NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, NVSDK_NGX_PerfQuality_Value_Balanced };
+            // [AZB]: Even though we may not render to HDR, our color buffer is infact in HDR format, so set the appropriate flag!
+            reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_None /*| NVSDK_NGX_DLSS_Feature_Flags_IsHDR*/ };
+            DLSS::Create(reqs);
+        }
+
         // [AZB]: Create requirement struct - we need motion vectors, output colour buffer
         DLSS::ExecutionRequirements reqs;
         reqs.m_pCmdList = dlssContext.GetCommandList();

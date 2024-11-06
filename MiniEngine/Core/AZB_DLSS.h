@@ -55,6 +55,9 @@ namespace DLSS
 	// Execute the upscale step
 	void Execute(ExecutionRequirements& params);
 
+	// Dispose of the DLSS feature - use when changing native resolution
+	void Release();
+
 	// Turn DLSS on or off
 	void ToggleDLSS(bool toggle);
 
@@ -80,15 +83,18 @@ namespace DLSS
 	// Array indices map to DLSS modes e.g. 0 = MaxPerformance etc
 	extern std::array<OptimalSettings, 5> m_DLSS_Modes;
 
-	// Flag that is determined by feauture capability query
-	extern bool m_bIsNGXSupported;
+	// Track the current native resolution
+	extern Resolution m_CurrentNativeResolution;
 
 	// Place to store debug logs from NGX
 	extern const wchar_t* m_AppDataPath;
+	
+	// Flag that is determined by feauture capability query
+	extern bool m_bIsNGXSupported;
 
 	// Flag to allow for runtime toggling of DLSS
 	extern bool m_DLSS_Enabled;
 
-	// Track the current native resolution
-	extern Resolution m_CurrentNativeResolution;
+	// Flag to track when native resolution has changed and DLSS needs re-creating
+	extern bool m_bNeedsReleasing;
 };
