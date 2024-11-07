@@ -294,6 +294,7 @@ void Graphics::DestroyRenderingBuffers()
 #if AZB_MOD
     // [AZB]: Destroy ImGui
     g_ImGuiBuffer.Destroy();
+    g_DLSSOutputBuffer.Destroy();
 #endif
 
     g_ShadowBuffer.Destroy();

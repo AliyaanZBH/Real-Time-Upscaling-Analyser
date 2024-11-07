@@ -469,7 +469,7 @@ void Graphics::Initialize(bool RequireDXRSupport)
 #if AZB_MOD    // [AZB]: Now we can actually create the DLSS feature
     
     // [AZB]: Create context for DLSS as we need to grab a command list and pass motion vector data etc.
-    GraphicsContext& Context = GraphicsContext::Begin(L"DLSS Creation");
+    GraphicsContext& Context = GraphicsContext::Begin(L"DLSS Initial Creation");
     // [AZB]: Fill in requirements struct ready for the feature creation
     DLSS::CreationRequirements reqs;
     reqs.m_pCmdList = Context.GetCommandList();

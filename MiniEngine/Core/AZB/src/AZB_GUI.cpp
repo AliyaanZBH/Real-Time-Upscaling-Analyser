@@ -73,10 +73,9 @@ void GUI::Run()
 	ImGui::NewFrame();
 
 	{
-		int renderWidth = 1920;
-		int renderHeight = 1080;
-		int outputWidth = 1920;
-		int outputHeight = 1080;
+
+		// Flag to control fullscreen/windowed behaviour
+		static bool bFullscreen = false;
 
 		ImGui::SetNextWindowPos(kMainWindowStartPos, ImGuiCond_FirstUseEver, kTopLeftPivot);
 		ImGui::SetNextWindowSize(kMainWindowStartSize, ImGuiCond_FirstUseEver);
@@ -95,14 +94,14 @@ void GUI::Run()
 		if (ImGui::CollapsingHeader("Resolution Settings")) 
 		{
 			// Create pre-made resolutions - App should start at 1080p
-			static std::array<std::pair<std::string, Resolution>, kResolutionArraySize> resolutionPresets{  std::pair<std::string, Resolution>("360p", Resolution{ 640, 360 }),
-																						 std::pair<std::string, Resolution>("540p", Resolution{ 960, 540 }),
-																						 std::pair<std::string, Resolution>("720p", Resolution{ 1280, 720 }),
-																						 std::pair<std::string, Resolution>("768p", Resolution{ 1366, 768 }),
-																						 std::pair<std::string, Resolution>("900p", Resolution{ 1600, 900 }),
-																						 std::pair<std::string, Resolution>("1050p", Resolution{ 1680, 1050 }),
-																						 std::pair<std::string, Resolution>("1080p", Resolution{ 1920, 1080 }),
-																						 std::pair<std::string, Resolution>("Custom", Resolution{ 1920, 1080 })	// Leave it as max for now
+			static std::array<std::pair<std::string, Resolution>, kResolutionArraySize> resolutionPresets {  std::pair<std::string, Resolution>("360p", Resolution{ 640, 360 }),
+																											 std::pair<std::string, Resolution>("540p", Resolution{ 960, 540 }),
+																											 std::pair<std::string, Resolution>("720p", Resolution{ 1280, 720 }),
+																											 std::pair<std::string, Resolution>("768p", Resolution{ 1366, 768 }),
+																											 std::pair<std::string, Resolution>("900p", Resolution{ 1600, 900 }),
+																											 std::pair<std::string, Resolution>("1050p", Resolution{ 1680, 1050 }),
+																											 std::pair<std::string, Resolution>("1080p", Resolution{ 1920, 1080 }),
+																											 std::pair<std::string, Resolution>("Custom", Resolution{ 1920, 1080 })	 // Leave 1080p as max for now
 
 			};
 
@@ -118,12 +117,13 @@ void GUI::Run()
 					if (ImGui::Selectable(resolutionPresets[n].first.c_str(), is_selected))
 					{
 						item_current_idx = n;
-						// TODO:
 						// Select resolution and resize swapchain, which should in turn requery DLSS!
-						Display::SetResolution(resolutionPresets[n].second.m_Width, resolutionPresets[n].second.m_Height);
-
-						// This version maintains the display - something interesting worth investigating!
-						//Display::Resize(resolutionPresets[n].second.m_Width, resolutionPresets[n].second.m_Height);
+						//if (!bFullscreen)
+							// This version scales the window to match the resolution
+							Display::SetWindowedResolution(resolutionPresets[n].second.m_Width, resolutionPresets[n].second.m_Height);
+						//else
+							// This version maintains fullscreen and stretches the resolution to that size
+							//Display::Resize(resolutionPresets[n].second.m_Width, resolutionPresets[n].second.m_Height);
 					}
 
 					if (is_selected)
@@ -136,31 +136,19 @@ void GUI::Run()
 			if (Graphics::g_DisplayHeight != resolutionPresets[item_current_idx].second.m_Height)
 				item_current_idx = kResolutionArraySize - 1;
 
-			// Apply changes
-			//if (renderWidth != currentRenderWidth || renderHeight != currentRenderHeight ||
-			//	outputWidth != currentOutputWidth || outputHeight != currentOutputHeight) {
-			//	currentRenderWidth = renderWidth;
-			//	currentRenderHeight = renderHeight;
-			//	currentOutputWidth = outputWidth;
-			//	currentOutputHeight = outputHeight;
-			//	ReconfigureDLSS(currentRenderWidth, currentRenderHeight, currentOutputWidth, currentOutputHeight);
-			//}
 
-
-			// Add a checkbox to control fullscreen
-			static bool bFullscreen = false;
 			// wb for Windows Bool - have to use this when querying the swapchain!
 			BOOL wbFullscreen = FALSE;
 			Display::GetSwapchain()->GetFullscreenState(&wbFullscreen, nullptr);
 
 			bFullscreen = wbFullscreen;
 
+			// Add a checkbox to control fullscreen
 			if (ImGui::Checkbox("Enable fullscreen mode", &bFullscreen))
 			{
 				HRESULT hr = Display::GetSwapchain()->SetFullscreenState(!wbFullscreen, nullptr);
 				if (SUCCEEDED(hr))
 				{
-					bFullscreen = wbFullscreen;
 					DEBUGPRINT("Switched to %s mode", bFullscreen ? "Fullscreen" : "Windowed");
 				}
 				else

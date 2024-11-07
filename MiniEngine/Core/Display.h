@@ -45,7 +45,7 @@ namespace Display
 
 #if AZB_MOD
     // [AZB]: Making this function public so that resolution can be changed in ImGui
-    void SetResolution(uint32_t width, uint32_t height);
+    void SetWindowedResolution(uint32_t width, uint32_t height);
     // [AZB]: Some extra accessors to further ease GUI usability when it comes to controlling rendering
     IDXGISwapChain1* GetSwapchain();
 #endif
