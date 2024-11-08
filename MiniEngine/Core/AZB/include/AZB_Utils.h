@@ -8,6 +8,7 @@
 #define AZB_MOD 1	// Change to 0 to exclude my modifications and run unmodified sample code
 
 #include "dxgiformat.h"
+#include "stdint.h"
 
 // This is defined in Display.cpp
 constexpr int SWAP_CHAIN_BUFFER_COUNT = 3;
@@ -26,6 +27,6 @@ extern bool g_bMouseExclusive;	// Used to keep track of if the mouse is being ex
 
 struct Resolution
 {
-	int m_Width = 0;
-	int m_Height = 0;
+	uint32_t m_Width = 0u;
+	uint32_t m_Height = 0u;
 };

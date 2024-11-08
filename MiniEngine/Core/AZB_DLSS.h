@@ -44,10 +44,10 @@ namespace DLSS
 	void Init(ID3D12Device* device);
 
 	// Query optimal resolution settings for a given DLSS Mode
-	void QueryOptimalSettings(const int targetWidth, const int targetHeight, OptimalSettings& settings);
+	void QueryOptimalSettings(const uint32_t targetWidth, const uint32_t targetHeight, OptimalSettings& settings);
 
 	// Pre-Query for all performance quality levels and store them. Useful for instantly switching at run-time, we can avoid running queries repeatedly
-	void PreQueryAllSettings(const int targetWidth, const int targetHeight);
+	void PreQueryAllSettings(const uint32_t targetWidth, const uint32_t targetHeight);
 
 	// Create DLSS feature using the optimal settings
 	void Create(CreationRequirements& reqs);

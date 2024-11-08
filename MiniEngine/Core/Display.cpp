@@ -191,38 +191,6 @@ namespace Graphics
         InitializeRenderingBuffers(NativeWidth, NativeHeight);
     }
 
-// [AZB]: The new version which takes in a value that we pass in, used for DLSS and regular downscaling!
-#if AZB_MOD
-    void SetPipelineResolution(bool bDLSS, uint32_t queriedWidth, uint32_t queriedHeight)
-    {
-        if (g_NativeWidth == queriedWidth && g_NativeHeight == queriedHeight)
-            return;
-
-        if (bDLSS)
-        {
-            // [AZB]: Updating the print statement to signal that DLSS is responsible
-            DEBUGPRINT("Changing native resolution to match DLSS query result %ux%u", queriedWidth, queriedHeight);
-        }
-        else
-            DEBUGPRINT("Changing internal resolution to %ux%u", queriedWidth, queriedHeight);
-
-
-        // [AZB]: Still update the existing native global as it may be used in other places of the pipeline that DLSS doesn't touch (e.g. post-effects)
-        g_NativeWidth = queriedWidth;
-        g_NativeHeight = queriedHeight;
-
-        //if (bDLSS)
-        //{
-            // [AZB]: Also update our DLSS globals
-            g_DLSSWidth = queriedWidth;
-            g_DLSSHeight = queriedHeight;
-        //}
-
-        g_CommandManager.IdleGPU();
-        InitializeRenderingBuffers(queriedWidth, queriedHeight);
-    }
-#endif
-
     void SetDisplayResolution(void)
     {
 #ifdef _GAMING_DESKTOP
@@ -265,6 +233,39 @@ namespace Graphics
     const char* DebugZoomLabels[] = { "Off", "2x Zoom", "4x Zoom", "8x Zoom", "16x Zoom" };
     EnumVar DebugZoom("Graphics/Display/Magnify Pixels", kDebugZoomOff, kDebugZoomCount, DebugZoomLabels);
 }
+
+
+// [AZB]: The new version which takes in a value that we pass in, used for DLSS and regular downscaling!
+#if AZB_MOD
+void Display::SetPipelineResolution(bool bDLSS, uint32_t queriedWidth, uint32_t queriedHeight)
+{
+    if (g_NativeWidth == queriedWidth && g_NativeHeight == queriedHeight)
+        return;
+
+    if (bDLSS)
+    {
+        // [AZB]: Updating the print statement to signal that DLSS is responsible
+        DEBUGPRINT("Changing native resolution to match DLSS query result %ux%u", queriedWidth, queriedHeight);
+    }
+    else
+        DEBUGPRINT("Changing internal resolution to %ux%u", queriedWidth, queriedHeight);
+
+
+    // [AZB]: Still update the existing native global as it may be used in other places of the pipeline that DLSS doesn't touch (e.g. post-effects)
+    g_NativeWidth = queriedWidth;
+    g_NativeHeight = queriedHeight;
+
+    //if (bDLSS)
+    //{
+        // [AZB]: Also update our DLSS globals
+    g_DLSSWidth = queriedWidth;
+    g_DLSSHeight = queriedHeight;
+    //}
+
+    g_CommandManager.IdleGPU();
+    InitializeRenderingBuffers(queriedWidth, queriedHeight);
+}
+#endif
 
 void Display::Resize(uint32_t width, uint32_t height)
 {
@@ -462,7 +463,7 @@ void Display::Initialize(void)
     // [AZB]: Pre-query all settings for current native resolution
     //DLSS::PreQueryAllSettings(g_DisplayWidth, g_DisplayHeight);
     // [AZB]: // Balanced by default
-    / DLSS::OptimalSettings dlssSettings = DLSS::m_DLSS_Modes[1];  
+    // DLSS::OptimalSettings dlssSettings = DLSS::m_DLSS_Modes[1];  
 
     // [AZB]: At this point we could create DLSS however we can't create a graphics context just yet as the rest of the engine needs to initalise first. 
     //        DLSS creation is therefore postponed until after these steps.
@@ -703,9 +704,9 @@ void Display::Present(void)
 #if AZB_MOD
    // [AZB]: Resize according to DLSS
    //if (DLSS::m_DLSS_Enabled)
-   //     SetPipelineResolutionDLSS(g_DLSSWidth, g_DLSSHeight);
+        //SetPipelineResolution(false, g_DisplayWidth, g_DisplayHeight);
    // else
-   SetNativeResolution();
+   //SetNativeResolution();
 #else
 
     // [AZB]: Original call here to resize internal rendering resolution

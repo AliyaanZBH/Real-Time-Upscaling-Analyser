@@ -9,6 +9,9 @@
 #include "imgui_impl_dx12.h"
 
 #include "implot.h"
+
+#include "AZB_Utils.h"
+
 //===============================================================================
 
 class GUI
@@ -22,6 +25,10 @@ public:
 	// Run ImGui render loop!
 	void Run();
 
+    // Our GUI can control resolution and other pipeline state at runtime, however we don't want to be messing about with this while frames are in flight!
+    // This function will be called at the start of the update loop of the next frame, submitting any changes we made on the previous one.
+    void UpdateGraphics();
+
 	// Shutdown ImGui safely
 	void Terminate();
 
@@ -29,6 +36,24 @@ public:
 	ID3D12DescriptorHeap* m_pSrvDescriptorHeap = nullptr;
 
 private:
+
+    //
+    // Member variables that allow for safe manipulation of graphics pipeline.
+    //
+
+    // Values that represent the new resolution to change to next frame (if the user requests a change!)
+    uint32_t m_NewWidth = 0u;
+    uint32_t m_NewHeight = 0u;
+
+    // Flag to indicate that the resolution should change next frame
+    bool m_bResolutionChangePending = false;
+    // Flag to control fullscreen/windowed behaviour
+    bool m_bFullscreen = false;
+
+    // Flag to control when to enable/disable DLSS
+    bool m_bToggleDLSS = false;
+
+
 
 	//
 	//	Functions to break up smaller sections of the UI

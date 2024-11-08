@@ -125,7 +125,7 @@ void DLSS::Init(ID3D12Device* device)
 
 }
 
-void DLSS::QueryOptimalSettings(const int targetWidth, const int targetHeight, OptimalSettings& settings)
+void DLSS::QueryOptimalSettings(const uint32_t targetWidth, const uint32_t targetHeight, OptimalSettings& settings)
 {
 
 	// These values need a valid memory address in order for the query to work, even though the values are ultimately unused!
@@ -164,7 +164,7 @@ void DLSS::QueryOptimalSettings(const int targetWidth, const int targetHeight, O
 	m_NativeResolution = { targetWidth, targetHeight };
 }
 
-void DLSS::PreQueryAllSettings(const int targetWidth, const int targetHeight)
+void DLSS::PreQueryAllSettings(const uint32_t targetWidth, const uint32_t targetHeight)
 {
 	// See QueryOptimalSettings for more explanation on these values
 	unsigned int maxDW = 0;

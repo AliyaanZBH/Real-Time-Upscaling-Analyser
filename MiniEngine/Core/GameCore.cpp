@@ -85,6 +85,10 @@ namespace GameCore
 
     bool UpdateApplication(IGameApp& game)
     {
+        // [AZB]: See if the user changed any graphical settings in the previous frame and apply them now at the start of this one!
+#if AZB_MOD
+        AZB_GUI->UpdateGraphics();
+#endif
         EngineProfiling::Update();
 
         float DeltaTime = Graphics::GetFrameTime();
