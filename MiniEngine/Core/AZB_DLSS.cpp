@@ -12,7 +12,12 @@ namespace DLSS
 	NVSDK_NGX_Handle* m_DLSS_FeatureHandle = nullptr;
 	NVSDK_NGX_Parameter* m_DLSS_Parameters = nullptr;
 	std::array<OptimalSettings, 5> m_DLSS_Modes = {};
-	Resolution m_NativeResolution = {};
+
+	uint32_t m_NumResolutions = 0;
+	std::vector<std::pair<std::string, Resolution>> m_Resolutions;
+
+	Resolution m_MaxNativeResolution = {};
+	Resolution m_CurrentNativeResolution = {};
 
 	const wchar_t* m_AppDataPath = L"./../../DLSS_Data/";
 
@@ -161,7 +166,7 @@ void DLSS::QueryOptimalSettings(const uint32_t targetWidth, const uint32_t targe
 	}
 
 	// Store target resolution for later use
-	m_NativeResolution = { targetWidth, targetHeight };
+	m_CurrentNativeResolution = { targetWidth, targetHeight };
 }
 
 void DLSS::PreQueryAllSettings(const uint32_t targetWidth, const uint32_t targetHeight)
@@ -188,7 +193,7 @@ void DLSS::PreQueryAllSettings(const uint32_t targetWidth, const uint32_t target
 	}
 
 	// Store target resolution for later use
-	m_NativeResolution = { targetWidth, targetHeight };
+	m_CurrentNativeResolution = { targetWidth, targetHeight };
 }
 
 void DLSS::Create(CreationRequirements& reqs)

@@ -89,37 +89,29 @@ void GUI::Run()
 
 	if (ImGui::CollapsingHeader("Resolution Settings")) 
 	{
-		// Create pre-made resolutions - App should start at 1080p
-		static std::array<std::pair<std::string, Resolution>, kResolutionArraySize> resolutionPresets
-		{		
-				std::pair<std::string, Resolution>("360p", Resolution{ 640u, 360u }),
-				std::pair<std::string, Resolution>("540p", Resolution{ 960u, 540u }),
-				std::pair<std::string, Resolution>("720p", Resolution{ 1280u, 720u }),
-				std::pair<std::string, Resolution>("768p", Resolution{ 1366u, 768u }),
-				std::pair<std::string, Resolution>("900p", Resolution{ 1600u, 900u }),
-				std::pair<std::string, Resolution>("1050p", Resolution{ 1680u, 1050u }),
-				std::pair<std::string, Resolution>("1080p", Resolution{ 1920u, 1080u }),
-				std::pair<std::string, Resolution>("Custom", Resolution{ 1920u, 1080u })	 // Leave 1080p as max for now
-		};
+		static int item_current_idx = DLSS::m_NumResolutions - 1;
+		const char* combo_preview_value = DLSS::m_Resolutions[item_current_idx].first.c_str();
 
-
-		static int item_current_idx = kResolutionArraySize - 1;
-		const char* combo_preview_value = resolutionPresets[item_current_idx].first.c_str();
+		// Check if the window has been resized manually - set the dropdown to custom if so
+		// This checks that the newHeight has been set and that the actual current display has changed (via the flag)
+		// Then, check that the size does not match!
+		if (!m_bResolutionChangePending && (Graphics::g_DisplayWidth != m_NewWidth || Graphics::g_DisplayHeight != m_NewHeight))
+			combo_preview_value = "Custom";
 
 		if(ImGui::BeginCombo("Output Resolution", combo_preview_value))
 		{
-			for (int n = 0; n < kResolutionArraySize; n++)
+			for (int n = 0; n < DLSS::m_NumResolutions; n++)
 			{
 				const bool is_selected = (item_current_idx == n);
-				if (ImGui::Selectable(resolutionPresets[n].first.c_str(), is_selected))
+				if (ImGui::Selectable(DLSS::m_Resolutions[n].first.c_str(), is_selected))
 				{
 					item_current_idx = n;
 					// Set flag to true so that we can update the pipeline next frame! This will result in DLSS needing to be recreated also
 					// This takes place in UpdateGraphics()
 					m_bResolutionChangePending = true;
 					// Also update what the values should be
-					m_NewWidth = resolutionPresets[n].second.m_Width;
-					m_NewHeight = resolutionPresets[n].second.m_Height;
+					m_NewWidth = DLSS::m_Resolutions[n].second.m_Width;
+					m_NewHeight = DLSS::m_Resolutions[n].second.m_Height;
 				}
 
 				if (is_selected)
@@ -128,12 +120,7 @@ void GUI::Run()
 			ImGui::EndCombo();
 		}
 		
-		// Check if the window has been resized manually - set the dropdown to custom if so
-		// This checks that the newHeight has been set and that the actual current display has changed (via the flag)
-		// Then, check that the size does not match!
-		if (!m_bResolutionChangePending && Graphics::g_DisplayHeight != m_NewHeight)
-			item_current_idx = kResolutionArraySize - 1;
-
+	
 
 		// wb for Windows Bool - have to use this when querying the swapchain!
 		BOOL wbFullscreen = FALSE;
@@ -236,9 +223,9 @@ void GUI::UpdateGraphics()
 			// This version scales the window to match the resolution
 			Display::SetWindowedResolution(m_NewWidth, m_NewHeight);
 		else
-			// This version maintains fullscreen and stretches the resolution to the display size
-			Display::Resize(m_NewWidth, m_NewHeight);
-			//Display::SetPipelineResolution(false, m_NewWidth, m_NewHeight);
+			// This version maintains fullscreen size based on what was queried at app startup and stretches the resolution to the display size
+			Display::Resize(DLSS::m_MaxNativeResolution.m_Width, DLSS::m_MaxNativeResolution.m_Height);
+			//Display::SetPipelineResolution(false, m_NewWidth, m_NewHeight, true);
 
 		// Reset flag for next time
 		m_bResolutionChangePending = false;

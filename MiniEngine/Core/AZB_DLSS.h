@@ -8,6 +8,8 @@
 #include "AZB_Utils.h"
 
 #include <array>
+#include <vector>
+#include <string>
 
 namespace DLSS
 {
@@ -83,6 +85,15 @@ namespace DLSS
 	// Array indices map to DLSS modes e.g. 0 = MaxPerformance etc
 	extern std::array<OptimalSettings, 5> m_DLSS_Modes;
 
+	//
+	// Resolution handling
+	// 
+
+	extern uint32_t m_NumResolutions;
+	extern 	std::vector<std::pair<std::string, Resolution>> m_Resolutions;
+
+	// Keep note of the maximum possible native resolution
+	extern Resolution m_MaxNativeResolution;
 	// Track the current native resolution
 	extern Resolution m_CurrentNativeResolution;
 

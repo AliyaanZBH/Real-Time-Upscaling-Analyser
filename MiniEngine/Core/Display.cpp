@@ -237,7 +237,7 @@ namespace Graphics
 
 // [AZB]: The new version which takes in a value that we pass in, used for DLSS and regular downscaling!
 #if AZB_MOD
-void Display::SetPipelineResolution(bool bDLSS, uint32_t queriedWidth, uint32_t queriedHeight)
+void Display::SetPipelineResolution(bool bDLSS,uint32_t queriedWidth, uint32_t queriedHeight, bool bFullscreen)
 {
     if (g_NativeWidth == queriedWidth && g_NativeHeight == queriedHeight)
         return;
@@ -252,9 +252,12 @@ void Display::SetPipelineResolution(bool bDLSS, uint32_t queriedWidth, uint32_t 
 
 
     // [AZB]: Still update the existing native global as it may be used in other places of the pipeline that DLSS doesn't touch (e.g. post-effects)
-    g_NativeWidth = queriedWidth;
-    g_NativeHeight = queriedHeight;
-
+    // [AZB]: If we are working in fullscreen, don't change the native width and height as we want to maintain the size of the swap chain
+    if (bFullscreen)
+    {
+        g_NativeWidth = queriedWidth;
+        g_NativeHeight = queriedHeight;
+    }
     //if (bDLSS)
     //{
         // [AZB]: Also update our DLSS globals
@@ -305,7 +308,7 @@ void Display::Resize(uint32_t width, uint32_t height)
     {
 
         // [AZB]: Resize internal buffers to use the lower resolution that DLSS will upscale from
-        SetPipelineResolution(true, g_DLSSWidth, g_DLSSHeight);
+        SetPipelineResolution(true, 0, g_DLSSWidth, g_DLSSHeight);
         // [AZB]: Recreate this buffer with DLSS data
         g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DLSSWidth, g_DLSSHeight, 1, SwapChainFormat);
     }
@@ -366,7 +369,10 @@ void Display::Initialize(void)
 
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = {};
     fsSwapChainDesc.Windowed = TRUE;
-
+#if AZB_MOD
+    // [AZB]: Allows for stretching in fullscreen
+    fsSwapChainDesc.Scaling = DXGI_MODE_SCALING_STRETCHED;
+#endif
     ASSERT_SUCCEEDED(dxgiFactory->CreateSwapChainForHwnd(
         g_CommandManager.GetCommandQueue(),
         GameCore::g_hWnd,
@@ -402,32 +408,33 @@ void Display::Initialize(void)
         g_DisplayPlane[i].CreateFromSwapChain(L"Primary SwapChain Buffer", DisplayPlane.Detach());
     }
 
-    s_PresentRS.Reset(4, 2);
-    s_PresentRS[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 2);
-    s_PresentRS[1].InitAsConstants(0, 6, D3D12_SHADER_VISIBILITY_ALL);
-    s_PresentRS[2].InitAsBufferSRV(2, D3D12_SHADER_VISIBILITY_PIXEL);
-    s_PresentRS[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 2);
-    s_PresentRS.InitStaticSampler(0, SamplerLinearClampDesc);
-    s_PresentRS.InitStaticSampler(1, SamplerPointClampDesc);
-    s_PresentRS.Finalize(L"Present");
+    {
+        s_PresentRS.Reset(4, 2);
+        s_PresentRS[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 2);
+        s_PresentRS[1].InitAsConstants(0, 6, D3D12_SHADER_VISIBILITY_ALL);
+        s_PresentRS[2].InitAsBufferSRV(2, D3D12_SHADER_VISIBILITY_PIXEL);
+        s_PresentRS[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 2);
+        s_PresentRS.InitStaticSampler(0, SamplerLinearClampDesc);
+        s_PresentRS.InitStaticSampler(1, SamplerPointClampDesc);
+        s_PresentRS.Finalize(L"Present");
 
-    // Initialize PSOs
-    s_BlendUIPSO.SetRootSignature(s_PresentRS);
-    s_BlendUIPSO.SetRasterizerState( RasterizerTwoSided );
-    s_BlendUIPSO.SetBlendState( BlendPreMultiplied );
-    s_BlendUIPSO.SetDepthStencilState( DepthStateDisabled );
-    s_BlendUIPSO.SetSampleMask(0xFFFFFFFF);
-    s_BlendUIPSO.SetInputLayout(0, nullptr);
-    s_BlendUIPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-    s_BlendUIPSO.SetVertexShader( g_pScreenQuadPresentVS, sizeof(g_pScreenQuadPresentVS) );
-    s_BlendUIPSO.SetPixelShader( g_pBufferCopyPS, sizeof(g_pBufferCopyPS) );
-    s_BlendUIPSO.SetRenderTargetFormat(SwapChainFormat, DXGI_FORMAT_UNKNOWN);
-    s_BlendUIPSO.Finalize();
+        // Initialize PSOs
+        s_BlendUIPSO.SetRootSignature(s_PresentRS);
+        s_BlendUIPSO.SetRasterizerState(RasterizerTwoSided);
+        s_BlendUIPSO.SetBlendState(BlendPreMultiplied);
+        s_BlendUIPSO.SetDepthStencilState(DepthStateDisabled);
+        s_BlendUIPSO.SetSampleMask(0xFFFFFFFF);
+        s_BlendUIPSO.SetInputLayout(0, nullptr);
+        s_BlendUIPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+        s_BlendUIPSO.SetVertexShader(g_pScreenQuadPresentVS, sizeof(g_pScreenQuadPresentVS));
+        s_BlendUIPSO.SetPixelShader(g_pBufferCopyPS, sizeof(g_pBufferCopyPS));
+        s_BlendUIPSO.SetRenderTargetFormat(SwapChainFormat, DXGI_FORMAT_UNKNOWN);
+        s_BlendUIPSO.Finalize();
 
-    s_BlendUIHDRPSO = s_BlendUIPSO;
-    s_BlendUIHDRPSO.SetPixelShader(g_pBlendUIHDRPS, sizeof(g_pBlendUIHDRPS));
-    s_BlendUIHDRPSO.Finalize();
-
+        s_BlendUIHDRPSO = s_BlendUIPSO;
+        s_BlendUIHDRPSO.SetPixelShader(g_pBlendUIHDRPS, sizeof(g_pBlendUIHDRPS));
+        s_BlendUIHDRPSO.Finalize();
+    }
 #define CreatePSO( ObjName, ShaderByteCode ) \
     ObjName = s_BlendUIPSO; \
     ObjName.SetBlendState( BlendDisable ); \
@@ -454,6 +461,10 @@ void Display::Initialize(void)
 // [AZB]: Continue DLSS intialisation after creating main swap chain by querying DLSS modes and their optimal settings to determine the resolution of our render targets
 #if AZB_MOD
   
+    // [AZB]: We figured out the maximum native fullscreen resolution inside GraphicsCore.cpp, pass this up to Display
+    g_NativeWidth = DLSS::m_CurrentNativeResolution.m_Width;
+    g_NativeHeight = DLSS::m_CurrentNativeResolution.m_Height;
+
     // [AZB]: Container that will store results of query that will be needed for DLSS feature creation. By default this will check the balanced setting
     DLSS::OptimalSettings dlssSettings;
 
