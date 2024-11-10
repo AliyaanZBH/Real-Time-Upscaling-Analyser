@@ -81,6 +81,8 @@ void DLSS::Init(ID3D12Device* device)
 		if (NVSDK_NGX_FAILED(ret))
 			Utility::Print("\nNGX Failed to init, check D3D device!\n\n");
 	}
+	else
+		return;
 
 	// Secondary runtime check specifically for DLSS after device and NGX init
 	// Successful initialization of the NGX SDK instance indicates that the target system is capable of running NGX features. However, each feature can have additional dependencies
@@ -132,6 +134,9 @@ void DLSS::Init(ID3D12Device* device)
 
 void DLSS::QueryOptimalSettings(const uint32_t targetWidth, const uint32_t targetHeight, OptimalSettings& settings)
 {
+	// Early return for non DLSS-Capable hardware
+	if (!m_bIsNGXSupported)
+		return;
 
 	// These values need a valid memory address in order for the query to work, even though the values are ultimately unused!
 	
@@ -198,6 +203,10 @@ void DLSS::PreQueryAllSettings(const uint32_t targetWidth, const uint32_t target
 
 void DLSS::Create(CreationRequirements& reqs)
 {
+	// Early return for non DLSS-Capable hardware
+	if (!m_bIsNGXSupported)
+		return;
+
 	NVSDK_NGX_Result ret = NGX_D3D12_CREATE_DLSS_EXT(reqs.m_pCmdList, 1, 1, &m_DLSS_FeatureHandle, m_DLSS_Parameters, &reqs.m_DlSSCreateParams);
 	if (NVSDK_NGX_SUCCEED(ret))
 	{
@@ -210,6 +219,10 @@ void DLSS::Create(CreationRequirements& reqs)
 
 void DLSS::Execute(ExecutionRequirements& params)
 {
+	// Early return for non DLSS-Capable hardware
+	if (!m_bIsNGXSupported)
+		return;
+
 	NVSDK_NGX_Result ret = NGX_D3D12_EVALUATE_DLSS_EXT(params.m_pCmdList, m_DLSS_FeatureHandle, m_DLSS_Parameters, &params.m_DlSSEvalParams);
 	if (NVSDK_NGX_SUCCEED(ret))
 		Utility::Print("\nDLSS executed!!\nCheck that the final image looks right!\n\n");
