@@ -4,6 +4,7 @@
 // auth: Aliyaan Zulfiqar
 //===============================================================================
 #include "Utility.h"
+#include "CommandContext.h"	// To allow for creation and execution of DLSS, we need the global command list
 
 // Define externals to ensure no redefinition occurs elsewhere
 namespace DLSS
@@ -26,7 +27,7 @@ namespace DLSS
 	bool m_bIsNGXSupported = false;
 	bool m_DLSS_Enabled = false;
 	bool m_bNeedsReleasing = false;
-
+	bool m_bPipelineUpdate = false;
 }
 
 void DLSS::QueryFeatureRequirements(IDXGIAdapter* Adapter)
@@ -240,32 +241,48 @@ void DLSS::Release()
 	NVSDK_NGX_D3D12_ReleaseFeature(m_DLSS_FeatureHandle);
 }
 
-void DLSS::UpdateDLSS(bool toggle, bool updateMode)
+void DLSS::UpdateDLSS(bool toggle, bool updateMode, Resolution currentResolution)
 {
+
+	// Flip our flag
 	m_DLSS_Enabled = toggle;
 
-	// If we are going from disabled to enabled, we may need to recreate the feature based if the target resolution has changed!
-	if (m_DLSS_Enabled)
+	// If we are going from disabled to enabled, we need to recreate the feature if the target resolution has changed!
+	// If the mode has changed, we also need to recreate DLSS with this value
+	if (m_DLSS_Enabled || updateMode)
 	{
-		// First, release the current feature if our flag has been set
-		//if (m_bNeedsReleasing)
-		//{
-		//	Release();
-		//	// Reset flag
-		//	m_bNeedsReleasing = false;
-		//}
-		// Otherwise begin creating the feature and executing it in the next frames TemporalResolve! See TemproalEffects.cpp, ResolveImage() to see implementation
+		// First, release the current feature if our flag has been set. This gets set in GUI.cpp when the resolution is changed by the user.
+		if (m_bNeedsReleasing)
+		{
+			Release();
+			// Reset flag
+			m_bNeedsReleasing = false;
+			
+			// Begin creating the feature and for execution next frame
+			ComputeContext& dlssContext = ComputeContext::Begin(L"DLSS Enable");
+
+			// Query for recommended settings
+			PreQueryAllSettings(currentResolution.m_Width, currentResolution.m_Height);
+
+			// Fill in requirements struct ready for the feature creation
+			DLSS::CreationRequirements reqs;
+			reqs.m_pCmdList = dlssContext.GetCommandList();
+
+			NVSDK_NGX_Feature_Create_Params dlssParams = { m_DLSS_Modes[m_CurrentQualityMode].m_RenderWidth, m_DLSS_Modes[m_CurrentQualityMode].m_RenderHeight,
+														   currentResolution.m_Width, currentResolution.m_Height, static_cast<NVSDK_NGX_PerfQuality_Value>(m_CurrentQualityMode)};
+
+			// Even though we may not render to HDR, our color buffer is infact in HDR format, so set the appropriate flag!
+			reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_None /*| NVSDK_NGX_DLSS_Feature_Flags_IsHDR*/ };
+			DLSS::Create(reqs);
+
+			// Set flag to update the pipeline so that DLSS can execute next frame at correct resolution! See TemporalEffects.cpp, ResolveImage() to see implementation
+			m_bPipelineUpdate = true;
+			
+			// Close context
+			dlssContext.Finish();
+		}
+		// If DLSS has already been created (e.g. in Resize() event) DLSS has already been created for the correct output resolution
 	}
-
-	// If the mode has changed, we need to recreate DLSS with this value
-	if (updateMode)
-	{
-		// If DLSS is already enabled when the mode gets updated, we need to recreate the feature
-
-	}
-
-	// Now create it again with new creation reqs
-
 
 }
 

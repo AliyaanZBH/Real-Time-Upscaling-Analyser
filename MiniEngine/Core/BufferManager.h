@@ -29,6 +29,7 @@
    Change Log:
 
    [AZB] 16/10/24: Created buffers for ImGui
+   [AZB] 11/11/24: Added bespoke buffer init
 */
 
 namespace Graphics
@@ -41,7 +42,8 @@ namespace Graphics
     extern ColorBuffer g_HorizontalBuffer;  // For separable (bicubic) upsampling
 
 #if AZB_MOD
-    extern ColorBuffer g_ImGuiBuffer;     // [AZB]: For ImGui R10G10B10A2_UNORM
+    extern ColorBuffer g_ImGuiBuffer;          // [AZB]: For ImGui R10G10B10A2_UNORM
+    extern ColorBuffer g_DLSSInputBuffer;     // [AZB]: For DLSS to use as an inpuit (R10G10B10A2_UNORM)
     extern ColorBuffer g_DLSSOutputBuffer;     // [AZB]: For DLSS to Upscale to R10G10B10A2_UNORM
 #endif
     extern ColorBuffer g_VelocityBuffer;    // R10G10B10  (3D velocity)
@@ -97,8 +99,14 @@ namespace Graphics
     extern ByteAddressBuffer g_FXAAWorkQueue;
     extern TypedBuffer g_FXAAColorQueue;
 
-    void InitializeRenderingBuffers(uint32_t NativeWidth, uint32_t NativeHeight );
+    void InitializeRenderingBuffers(uint32_t NativeWidth, uint32_t NativeHeight);
     void ResizeDisplayDependentBuffers(uint32_t NativeWidth, uint32_t NativeHeight);
     void DestroyRenderingBuffers();
+
+#if AZB_MOD
+    // [AZB]: This version of the function inits the main colour buffer at the desired lower resolution, while maintaining the size of all secondary buffers
+    void InitializeRenderingBuffersDLSS(uint32_t nativeWidth, uint32_t nativeHeight, uint32_t mainFrameWidth, uint32_t mainFrameHeight);
+    void ResizeDLSSInputBuffer(uint32_t newWidth, uint32_t newHeight);
+#endif
 
 } // namespace Graphics

@@ -237,10 +237,9 @@ namespace Graphics
 
 // [AZB]: The new version which takes in a value that we pass in, used for DLSS and regular downscaling!
 #if AZB_MOD
-void Display::SetPipelineResolution(bool bDLSS,uint32_t queriedWidth, uint32_t queriedHeight, bool bFullscreen)
+void Display::SetPipelineResolution(bool bDLSS, uint32_t queriedWidth, uint32_t queriedHeight, bool bFullscreen)
 {
-    //if (g_NativeWidth == queriedWidth && g_NativeHeight == queriedHeight)
-    //    return;
+    g_CommandManager.IdleGPU();
 
     if (bDLSS)
     {
@@ -248,8 +247,9 @@ void Display::SetPipelineResolution(bool bDLSS,uint32_t queriedWidth, uint32_t q
         DEBUGPRINT("Changing native resolution to match DLSS query result %ux%u", queriedWidth, queriedHeight);
     }
     else
+    {
         DEBUGPRINT("Changing internal resolution to %ux%u", queriedWidth, queriedHeight);
-
+    }
 
     // [AZB]: Still update the existing native global as it may be used in other places of the pipeline that DLSS doesn't touch (e.g. post-effects)
     // [AZB]: If we are working in fullscreen, don't change the native width and height as we want to maintain the size of the swap chain
@@ -267,8 +267,19 @@ void Display::SetPipelineResolution(bool bDLSS,uint32_t queriedWidth, uint32_t q
     //g_DLSSHeight = queriedHeight;
     //}
 
+    // [AZB]: Extra pause here to ensure there is no synchronisation issues
     g_CommandManager.IdleGPU();
-    InitializeRenderingBuffers(queriedWidth, queriedHeight);
+
+    // [AZB]: If we are resizing DLSS, use the bespoke version to init rendering buffers
+    if (bDLSS)
+        InitializeRenderingBuffersDLSS(queriedWidth, queriedHeight, g_DLSSWidth, g_DLSSHeight);
+    else
+        InitializeRenderingBuffers(queriedWidth, queriedHeight);
+}
+
+void Display::SetDLSSInputResolution(uint32_t queriedWidth, uint32_t queriedHeight)
+{
+    ResizeDLSSInputBuffer(queriedWidth, queriedHeight);
 }
 #endif
 
@@ -287,8 +298,6 @@ void Display::Resize(uint32_t width, uint32_t height)
     DLSS::Release();
 
     // [AZB]: Even when DLSS is disabled, query the settings here so that we can safely and corectly enable later!
-    //DLSS::OptimalSettings dlssSettings;
-    //DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
     DLSS::PreQueryAllSettings(g_DisplayWidth, g_DisplayHeight);
    
     // [AZB]: Set the queried results here
@@ -308,19 +317,19 @@ void Display::Resize(uint32_t width, uint32_t height)
 
     Context.Finish();
 
-    // [AZB]: Additional flag so that we can toggle DLSS at run-time
-    if (DLSS::m_DLSS_Enabled)
-    {
-        // [AZB]: Resize internal buffers to use the lower resolution that DLSS will upscale from
-        SetPipelineResolution(true, g_DLSSWidth, g_DLSSHeight);
-        // [AZB]: Recreate this buffer with DLSS data
-        g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DLSSWidth, g_DLSSHeight, 1, SwapChainFormat);
-    }
-    else
-    {
+    //// [AZB]: Additional flag so that we can toggle DLSS at run-time
+    //if (DLSS::m_DLSS_Enabled)
+    //{
+    //    // [AZB]: Resize internal buffers to use the lower resolution that DLSS will upscale from
+    //    SetPipelineResolution(true, g_DLSSWidth, g_DLSSHeight);
+    //    // [AZB]: Recreate this buffer with DLSS data
+    //    g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DLSSWidth, g_DLSSHeight, 1, SwapChainFormat);
+    //}
+    //else
+    //{
         // [AZB]: Original pre-buffer creation
         g_PreDisplayBuffer.Create(L"PreDisplay Buffer", width, height, 1, SwapChainFormat);
-    }
+    //}
 
 #else
     // [AZB]: Original pre-buffer creation
@@ -348,6 +357,11 @@ void Display::Resize(uint32_t width, uint32_t height)
 
     // [AZB]: This does not need to match DLSS as it should match the display buffer
     ResizeDisplayDependentBuffers(g_NativeWidth, g_NativeHeight);
+
+    // [AZB]: Use this opportunity to resize DLSS input buffer though!
+#if AZB_MOD
+    ResizeDLSSInputBuffer(g_DLSSWidth, g_DLSSHeight);
+#endif
 }
 
 // Initialize the DirectX resources required to run.
@@ -489,7 +503,8 @@ void Display::Initialize(void)
     //        DLSS creation is therefore postponed until after these steps.
 
     // [AZB]: Call my version of setNativeRes, which sets the resolution for all buffers in the pipeline! (smaller buffers work off of divisions of this total size)
-    SetPipelineResolution(false, g_DLSSWidth, g_DLSSHeight);
+    //        It also sets the internal resolution for DLSS
+    SetPipelineResolution(true, g_DisplayWidth, g_DisplayHeight);
 
     g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DisplayWidth, g_DisplayHeight, 1, SwapChainFormat);
     ImageScaling::Initialize(g_PreDisplayBuffer.GetFormat());

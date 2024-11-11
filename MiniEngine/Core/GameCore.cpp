@@ -85,17 +85,35 @@ namespace GameCore
 
     bool UpdateApplication(IGameApp& game)
     {
-#if AZB_MOD
-#endif
         EngineProfiling::Update();
 
         float DeltaTime = Graphics::GetFrameTime();
 
-        // [AZB]: Set an input option to toggle between exclusive and non-exclusive mouse access for Mini EngineImGui control and Application control
+// [AZB]: After engine profiling updates, begin our custom behaviour
 #if AZB_MOD
         
         // [AZB]: See if the user changed any graphical settings in the previous frame and apply them now at the start of this one!
+
         AZB_GUI->UpdateGraphics();
+
+
+        //ComputeContext& dlssContext = BaseContext.GetComputeContext();
+
+   // [AZB]: Check if the feature already exists, create it if not
+   //if (!DLSS::m_DLSS_FeatureHandle)
+   //{
+   //    // [AZB]: Fill in requirements struct ready for the feature creation
+   //    DLSS::CreationRequirements reqs;
+   //    reqs.m_pCmdList = dlssContext.GetCommandList();
+   //
+   //    NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, NVSDK_NGX_PerfQuality_Value_Balanced };
+   //    // [AZB]: Even though we may not render to HDR, our color buffer is infact in HDR format, so set the appropriate flag!
+   //    reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_None /*| NVSDK_NGX_DLSS_Feature_Flags_IsHDR*/ };
+   //    DLSS::Create(reqs);
+   //}
+        // [AZB]: Set an input option to toggle between exclusive and non-exclusive mouse access for Mini EngineImGui control and Application control
+
+
 
         // [AZB]: The app will start in exclusive mode, but as this input gets repeated we need to check which one we're currently set to in order to correctly toggle
         if (g_bMouseExclusive)

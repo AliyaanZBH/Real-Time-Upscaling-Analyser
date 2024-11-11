@@ -61,7 +61,7 @@ namespace DLSS
 	void Release();
 
 	// Turn DLSS on and off, aswell as change quality mode
-	void UpdateDLSS(bool toggle, bool updateMode);
+	void UpdateDLSS(bool toggle, bool updateMode, Resolution currentResolution);
 
 	void SetD3DDevice(ID3D12Device* device);
 
@@ -111,4 +111,7 @@ namespace DLSS
 
 	// Flag to track when native resolution has changed and DLSS needs re-creating
 	extern bool m_bNeedsReleasing;
+
+	// Flag to track when the pipeline needs to update
+	extern bool m_bPipelineUpdate;
 };

@@ -124,6 +124,8 @@ void GUI::Run()
 
 		// wb for Windows Bool - have to use this when querying the swapchain!
 		BOOL wbFullscreen = FALSE;
+		// These functions will not exist when the mod is disabled - even though this function is never called when mod is disabled, compiler will fuss.
+#if AZB_MOD
 		Display::GetSwapchain()->GetFullscreenState(&wbFullscreen, nullptr);
 
 		m_bFullscreen = wbFullscreen;
@@ -141,6 +143,7 @@ void GUI::Run()
 				DEBUGPRINT("\nFailed to toggle fullscreen mode.\n");
 			}
 		}
+#endif
 	}
 
 	if (ImGui::CollapsingHeader("DLSS Settings"))
@@ -161,6 +164,9 @@ void GUI::Run()
 					dlssMode = n;
 					// Update current mode
 					DLSS::m_CurrentQualityMode = n;
+					// Set flags
+					DLSS::m_bNeedsReleasing = true;
+					m_bDLSSUpdatePending = true;
 					m_bUpdateDLSSMode = true;
 				}
 
@@ -173,6 +179,7 @@ void GUI::Run()
 
 		if (ImGui::Checkbox("Enable DLSS", &useDLSS))
 		{
+			m_bDLSSUpdatePending = true;
 			m_bToggleDLSS = useDLSS;
 		}
 	}
@@ -216,6 +223,9 @@ void GUI::Run()
 
 void GUI::UpdateGraphics()
 {
+
+	// These functions will not exist when the mod is disabled - even though this function is never called when mod is disabled, compiler will fuss.
+#if AZB_MOD
 	// See if resolution has been changed
 	if (m_bResolutionChangePending)
 	{
@@ -227,14 +237,28 @@ void GUI::UpdateGraphics()
 			// This version maintains fullscreen size based on what was queried at app startup and stretches the resolution to the display size
 			Display::Resize(DLSS::m_MaxNativeResolution.m_Width, DLSS::m_MaxNativeResolution.m_Height);
 			// We still need to update the pipeline to render at the lower resolution
-			Display::SetPipelineResolution(false, m_NewWidth, m_NewHeight, true);
+			//Display::SetPipelineResolution(false, m_NewWidth, m_NewHeight, true);
 		}
 
 		// Reset flag for next time
 		m_bResolutionChangePending = false;
+		// Also let DLSS know that the resolution has changed!
+		DLSS::m_bNeedsReleasing = true;
 	}
 
-	DLSS::UpdateDLSS(m_bToggleDLSS, m_bUpdateDLSSMode);
+	if (m_bDLSSUpdatePending)
+	{
+		DLSS::UpdateDLSS(m_bToggleDLSS, m_bUpdateDLSSMode, { Graphics::g_DisplayWidth, Graphics::g_DisplayHeight });
+		// DLSS may need the pipeline to update as a result of the changes made. Check the internal flag and then update as appropriate
+		if (DLSS::m_bPipelineUpdate)
+		{
+			Display::SetPipelineResolution(true, DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderWidth, DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderHeight);
+			// Reset flag
+			DLSS::m_bPipelineUpdate = false;
+		}
+		m_bDLSSUpdatePending = false;
+	}
+#endif
 }
 
 void GUI::Terminate()

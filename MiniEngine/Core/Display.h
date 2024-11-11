@@ -48,6 +48,8 @@ namespace Display
     void SetWindowedResolution(uint32_t width, uint32_t height);
     // [AZB]: This function replicates setNativeRes() that is defined within Graphics namespace in the implementation file for display. The key difference here is that it can be called from ImGui!
     void SetPipelineResolution(bool bDLSS, uint32_t queriedWidth, uint32_t queriedHeight, bool bFullscreen = false);
+    // [AZB]: This function replicates allows to specifically alter the DLSS input buffer
+    void SetDLSSInputResolution(uint32_t queriedWidth, uint32_t queriedHeight);
     // [AZB]: Some extra accessors to further ease GUI usability when it comes to controlling rendering
     IDXGISwapChain1* GetSwapchain();
 #endif
