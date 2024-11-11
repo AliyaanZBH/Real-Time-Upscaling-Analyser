@@ -49,9 +49,11 @@ private:
     bool m_bResolutionChangePending = false;
     // Flag to control fullscreen/windowed behaviour
     bool m_bFullscreen = false;
-
     // Flag to control when to enable/disable DLSS
     bool m_bToggleDLSS = false;
+    // Flag to control when to update DLSS mode
+    bool m_bUpdateDLSSMode = false;
+
 
 
 

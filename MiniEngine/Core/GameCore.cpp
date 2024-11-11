@@ -85,9 +85,7 @@ namespace GameCore
 
     bool UpdateApplication(IGameApp& game)
     {
-        // [AZB]: See if the user changed any graphical settings in the previous frame and apply them now at the start of this one!
 #if AZB_MOD
-        AZB_GUI->UpdateGraphics();
 #endif
         EngineProfiling::Update();
 
@@ -95,7 +93,9 @@ namespace GameCore
 
         // [AZB]: Set an input option to toggle between exclusive and non-exclusive mouse access for Mini EngineImGui control and Application control
 #if AZB_MOD
-
+        
+        // [AZB]: See if the user changed any graphical settings in the previous frame and apply them now at the start of this one!
+        AZB_GUI->UpdateGraphics();
 
         // [AZB]: The app will start in exclusive mode, but as this input gets repeated we need to check which one we're currently set to in order to correctly toggle
         if (g_bMouseExclusive)

@@ -147,16 +147,10 @@ void GUI::Run()
 	{
 
 		static bool useDLSS = false;
-
-		if (ImGui::Checkbox("Enable DLSS", &useDLSS))
-		{
-			m_bToggleDLSS = useDLSS;
-		}
-
 		static int dlssMode = 1; // 0: Performance, 1: Balanced, 2: Quality, etc.
-		const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance", "Ultra Quality" };
+		const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance"};
 
-		if(ImGui::BeginCombo("Mode", modes[dlssMode]))
+		if (ImGui::BeginCombo("Mode", modes[dlssMode]))
 		{
 
 			for (int n = 0; n < std::size(modes); n++)
@@ -165,8 +159,9 @@ void GUI::Run()
 				if (ImGui::Selectable(modes[n], is_selected))
 				{
 					dlssMode = n;
-					// TODO:
-					// Select setting and requery DLSS
+					// Update current mode
+					DLSS::m_CurrentQualityMode = n;
+					m_bUpdateDLSSMode = true;
 				}
 
 				if (is_selected)
@@ -174,6 +169,11 @@ void GUI::Run()
 			}
 			ImGui::EndCombo();
 
+		}
+
+		if (ImGui::Checkbox("Enable DLSS", &useDLSS))
+		{
+			m_bToggleDLSS = useDLSS;
 		}
 	}
 
@@ -223,15 +223,18 @@ void GUI::UpdateGraphics()
 			// This version scales the window to match the resolution
 			Display::SetWindowedResolution(m_NewWidth, m_NewHeight);
 		else
+		{
 			// This version maintains fullscreen size based on what was queried at app startup and stretches the resolution to the display size
 			Display::Resize(DLSS::m_MaxNativeResolution.m_Width, DLSS::m_MaxNativeResolution.m_Height);
-			//Display::SetPipelineResolution(false, m_NewWidth, m_NewHeight, true);
+			// We still need to update the pipeline to render at the lower resolution
+			Display::SetPipelineResolution(false, m_NewWidth, m_NewHeight, true);
+		}
 
 		// Reset flag for next time
 		m_bResolutionChangePending = false;
 	}
 
-	DLSS::ToggleDLSS(m_bToggleDLSS);
+	DLSS::UpdateDLSS(m_bToggleDLSS, m_bUpdateDLSSMode);
 }
 
 void GUI::Terminate()

@@ -239,8 +239,8 @@ namespace Graphics
 #if AZB_MOD
 void Display::SetPipelineResolution(bool bDLSS,uint32_t queriedWidth, uint32_t queriedHeight, bool bFullscreen)
 {
-    if (g_NativeWidth == queriedWidth && g_NativeHeight == queriedHeight)
-        return;
+    //if (g_NativeWidth == queriedWidth && g_NativeHeight == queriedHeight)
+    //    return;
 
     if (bDLSS)
     {
@@ -253,16 +253,18 @@ void Display::SetPipelineResolution(bool bDLSS,uint32_t queriedWidth, uint32_t q
 
     // [AZB]: Still update the existing native global as it may be used in other places of the pipeline that DLSS doesn't touch (e.g. post-effects)
     // [AZB]: If we are working in fullscreen, don't change the native width and height as we want to maintain the size of the swap chain
-    if (bFullscreen)
-    {
-        g_NativeWidth = queriedWidth;
-        g_NativeHeight = queriedHeight;
-    }
+    //if (bFullscreen)
+    //{
+        //g_NativeWidth = queriedWidth;
+        //g_NativeHeight = queriedHeight;
+    //}
     //if (bDLSS)
     //{
-        // [AZB]: Also update our DLSS globals
-    g_DLSSWidth = queriedWidth;
-    g_DLSSHeight = queriedHeight;
+    // 
+    // [AZB]: Also update our DLSS globals
+
+    //g_DLSSWidth = queriedWidth;
+    //g_DLSSHeight = queriedHeight;
     //}
 
     g_CommandManager.IdleGPU();
@@ -283,20 +285,23 @@ void Display::Resize(uint32_t width, uint32_t height)
 #if AZB_MOD
 
     DLSS::Release();
+
     // [AZB]: Even when DLSS is disabled, query the settings here so that we can safely and corectly enable later!
-    DLSS::OptimalSettings dlssSettings;
-    DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
+    //DLSS::OptimalSettings dlssSettings;
+    //DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
+    DLSS::PreQueryAllSettings(g_DisplayWidth, g_DisplayHeight);
+   
     // [AZB]: Set the queried results here
-    g_DLSSWidth = dlssSettings.m_RenderWidth;
-    g_DLSSHeight = dlssSettings.m_RenderHeight;
+    g_DLSSWidth = DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderWidth;
+    g_DLSSHeight = DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderHeight;
 
     // [AZB]: These steps are similar to those we perform in GraphicsCore.cpp, Initialize()
-    GraphicsContext& Context = GraphicsContext::Begin(L"DLSS Resize");
+    ComputeContext& Context = ComputeContext::Begin(L"DLSS Resize");
     // [AZB]: Fill in requirements struct ready for the feature creation
     DLSS::CreationRequirements reqs;
     reqs.m_pCmdList = Context.GetCommandList();
 
-    NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, NVSDK_NGX_PerfQuality_Value_Balanced };
+    NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, static_cast<NVSDK_NGX_PerfQuality_Value>(DLSS::m_CurrentQualityMode) };
     // [AZB]: Even though we may not render to HDR, our color buffer is infact in HDR format, so set the appropriate flag!
     reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_None /*| NVSDK_NGX_DLSS_Feature_Flags_IsHDR*/ };
     DLSS::Create(reqs);
@@ -306,9 +311,8 @@ void Display::Resize(uint32_t width, uint32_t height)
     // [AZB]: Additional flag so that we can toggle DLSS at run-time
     if (DLSS::m_DLSS_Enabled)
     {
-
         // [AZB]: Resize internal buffers to use the lower resolution that DLSS will upscale from
-        SetPipelineResolution(true, 0, g_DLSSWidth, g_DLSSHeight);
+        SetPipelineResolution(true, g_DLSSWidth, g_DLSSHeight);
         // [AZB]: Recreate this buffer with DLSS data
         g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DLSSWidth, g_DLSSHeight, 1, SwapChainFormat);
     }
@@ -465,22 +469,27 @@ void Display::Initialize(void)
     g_NativeWidth = DLSS::m_CurrentNativeResolution.m_Width;
     g_NativeHeight = DLSS::m_CurrentNativeResolution.m_Height;
 
+    //g_DisplayWidth = g_NativeWidth;
+    //g_DisplayHeight = g_NativeHeight;
+
     // [AZB]: Container that will store results of query that will be needed for DLSS feature creation. By default this will check the balanced setting
-    DLSS::OptimalSettings dlssSettings;
+    //DLSS::OptimalSettings dlssSettings;
 
     // [AZB]: Query optimal settings based on current native resolution
-    DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
+    //DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
 
     // [AZB]: Pre-query all settings for current native resolution
-    //DLSS::PreQueryAllSettings(g_DisplayWidth, g_DisplayHeight);
-    // [AZB]: // Balanced by default
-    // DLSS::OptimalSettings dlssSettings = DLSS::m_DLSS_Modes[1];  
+    DLSS::PreQueryAllSettings(g_DisplayWidth, g_DisplayHeight);
+
+    // [AZB] Set the initial value of DLSS res to the balanced one
+    g_DLSSWidth = DLSS::m_DLSS_Modes[1].m_RenderWidth;
+    g_DLSSHeight = DLSS::m_DLSS_Modes[1].m_RenderHeight;
 
     // [AZB]: At this point we could create DLSS however we can't create a graphics context just yet as the rest of the engine needs to initalise first. 
     //        DLSS creation is therefore postponed until after these steps.
 
     // [AZB]: Call my version of setNativeRes, which sets the resolution for all buffers in the pipeline! (smaller buffers work off of divisions of this total size)
-    SetPipelineResolution(false, g_DisplayWidth, g_DisplayHeight);
+    SetPipelineResolution(false, g_DLSSWidth, g_DLSSHeight);
 
     g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DisplayWidth, g_DisplayHeight, 1, SwapChainFormat);
     ImageScaling::Initialize(g_PreDisplayBuffer.GetFormat());
@@ -715,9 +724,9 @@ void Display::Present(void)
 #if AZB_MOD
    // [AZB]: Resize according to DLSS
    //if (DLSS::m_DLSS_Enabled)
-        //SetPipelineResolution(false, g_DisplayWidth, g_DisplayHeight);
+   //     SetPipelineResolution(true, g_DisplayWidth, g_DisplayHeight);
    // else
-   //SetNativeResolution();
+   //    SetPipelineResolution(false, g_DisplayWidth, g_DisplayHeight);
 #else
 
     // [AZB]: Original call here to resize internal rendering resolution

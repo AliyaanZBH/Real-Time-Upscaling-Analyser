@@ -20,8 +20,8 @@ namespace DLSS
 		unsigned int m_RenderWidth = 0;
 		unsigned int m_RenderHeight = 0;
 
-		// Maps to DLSS modes e.g. 1 = Balanced which I think is a good default setting for now
-		const int m_PerfQualityValue = 1;
+		// Maps to DLSS modes e.g. 1 = Balanced which I think is a good default setting for now. To be changed when implementing multiple modes
+		int m_PerfQualityValue = 1;
 	};
 
 	// Data required by DLSS to create the feature
@@ -60,8 +60,8 @@ namespace DLSS
 	// Dispose of the DLSS feature - use when changing native resolution
 	void Release();
 
-	// Turn DLSS on or off
-	void ToggleDLSS(bool toggle);
+	// Turn DLSS on and off, aswell as change quality mode
+	void UpdateDLSS(bool toggle, bool updateMode);
 
 	void SetD3DDevice(ID3D12Device* device);
 
@@ -96,6 +96,9 @@ namespace DLSS
 	extern Resolution m_MaxNativeResolution;
 	// Track the current native resolution
 	extern Resolution m_CurrentNativeResolution;
+
+	// Track which DLSS mode is currently selectd
+	extern uint8_t m_CurrentQualityMode;
 
 	// Place to store debug logs from NGX
 	extern const wchar_t* m_AppDataPath;

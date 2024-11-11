@@ -19,6 +19,8 @@ namespace DLSS
 	Resolution m_MaxNativeResolution = {};
 	Resolution m_CurrentNativeResolution = {};
 
+	uint8_t m_CurrentQualityMode = 1;
+
 	const wchar_t* m_AppDataPath = L"./../../DLSS_Data/";
 
 	bool m_bIsNGXSupported = false;
@@ -186,7 +188,7 @@ void DLSS::PreQueryAllSettings(const uint32_t targetWidth, const uint32_t target
 	// PerfQualityValue [0 MaxPerformance, 1 Balance, 2 MaxQuality, 3 UltraPerformance, 4 UltraQuality]
 	// DLAA sits here at 5, but NVIDIA recommend exposing it as a different UI option later.
 	// Check all settings by looping through the integer values of the enum
-	for (int perfQualityValue = 0; perfQualityValue <= 4; ++perfQualityValue)
+	for (int perfQualityValue = 0; perfQualityValue < 5; ++perfQualityValue)
 	{
 		NVSDK_NGX_Result ret = NGX_DLSS_GET_OPTIMAL_SETTINGS(
 			m_DLSS_Parameters,
@@ -195,6 +197,9 @@ void DLSS::PreQueryAllSettings(const uint32_t targetWidth, const uint32_t target
 			&m_DLSS_Modes[perfQualityValue].m_RenderWidth, &m_DLSS_Modes[perfQualityValue].m_RenderHeight,
 			&maxDW, &maxDH, &minDW, &minDH, &sharpness
 		);
+
+		// All the modes start with a default value of 1 - which corresponds to Balanced. Update this to match the correct one
+		m_DLSS_Modes[perfQualityValue].m_PerfQualityValue = perfQualityValue;
 	}
 
 	// Store target resolution for later use
@@ -235,7 +240,7 @@ void DLSS::Release()
 	NVSDK_NGX_D3D12_ReleaseFeature(m_DLSS_FeatureHandle);
 }
 
-void DLSS::ToggleDLSS(bool toggle)
+void DLSS::UpdateDLSS(bool toggle, bool updateMode)
 {
 	m_DLSS_Enabled = toggle;
 
@@ -250,6 +255,13 @@ void DLSS::ToggleDLSS(bool toggle)
 		//	m_bNeedsReleasing = false;
 		//}
 		// Otherwise begin creating the feature and executing it in the next frames TemporalResolve! See TemproalEffects.cpp, ResolveImage() to see implementation
+	}
+
+	// If the mode has changed, we need to recreate DLSS with this value
+	if (updateMode)
+	{
+		// If DLSS is already enabled when the mode gets updated, we need to recreate the feature
+
 	}
 
 	// Now create it again with new creation reqs
