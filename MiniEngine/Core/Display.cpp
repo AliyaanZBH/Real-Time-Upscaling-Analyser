@@ -312,7 +312,8 @@ void Display::Resize(uint32_t width, uint32_t height)
 
     NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, static_cast<NVSDK_NGX_PerfQuality_Value>(DLSS::m_CurrentQualityMode) };
     // [AZB]: Even though we may not render to HDR, our color buffer is infact in HDR format, so set the appropriate flag!
-    reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_None /*| NVSDK_NGX_DLSS_Feature_Flags_IsHDR*/ };
+    // [AZB]: Turns out MiniEngine uses an inverted Depth Buffer!
+    reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_DepthInverted /*| NVSDK_NGX_DLSS_Feature_Flags_IsHDR*/ };
     DLSS::Create(reqs);
 
     Context.Finish();

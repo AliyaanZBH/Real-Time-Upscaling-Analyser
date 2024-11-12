@@ -272,7 +272,7 @@ void DLSS::UpdateDLSS(bool toggle, bool updateMode, Resolution currentResolution
 														   currentResolution.m_Width, currentResolution.m_Height, static_cast<NVSDK_NGX_PerfQuality_Value>(m_CurrentQualityMode)};
 
 			// Even though we may not render to HDR, our color buffer is infact in HDR format, so set the appropriate flag!
-			reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_None /*| NVSDK_NGX_DLSS_Feature_Flags_IsHDR*/ };
+			reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_DepthInverted /*| NVSDK_NGX_DLSS_Feature_Flags_IsHDR*/ };
 			DLSS::Create(reqs);
 
 			// Set flag to update the pipeline so that DLSS can execute next frame at correct resolution! See TemporalEffects.cpp, ResolveImage() to see implementation

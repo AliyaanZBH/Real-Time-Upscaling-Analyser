@@ -133,10 +133,6 @@ void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t buffer
 
     esram.PushStack();
     
-#if AZB_MOD
-
-        g_SceneColorBuffer.Create( L"Main Color Buffer", bufferWidth, bufferHeight, 1, DefaultHdrColorFormat, esram );
-#endif
         g_SceneColorBuffer.Create( L"Main Color Buffer", bufferWidth, bufferHeight, 1, DefaultHdrColorFormat, esram );
         g_SceneNormalBuffer.Create( L"Normals Buffer", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R16G16B16A16_FLOAT, esram );
 

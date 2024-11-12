@@ -5,7 +5,7 @@
 //===============================================================================
 
 // A macro to clearly identify my contributions to the starting code
-#define AZB_MOD 0	// Change to 0 to exclude my modifications and run unmodified sample code
+#define AZB_MOD 1	// Change to 0 to exclude my modifications and run unmodified sample code
 
 #include "dxgiformat.h"
 #include "stdint.h"
