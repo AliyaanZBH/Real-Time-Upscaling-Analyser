@@ -233,9 +233,10 @@ void GUI::UpdateGraphics()
 		else
 		{
 			// This version maintains fullscreen size based on what was queried at app startup and stretches the resolution to the display size
-			Display::Resize(DLSS::m_MaxNativeResolution.m_Width, DLSS::m_MaxNativeResolution.m_Height);
+			//Display::Resize(DLSS::m_MaxNativeResolution.m_Width, DLSS::m_MaxNativeResolution.m_Height);
+			//Display::Resize(m_NewWidth, m_NewHeight);
 			// We still need to update the pipeline to render at the lower resolution
-			Display::SetPipelineResolution(false, m_NewWidth, m_NewHeight, true);
+			Display::SetPipelineResolution(false, m_NewWidth, m_NewHeight);
 		}
 
 		// Reset flag for next time

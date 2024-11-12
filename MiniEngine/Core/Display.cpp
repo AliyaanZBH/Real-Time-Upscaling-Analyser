@@ -227,7 +227,13 @@ namespace Graphics
     GraphicsPSO MagnifyPixelsPS(L"Core: MagnifyPixels");
 
     const char* FilterLabels[] = { "Bilinear", "Sharpening", "Bicubic", "Lanczos" };
+
+#if AZB_MOD
+    // [AZB]: Use Bilinear scaling instead so that when resolution is lowered in fullscreen, we can get a stretched image
+    EnumVar UpsampleFilter("Graphics/Display/Scaling Filter", kBilinear, kFilterCount, FilterLabels);
+#else
     EnumVar UpsampleFilter("Graphics/Display/Scaling Filter", kSharpening, kFilterCount, FilterLabels);
+#endif
 
     enum DebugZoomLevel { kDebugZoomOff, kDebugZoom2x, kDebugZoom4x, kDebugZoom8x, kDebugZoom16x, kDebugZoomCount };
     const char* DebugZoomLabels[] = { "Off", "2x Zoom", "4x Zoom", "8x Zoom", "16x Zoom" };
@@ -255,8 +261,8 @@ void Display::SetPipelineResolution(bool bDLSS,uint32_t queriedWidth, uint32_t q
     // [AZB]: If we are working in fullscreen, don't change the native width and height as we want to maintain the size of the swap chain
     //if (bFullscreen)
     //{
-        //g_NativeWidth = queriedWidth;
-        //g_NativeHeight = queriedHeight;
+        g_NativeWidth = queriedWidth;
+        g_NativeHeight = queriedHeight;
     //}
     //if (bDLSS)
     //{
@@ -320,6 +326,7 @@ void Display::Resize(uint32_t width, uint32_t height)
     }
     else
     {
+        // SetPipelineResolution(false, width, height);
         // [AZB]: Original pre-buffer creation
         g_PreDisplayBuffer.Create(L"PreDisplay Buffer", width, height, 1, SwapChainFormat);
     }
@@ -468,11 +475,11 @@ void Display::Initialize(void)
 #if AZB_MOD
   
     // [AZB]: We figured out the maximum native fullscreen resolution inside GraphicsCore.cpp, pass this up to Display
-    g_NativeWidth = DLSS::m_CurrentNativeResolution.m_Width;
-    g_NativeHeight = DLSS::m_CurrentNativeResolution.m_Height;
+    g_NativeWidth = DLSS::m_MaxNativeResolution.m_Width;
+    g_NativeHeight = DLSS::m_MaxNativeResolution.m_Height;
 
-    //g_DisplayWidth = g_NativeWidth;
-    //g_DisplayHeight = g_NativeHeight;
+    g_DisplayWidth = g_NativeWidth;
+    g_DisplayHeight = g_NativeHeight;
 
     // [AZB]: Container that will store results of query that will be needed for DLSS feature creation. By default this will check the balanced setting
     //DLSS::OptimalSettings dlssSettings;
@@ -491,7 +498,7 @@ void Display::Initialize(void)
     //        DLSS creation is therefore postponed until after these steps.
 
     // [AZB]: Call my version of setNativeRes, which sets the resolution for all buffers in the pipeline! (smaller buffers work off of divisions of this total size)
-    SetPipelineResolution(false, g_DLSSWidth, g_DLSSHeight);
+    SetPipelineResolution(false, g_NativeWidth, g_NativeHeight);
 
     g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DisplayWidth, g_DisplayHeight, 1, SwapChainFormat);
     ImageScaling::Initialize(g_PreDisplayBuffer.GetFormat());
@@ -611,6 +618,7 @@ void Graphics::PreparePresentSDR(void)
     Context.SetDynamicDescriptor(0, 0, g_SceneColorBuffer.GetSRV());
 #endif
 
+
     bool NeedsScaling = g_NativeWidth != g_DisplayWidth || g_NativeHeight != g_DisplayHeight;
 
     // On Windows, prefer scaling and compositing in one step via pixel shader
@@ -636,7 +644,13 @@ void Graphics::PreparePresentSDR(void)
     }
     else
     {
+#if AZB_MOD
+        // [AZB]: Modified upscale step = use DLSS output buffer as intermediary RT!
+        //ColorBuffer& Dest = g_DLSSOutputBuffer;
         ColorBuffer& Dest = DebugZoom == kDebugZoomOff ? g_DisplayPlane[g_CurrentBuffer] : g_PreDisplayBuffer;
+#else
+        ColorBuffer& Dest = DebugZoom == kDebugZoomOff ? g_DisplayPlane[g_CurrentBuffer] : g_PreDisplayBuffer;
+#endif
 
         // Scale or Copy
         if (NeedsScaling)
@@ -653,17 +667,17 @@ void Graphics::PreparePresentSDR(void)
         }
 
         // Magnify without stretching
-        if (DebugZoom != kDebugZoomOff)
-        {
-            Context.SetPipelineState(MagnifyPixelsPS);
-            Context.TransitionResource(g_PreDisplayBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-            Context.TransitionResource(g_DisplayPlane[g_CurrentBuffer], D3D12_RESOURCE_STATE_RENDER_TARGET);
-            Context.SetRenderTarget(g_DisplayPlane[g_CurrentBuffer].GetRTV());
-            Context.SetDynamicDescriptor(0, 0, g_PreDisplayBuffer.GetSRV());
-            Context.SetViewportAndScissor(0, 0, g_DisplayWidth, g_DisplayHeight);
-            Context.SetConstants(1, 1.0f / ((int)DebugZoom + 1.0f));
-            Context.Draw(3);
-        }
+       if (DebugZoom != kDebugZoomOff)
+       {
+           Context.SetPipelineState(MagnifyPixelsPS);
+           Context.TransitionResource(g_PreDisplayBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+           Context.TransitionResource(g_DisplayPlane[g_CurrentBuffer], D3D12_RESOURCE_STATE_RENDER_TARGET);
+           Context.SetRenderTarget(g_DisplayPlane[g_CurrentBuffer].GetRTV());
+           Context.SetDynamicDescriptor(0, 0, g_PreDisplayBuffer.GetSRV());
+           Context.SetViewportAndScissor(0, 0, g_DisplayWidth, g_DisplayHeight);
+           Context.SetConstants(1, 1.0f / ((int)DebugZoom + 1.0f));
+           Context.Draw(3);
+       }
 
         CompositeOverlays(Context);
     }
