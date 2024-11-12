@@ -131,6 +131,7 @@ void GUI::Run()
 		// Add a checkbox to control fullscreen
 		if (ImGui::Checkbox("Enable fullscreen mode", &m_bFullscreen))
 		{
+			// This will actually attempt to go fullscreen
 			HRESULT hr = Display::GetSwapchain()->SetFullscreenState(!wbFullscreen, nullptr);
 			if (SUCCEEDED(hr))
 			{
@@ -161,6 +162,9 @@ void GUI::Run()
 					dlssMode = n;
 					// Update current mode
 					DLSS::m_CurrentQualityMode = n;
+					// Set flags
+					DLSS::m_bNeedsReleasing = true;
+					m_bDLSSUpdatePending = true;
 					m_bUpdateDLSSMode = true;
 				}
 
@@ -173,6 +177,7 @@ void GUI::Run()
 
 		if (ImGui::Checkbox("Enable DLSS", &useDLSS))
 		{
+			m_bDLSSUpdatePending = true;
 			m_bToggleDLSS = useDLSS;
 		}
 	}
@@ -220,11 +225,10 @@ void GUI::UpdateGraphics()
 	if (m_bResolutionChangePending)
 	{
 		// Regardless of specific change, DLSS will need to be recreated, and it cannot handle being on while a resize occurs!
-		   // [AZB]: If DLSS is active, the resize here will break. So, we need to check for this, then release DLSS and recreate it!
+		// Before it can be recreated, disable the flag to ensure it doesn't try to run while out of date!
 		if (DLSS::m_DLSS_Enabled)
 		{
 			DLSS::m_DLSS_Enabled = false;
-
 		}
 
 		if (!m_bFullscreen)
@@ -241,9 +245,22 @@ void GUI::UpdateGraphics()
 
 		// Reset flag for next time
 		m_bResolutionChangePending = false;
+		// Also let DLSS know that the resolution has changed!
+		DLSS::m_bNeedsReleasing = true;
 	}
 
-	DLSS::UpdateDLSS(m_bToggleDLSS, m_bUpdateDLSSMode);
+	if (m_bDLSSUpdatePending)
+	{
+		DLSS::UpdateDLSS(m_bToggleDLSS, m_bUpdateDLSSMode, { m_NewWidth, m_NewHeight });
+		// DLSS may need the pipeline to update as a result of the changes made. Check the internal flag and then update as appropriate
+		if (DLSS::m_bPipelineUpdate)
+		{
+			Display::SetPipelineResolution(true, DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderWidth, DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderHeight);
+			// Reset flag
+			DLSS::m_bPipelineUpdate = false;
+		}
+		m_bDLSSUpdatePending = false;
+	}
 }
 
 void GUI::Terminate()

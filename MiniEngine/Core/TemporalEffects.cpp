@@ -168,8 +168,8 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
 
         ScopedTimer _prof(L"DLSS Temporal Resolve", BaseContext);
 
-        GraphicsContext& dlssContext = BaseContext.GetGraphicsContext();
-        //ComputeContext& dlssContext = BaseContext.GetComputeContext();
+        //GraphicsContext& dlssContext = BaseContext.GetGraphicsContext();
+        ComputeContext& dlssContext = BaseContext.GetComputeContext();
 
         // [AZB]: Check if the feature already exists, create it if not
         //if (!DLSS::m_DLSS_FeatureHandle)
@@ -193,7 +193,7 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
 
         // [AZB]: Before we can actually use the resources, they need to be transitioned
         dlssContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-        dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
+        dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
         dlssContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         dlssContext.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
@@ -208,6 +208,11 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
 
         reqs.m_DlSSEvalParams = execParams;
         DLSS::Execute(reqs);
+
+        // [AZB]: Transition resources back to what they used to be so the rest of the pipeline can execute smoothly!
+       //dlssContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+       //dlssContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
+       //dlssContext.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     }
     else
     {

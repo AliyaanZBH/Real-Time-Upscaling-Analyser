@@ -619,7 +619,12 @@ void Graphics::PreparePresentSDR(void)
 #endif
 
 
+#if AZB_MOD
+    // [AZB]: When DLSS is enabled, you no longer need to upscale the scene buffer! This is because we will be rendering using the DLSS output buffer which has already been upscaled
+    bool NeedsScaling = !DLSS::m_DLSS_Enabled && (g_NativeWidth != g_DisplayWidth || g_NativeHeight != g_DisplayHeight);
+#else
     bool NeedsScaling = g_NativeWidth != g_DisplayWidth || g_NativeHeight != g_DisplayHeight;
+#endif
 
     // On Windows, prefer scaling and compositing in one step via pixel shader
     if (DebugZoom == kDebugZoomOff && (UpsampleFilter == kSharpening || !NeedsScaling))
@@ -644,13 +649,9 @@ void Graphics::PreparePresentSDR(void)
     }
     else
     {
-#if AZB_MOD
-        // [AZB]: Modified upscale step = use DLSS output buffer as intermediary RT!
-        //ColorBuffer& Dest = g_DLSSOutputBuffer;
+
+        // [AZB]: Upscale() draws directly onto the destination RT, so use the display plane! (Debug zoom is always off, but there's no need to change this code as I may enable it at times)
         ColorBuffer& Dest = DebugZoom == kDebugZoomOff ? g_DisplayPlane[g_CurrentBuffer] : g_PreDisplayBuffer;
-#else
-        ColorBuffer& Dest = DebugZoom == kDebugZoomOff ? g_DisplayPlane[g_CurrentBuffer] : g_PreDisplayBuffer;
-#endif
 
         // Scale or Copy
         if (NeedsScaling)
