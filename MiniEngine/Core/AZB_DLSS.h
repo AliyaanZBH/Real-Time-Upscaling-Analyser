@@ -114,4 +114,7 @@ namespace DLSS
 
 	// Flag to track when the pipeline needs to update
 	extern bool m_bPipelineUpdate;
+
+	// Flag to track when the pipeline needs to reset back to native!
+	extern bool m_bPipelineReset;
 };

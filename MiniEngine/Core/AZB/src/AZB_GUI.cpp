@@ -87,10 +87,18 @@ void GUI::Run()
 	// Display our lovely formatted title
 	MainWindowTitle();
 
+	// Update newWidth at the start so that it doesn't start at 0
+	m_NewWidth = Graphics::g_DisplayWidth;
+	m_NewHeight = Graphics::g_DisplayHeight;
+
+	std::string initialValue = std::to_string(m_NewWidth) + "x" + std::to_string(m_NewHeight);
+
+
 	if (ImGui::CollapsingHeader("Resolution Settings")) 
 	{
 		static int item_current_idx = DLSS::m_NumResolutions - 1;
-		const char* combo_preview_value = DLSS::m_Resolutions[item_current_idx].first.c_str();
+		//const char* combo_preview_value = DLSS::m_Resolutions[item_current_idx].first.c_str();
+		const char* combo_preview_value = initialValue.c_str();
 
 		// Check if the window has been resized manually - set the dropdown to custom if so
 		// This checks that the newHeight has been set and that the actual current display has changed (via the flag)
@@ -151,21 +159,21 @@ void GUI::Run()
 	if (ImGui::CollapsingHeader("DLSS Settings"))
 	{
 
-		static bool useDLSS = false;
+		//static bool useDLSS = false;
 		static int dlssMode = 1; // 0: Performance, 1: Balanced, 2: Quality, etc.
 		const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance"};
 
 
 
 		// Main selection for user to play with!
-		if (ImGui::Checkbox("Enable DLSS", &useDLSS))
+		if (ImGui::Checkbox("Enable DLSS", &m_bToggleDLSS))
 		{
 			m_bDLSSUpdatePending = true;
-			m_bToggleDLSS = useDLSS;
+			//m_bToggleDLSS = useDLSS;
 		}
 
 		// Wrap mode selection in disabled blcok - only want to edit this when DLSS is ON
-		if (!useDLSS)
+		if (!m_bToggleDLSS)
 			ImGui::BeginDisabled(true);
 		if (ImGui::BeginCombo("Mode", modes[dlssMode]))
 		{
@@ -191,7 +199,7 @@ void GUI::Run()
 
 		}
 
-		if (!useDLSS)
+		if (!m_bToggleDLSS)
 			ImGui::EndDisabled();
 	}
 
@@ -241,7 +249,8 @@ void GUI::UpdateGraphics()
 		// Before it can be recreated, disable the flag to ensure it doesn't try to run while out of date!
 		if (DLSS::m_DLSS_Enabled)
 		{
-			DLSS::m_DLSS_Enabled = false;
+			m_bToggleDLSS = false;
+			m_bDLSSUpdatePending = true;
 		}
 
 		if (!m_bFullscreen)
@@ -269,6 +278,12 @@ void GUI::UpdateGraphics()
 			Display::SetPipelineResolution(true, DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderWidth, DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderHeight);
 			// Reset flag
 			DLSS::m_bPipelineUpdate = false;
+		}
+		// This is set to true when disabling DLSS
+		if (DLSS::m_bPipelineReset)
+		{
+			Display::SetPipelineResolution(false, m_NewWidth, m_NewHeight);
+			DLSS::m_bPipelineReset = false;
 		}
 		m_bDLSSUpdatePending = false;
 	}

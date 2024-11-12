@@ -28,6 +28,7 @@ namespace DLSS
 	bool m_DLSS_Enabled = false;
 	bool m_bNeedsReleasing = false;
 	bool m_bPipelineUpdate = false;
+	bool m_bPipelineReset = false;
 }
 
 void DLSS::QueryFeatureRequirements(IDXGIAdapter* Adapter)
@@ -251,7 +252,11 @@ void DLSS::UpdateDLSS(bool toggle, bool updateMode, Resolution currentResolution
 	if (m_DLSS_Enabled || updateMode)
 	{
 		// First, release the current feature if our flag has been set. This gets set in GUI.cpp when the resolution is changed by the user.
-		if (m_bNeedsReleasing)
+		//if (m_bNeedsReleasing)
+		//{
+		
+		// Check if feature has already been created, release if so
+		if(m_DLSS_FeatureHandle != nullptr)
 		{
 			Release();
 			// Reset flag
@@ -284,8 +289,13 @@ void DLSS::UpdateDLSS(bool toggle, bool updateMode, Resolution currentResolution
 	}
 	else
 	{
-		// If DLSS is being disabled, we don't necessarily need to release the full feature.
+		// If DLSS is being disabled, we don't necessarily need to release the full feature, but we do need to reset the pipeline still!
+		m_bPipelineReset = true;
+		m_bNeedsReleasing = true;
 	}
+
+	// Update current resolution
+	m_CurrentNativeResolution = currentResolution;
 
 }
 
