@@ -284,7 +284,9 @@ void Display::Resize(uint32_t width, uint32_t height)
 // [AZB]: Create DLSS - repeat steps in Initialise() but also release the old feature and create a new one
 #if AZB_MOD
 
-    DLSS::Release();
+    // [AZB]: Check it hasn't been released already
+    if (DLSS::m_DLSS_FeatureHandle != nullptr)
+        DLSS::Release();
 
     // [AZB]: Even when DLSS is disabled, query the settings here so that we can safely and corectly enable later!
     //DLSS::OptimalSettings dlssSettings;
@@ -746,6 +748,8 @@ void Display::SetWindowedResolution(uint32_t width, uint32_t height)
    // [AZB]: If DLSS is active, the resize here will break. So, we need to check for this, then release DLSS and recreate it!
    if (DLSS::m_DLSS_Enabled)
    {
+       DLSS::m_DLSS_Enabled = false;
+
    }
 
    // [AZB]: The offsets here are necessary to account for the windows title bar

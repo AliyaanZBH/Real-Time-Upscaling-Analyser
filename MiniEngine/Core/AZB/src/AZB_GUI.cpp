@@ -219,6 +219,14 @@ void GUI::UpdateGraphics()
 	// See if resolution has been changed
 	if (m_bResolutionChangePending)
 	{
+		// Regardless of specific change, DLSS will need to be recreated, and it cannot handle being on while a resize occurs!
+		   // [AZB]: If DLSS is active, the resize here will break. So, we need to check for this, then release DLSS and recreate it!
+		if (DLSS::m_DLSS_Enabled)
+		{
+			DLSS::m_DLSS_Enabled = false;
+
+		}
+
 		if (!m_bFullscreen)
 			// This version scales the window to match the resolution
 			Display::SetWindowedResolution(m_NewWidth, m_NewHeight);
