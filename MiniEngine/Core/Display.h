@@ -61,6 +61,10 @@ namespace Graphics
 
 #if AZB_MOD
 
+    // [AZB]: These variables already exist but aren't available externally
+    extern uint32_t g_NativeWidth;
+    extern uint32_t g_NativeHeight;
+
     // [AZB]: These will be evaluated when the swapchain gets created in Display::Initialise(), which is when the DLSS Query will be called
     extern uint32_t g_DLSSWidth;
     extern uint32_t g_DLSSHeight;

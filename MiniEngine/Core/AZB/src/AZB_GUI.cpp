@@ -95,7 +95,8 @@ void GUI::Run()
 		// Check if the window has been resized manually - set the dropdown to custom if so
 		// This checks that the newHeight has been set and that the actual current display has changed (via the flag)
 		// Then, check that the size does not match!
-		if (!m_bResolutionChangePending && (Graphics::g_DisplayWidth != m_NewWidth || Graphics::g_DisplayHeight != m_NewHeight))
+		// Note - this won't apply to Fullscreen!
+		if (!m_bFullscreen && !m_bResolutionChangePending && (Graphics::g_DisplayWidth != m_NewWidth || Graphics::g_DisplayHeight != m_NewHeight))
 			combo_preview_value = "Custom";
 
 		if(ImGui::BeginCombo("Output Resolution", combo_preview_value))
@@ -136,6 +137,9 @@ void GUI::Run()
 			if (SUCCEEDED(hr))
 			{
 				DEBUGPRINT("Switched to %s mode", m_bFullscreen ? "Fullscreen" : "Windowed");
+				// Update new width and height to fullscreen values
+				m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
+				m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
 			}
 			else
 			{
@@ -151,6 +155,18 @@ void GUI::Run()
 		static int dlssMode = 1; // 0: Performance, 1: Balanced, 2: Quality, etc.
 		const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance"};
 
+
+
+		// Main selection for user to play with!
+		if (ImGui::Checkbox("Enable DLSS", &useDLSS))
+		{
+			m_bDLSSUpdatePending = true;
+			m_bToggleDLSS = useDLSS;
+		}
+
+		// Wrap mode selection in disabled blcok - only want to edit this when DLSS is ON
+		if (!useDLSS)
+			ImGui::BeginDisabled(true);
 		if (ImGui::BeginCombo("Mode", modes[dlssMode]))
 		{
 
@@ -175,11 +191,8 @@ void GUI::Run()
 
 		}
 
-		if (ImGui::Checkbox("Enable DLSS", &useDLSS))
-		{
-			m_bDLSSUpdatePending = true;
-			m_bToggleDLSS = useDLSS;
-		}
+		if (!useDLSS)
+			ImGui::EndDisabled();
 	}
 
 	if (ImGui::CollapsingHeader("Performance Metrics"))
@@ -237,8 +250,6 @@ void GUI::UpdateGraphics()
 		else
 		{
 			// This version maintains fullscreen size based on what was queried at app startup and stretches the resolution to the display size
-			//Display::Resize(DLSS::m_MaxNativeResolution.m_Width, DLSS::m_MaxNativeResolution.m_Height);
-			//Display::Resize(m_NewWidth, m_NewHeight);
 			// We still need to update the pipeline to render at the lower resolution
 			Display::SetPipelineResolution(false, m_NewWidth, m_NewHeight);
 		}
