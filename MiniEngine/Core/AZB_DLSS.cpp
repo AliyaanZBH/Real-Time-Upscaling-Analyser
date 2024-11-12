@@ -282,6 +282,10 @@ void DLSS::UpdateDLSS(bool toggle, bool updateMode, Resolution currentResolution
 		}
 		// If DLSS has already been created (e.g. in Resize() event) DLSS has already been created for the correct output resolution
 	}
+	else
+	{
+		// If DLSS is being disabled, we don't necessarily need to release the full feature.
+	}
 
 }
 

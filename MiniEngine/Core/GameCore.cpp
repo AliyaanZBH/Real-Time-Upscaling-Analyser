@@ -52,8 +52,13 @@
 #if AZB_MOD
 #include "AZB_GUI.h"
 
-// [AZB]: Set extern bool here, ensuring a single declaration and definiton.
+// [AZB]: Set bool here, ensuring a single declaration and definiton.
 bool g_bMouseExclusive = true;
+
+// [AZB]: Used to track when the window loses focus
+bool g_bIsWindowActive = false;
+// [AZB]: Similar function as above
+bool g_bIsWindowMinimized = false;
 
 // [AZB]: Temporary global UI class
 GUI* AZB_GUI = new GUI();
@@ -86,6 +91,9 @@ namespace GameCore
     bool UpdateApplication(IGameApp& game)
     {
 #if AZB_MOD
+        // [AZB]: Early return here if the window is inactive or minimised!
+        if (!g_bIsWindowActive || g_bIsWindowMinimized)
+            return !game.IsDone();
 #endif
         EngineProfiling::Update();
 
@@ -284,12 +292,42 @@ namespace GameCore
         switch( message )
         {
         case WM_SIZE:
+#if AZB_MOD
+            // [AZB]: Previously, the app would crash when minimising!
+            if (wParam == SIZE_MINIMIZED)
+            {
+                g_bIsWindowMinimized = true;
+                break;
+            }
+            else if (wParam == SIZE_RESTORED || wParam == SIZE_MAXIMIZED)
+            {
+                g_bIsWindowMinimized = false;
+            }
+#endif
             Display::Resize((UINT)(UINT64)lParam & 0xFFFF, (UINT)(UINT64)lParam >> 16);
             break;
 
         case WM_DESTROY:
             PostQuitMessage(0);
             break;
+
+// [AZB]: Extra windows message handling
+#if AZB_MOD
+
+        // [AZB]: Occurs when the window loses focus - app will crash if fullscreen is enabled so handle accordingly!
+        case WM_ACTIVATE:
+            if (wParam == WA_INACTIVE)
+            {
+                // Window has lost focus
+                g_bIsWindowActive = false;
+            }
+            else
+            {
+                // Window has gained focus
+                g_bIsWindowActive = true;
+            }
+            break;
+#endif
 
         default:
             return DefWindowProcW( hWnd, message, wParam, lParam );
