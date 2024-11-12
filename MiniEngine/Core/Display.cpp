@@ -601,7 +601,7 @@ void Graphics::PreparePresentSDR(void)
     {
         // [AZB]: Our color buffer is was downscaled and used as an input for DLSS, so instead read from the DLSS output!
         Context.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
-            D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
+            D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         Context.SetDynamicDescriptor(0, 0, g_DLSSOutputBuffer.GetSRV());
     }
     else

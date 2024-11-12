@@ -171,19 +171,6 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
         //GraphicsContext& dlssContext = BaseContext.GetGraphicsContext();
         ComputeContext& dlssContext = BaseContext.GetComputeContext();
 
-        // [AZB]: Check if the feature already exists, create it if not
-        //if (!DLSS::m_DLSS_FeatureHandle)
-        //{
-        //    // [AZB]: Fill in requirements struct ready for the feature creation
-        //    DLSS::CreationRequirements reqs;
-        //    reqs.m_pCmdList = dlssContext.GetCommandList();
-        //
-        //    NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, NVSDK_NGX_PerfQuality_Value_Balanced };
-        //    // [AZB]: Even though we may not render to HDR, our color buffer is infact in HDR format, so set the appropriate flag!
-        //    reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_None /*| NVSDK_NGX_DLSS_Feature_Flags_IsHDR*/ };
-        //    DLSS::Create(reqs);
-        //}
-
         // [AZB]: Create requirement struct - we need motion vectors, output colour buffer
         DLSS::ExecutionRequirements reqs;
         reqs.m_pCmdList = dlssContext.GetCommandList();
@@ -203,16 +190,17 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
         execParams.pInMotionVectors = g_VelocityBuffer.GetResource();
         execParams.InJitterOffsetX = s_JitterX;
         execParams.InJitterOffsetY = s_JitterY;
-        execParams.InRenderSubrectDimensions = NVSDK_NGX_Dimensions{ g_DLSSWidth, g_DLSSHeight };
+        execParams.InRenderSubrectDimensions = NVSDK_NGX_Dimensions{ DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderWidth, DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderHeight };
 
 
         reqs.m_DlSSEvalParams = execParams;
         DLSS::Execute(reqs);
 
         // [AZB]: Transition resources back to what they used to be so the rest of the pipeline can execute smoothly!
-       //dlssContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
-       //dlssContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
-       //dlssContext.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+       dlssContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+       //dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+       dlssContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
+       dlssContext.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     }
     else
     {

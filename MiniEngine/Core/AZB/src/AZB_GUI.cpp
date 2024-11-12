@@ -62,6 +62,10 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 	// 
 	// TMP - added style in header of this file
 	SetStyle();
+
+	// Set newWidth at the start so that it doesn't start at 0 and avoid DLSS crashing!
+	m_NewWidth = Graphics::g_DisplayWidth;
+	m_NewHeight = Graphics::g_DisplayHeight;
 }
 
 void GUI::Run()
@@ -87,27 +91,38 @@ void GUI::Run()
 	// Display our lovely formatted title
 	MainWindowTitle();
 
-	// Update newWidth at the start so that it doesn't start at 0
+
+
+	std::string comboValue; 
+	// In order to make it clearer to users, create a variable combo label
+	std::string comboLabel;
+
+	// Also update these - the display could have changed as a result of window resizing!
 	m_NewWidth = Graphics::g_DisplayWidth;
 	m_NewHeight = Graphics::g_DisplayHeight;
-
-	std::string initialValue = std::to_string(m_NewWidth) + "x" + std::to_string(m_NewHeight);
-
 
 	if (ImGui::CollapsingHeader("Resolution Settings")) 
 	{
 		static int item_current_idx = DLSS::m_NumResolutions - 1;
-		//const char* combo_preview_value = DLSS::m_Resolutions[item_current_idx].first.c_str();
-		const char* combo_preview_value = initialValue.c_str();
 
-		// Check if the window has been resized manually - set the dropdown to custom if so
-		// This checks that the newHeight has been set and that the actual current display has changed (via the flag)
-		// Then, check that the size does not match!
-		// Note - this won't apply to Fullscreen!
-		if (!m_bFullscreen && !m_bResolutionChangePending && (Graphics::g_DisplayWidth != m_NewWidth || Graphics::g_DisplayHeight != m_NewHeight))
-			combo_preview_value = "Custom";
+		// Check window display mode. 
+		// When Fullscreen, our display height will be fixed (naturally), so we want to convey native height to the user
+		// When Windowed, display height has variable, and can even be resized manually.
+		// This nlock takes that into account and ensures that the dropdown is always as helpful as possible
+		if (m_bFullscreen)
+		{
+			comboLabel = "Native Resolution";
+			comboValue = std::to_string(Graphics::g_NativeWidth) + "x" + std::to_string(Graphics::g_NativeHeight);
+		}
+		else
+		{
+			comboLabel = "Display Resolution";
+			comboValue = std::to_string(m_NewWidth) + "x" + std::to_string(m_NewHeight);
+		}
 
-		if(ImGui::BeginCombo("Output Resolution", combo_preview_value))
+		const char* combo_preview_value = comboValue.c_str();
+
+		if(ImGui::BeginCombo(comboLabel.c_str(), combo_preview_value))
 		{
 			for (int n = 0; n < DLSS::m_NumResolutions; n++)
 			{
@@ -169,7 +184,6 @@ void GUI::Run()
 		if (ImGui::Checkbox("Enable DLSS", &m_bToggleDLSS))
 		{
 			m_bDLSSUpdatePending = true;
-			//m_bToggleDLSS = useDLSS;
 		}
 
 		// Wrap mode selection in disabled blcok - only want to edit this when DLSS is ON
@@ -282,10 +296,15 @@ void GUI::UpdateGraphics()
 		// This is set to true when disabling DLSS
 		if (DLSS::m_bPipelineReset)
 		{
-			Display::SetPipelineResolution(false, m_NewWidth, m_NewHeight);
+			// When fullscreen, set back to native
+			if (m_bFullscreen)
+				Display::SetPipelineResolution(false, Graphics::g_NativeWidth, Graphics::g_NativeHeight);
+			else
+				Display::SetPipelineResolution(false, m_NewWidth, m_NewHeight);
 			DLSS::m_bPipelineReset = false;
 		}
 		m_bDLSSUpdatePending = false;
+		m_bUpdateDLSSMode = false;
 	}
 }
 
