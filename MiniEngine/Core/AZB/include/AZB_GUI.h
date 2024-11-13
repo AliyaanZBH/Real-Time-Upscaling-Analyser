@@ -35,6 +35,11 @@ public:
 	// A handle to render ImGui within MiniEngine
 	ID3D12DescriptorHeap* m_pSrvDescriptorHeap = nullptr;
 
+
+
+    // Public flag to enable/disable tonemapping!
+    bool m_bEnablePostFX = true;
+
 private:
 
     //
@@ -56,7 +61,6 @@ private:
     bool m_bToggleDLSS = false;
     // Flag to indicate that the requested change is to DLSS mode
     bool m_bUpdateDLSSMode = false;
-
 
 
 

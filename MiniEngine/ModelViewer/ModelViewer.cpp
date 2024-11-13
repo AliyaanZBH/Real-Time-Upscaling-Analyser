@@ -34,6 +34,34 @@
 #include "ShadowCamera.h"
 #include "Display.h"
 
+//===============================================================================
+// desc: This is the  "GameApp", where the app specific settings are created, e.g. models to load, rendering stages to complete.
+//       Heavily modified at this point.
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
+/*
+   Change Log:
+   [AZB] 13/11/24: Added a check to apply post-processing to DLSS_OutputBuffer and not the main color buffer when DLSS enabled!
+
+*/
+
+
+//
+// [AZB]: Custom includes and macro mods
+//
+
+// [AZB]: Container file for code modifications and other helper tools. Contains the global "AZB_MOD" macro.
+#include "AZB_Utils.h"
+
+
+
+
+// [AZB]: These will only be included if the global modificiation macro is defined as true (=1)
+#if AZB_MOD
+#include "AZB_DLSS.h"
+#endif
+
 #define LEGACY_RENDERER
 
 using namespace GameCore;
@@ -350,10 +378,24 @@ void ModelViewer::RenderScene( void )
     // is necessary for all temporal effects (and motion blur).
     MotionBlur::GenerateCameraVelocityBuffer(gfxContext, m_Camera, true);
 
+#if AZB_MOD
+    // [AZB]: TMP: Particle rendering assumes that the depth buffer and output buffer are the same size. Experimenting with moving it to before DLSS so that the particles can get upscaled too!
+    ParticleEffectManager::Render(gfxContext, m_Camera, g_SceneColorBuffer, g_SceneDepthBuffer,  g_LinearDepth[FrameIndex]);
+#endif
+    // [AZB]: This is where DLSS gets executed!
     TemporalEffects::ResolveImage(gfxContext);
 
-    ParticleEffectManager::Render(gfxContext, m_Camera, g_SceneColorBuffer, g_SceneDepthBuffer,  g_LinearDepth[FrameIndex]);
+#if AZB_MOD
+    // [AZB]: The main sceneColorBuffer is effectively disposed of once DLSS executes, so run post effects on that buffer instead!
+   // if (DLSS::m_DLSS_Enabled)
+   //     //ParticleEffectManager::Render(gfxContext, m_Camera, g_DLSSOutputBuffer, g_SceneDepthBuffer, g_LinearDepth[FrameIndex]);
+   // else
+        // AZB]: DLSS can still be disabled, so default to original method when this happens
+       // ParticleEffectManager::Render(gfxContext, m_Camera, g_SceneColorBuffer, g_SceneDepthBuffer,  g_LinearDepth[FrameIndex]);
 
+#else
+    ParticleEffectManager::Render(gfxContext, m_Camera, g_SceneColorBuffer, g_SceneDepthBuffer,  g_LinearDepth[FrameIndex]);
+#endif
     // Until I work out how to couple these two, it's "either-or".
     if (DepthOfField::Enable)
         DepthOfField::Render(gfxContext, m_Camera.GetNearClip(), m_Camera.GetFarClip());

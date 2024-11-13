@@ -170,6 +170,12 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
         //GraphicsContext& dlssContext = BaseContext.GetGraphicsContext();
         ComputeContext& dlssContext = BaseContext.GetComputeContext();
 
+        // [AZB]: Set pipeline state and signature
+        dlssContext.SetRootSignature(g_CommonRS);
+        // [AZB]: This compute shader is key as it is what updates our motion vectors!
+        dlssContext.SetPipelineState(s_TemporalBlendCS);
+
+
         // [AZB]: Create requirement struct - we need motion vectors, output colour buffer
         DLSS::ExecutionRequirements reqs;
         reqs.m_pCmdList = dlssContext.GetCommandList();
@@ -208,7 +214,11 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
 
         // [AZB]: Reapply the original descriptor heap
         ID3D12DescriptorHeap* ppHeaps[] = { originalHeap };
-        //dlssContext.SetDescriptorHeaps(_countof(ppHeaps), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, ppHeaps);
+        dlssContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, originalHeap);
+
+        // [AZB]: Restore state and signature too, just in case!
+        dlssContext.SetRootSignature(g_CommonRS);
+        dlssContext.SetPipelineState(s_TemporalBlendCS);
 
     }
     else

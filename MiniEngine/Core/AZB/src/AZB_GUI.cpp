@@ -224,6 +224,10 @@ void GUI::Run()
 
 		if (!m_bToggleDLSS)
 			ImGui::EndDisabled();
+
+
+		ImGui::Checkbox("Enable PostFX", &m_bEnablePostFX);
+
 	}
 
 	if (ImGui::CollapsingHeader("Performance Metrics"))

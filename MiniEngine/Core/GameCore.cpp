@@ -22,6 +22,7 @@
    [AZB] 16/10/24: Implemented ImGui and custom UI class into main program
    [AZB] 21/10/24: Implemented mouse accessor to enable swapping of input focus between ImGui and application
    [AZB] 22/10/24: Tweaked ImGui implementation and added comments ready for DLSS
+   [AZB] 13/11/24: Tweaked postFX to dynamically take in a colorbuffer
 */
 
 #include "pch.h"
@@ -51,6 +52,7 @@
 // [AZB]: These will only be included if the global modificiation macro is defined as true (=1)
 #if AZB_MOD
 #include "AZB_GUI.h"
+#include "AZB_DLSS.h"
 
 // [AZB]: Set bool here, ensuring a single declaration and definiton.
 bool g_bMouseExclusive = true;
@@ -135,11 +137,25 @@ namespace GameCore
         EngineTuning::Update(DeltaTime);
 
         game.Update(DeltaTime);
+        // [AZB]: Execute DLSS here, before post-effects, per NVIDIA recommendations
         game.RenderScene();
 
-        // [AZB]: Execute DLSS at start of post-effects, but before any other per NVIDIA recommendations
-        PostEffects::Render();
+#if AZB_MOD
+        // Also added an option to toggle the step entirely!
+        if (AZB_GUI->m_bEnablePostFX)
+        {
 
+            if(DLSS::m_DLSS_Enabled)
+                // [AZB]: Overloaded function that acts on a chosen buffer
+                PostEffects::Render(g_DLSSOutputBuffer);
+            else
+                PostEffects::Render(g_SceneColorBuffer);
+        }
+
+#else
+        // [AZB]: Original function that acts on global scene buffer
+        PostEffects::Render();
+#endif
         GraphicsContext& UiContext = GraphicsContext::Begin(L"Render UI");
         UiContext.TransitionResource(g_OverlayBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
         UiContext.ClearColor(g_OverlayBuffer);
