@@ -678,8 +678,8 @@ void ParticleEffectManager::Render( CommandContext& Context, const Camera& Camer
         // [AZB]: This line causes the following D3D12 Error when DLSS is enabled:
         // D3D12 ERROR: ID3D12CommandList::ResourceBarrier: Before state (0xC0: D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE|D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE) of resource (0x000001C91D3E3080:'DLSS Output Buffer') (subresource: 0) specified by transition barrier does not match with the current resource state (0x8: D3D12_RESOURCE_STATE_UNORDERED_ACCESS) (assumed at first use) [ RESOURCE_MANIPULATION ERROR #527: RESOURCE_BARRIER_BEFORE_AFTER_MISMATCH]
         // TODO: Solve this!
-        CompContext.TransitionResource(BinCounters[1], D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
 
+        CompContext.TransitionResource(BinCounters[1], D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
         CompContext.ClearUAV(BinCounters[0]);
         CompContext.ClearUAV(BinCounters[1]);
         CompContext.SetRootSignature(RootSig);

@@ -97,10 +97,6 @@ void GUI::Run()
 	// In order to make it clearer to users, create a variable combo label
 	std::string comboLabel;
 
-	// Also update these - the display could have changed as a result of window resizing!
-	m_NewWidth = Graphics::g_DisplayWidth;
-	m_NewHeight = Graphics::g_DisplayHeight;
-
 	if (ImGui::CollapsingHeader("Resolution Settings")) 
 	{
 		static int item_current_idx = DLSS::m_NumResolutions - 1;
@@ -113,11 +109,19 @@ void GUI::Run()
 		{
 			comboLabel = "Native Resolution";
 			comboValue = std::to_string(Graphics::g_NativeWidth) + "x" + std::to_string(Graphics::g_NativeHeight);
+			// Also update these - the display could have changed as a result of window resizing!
+			m_NewWidth = Graphics::g_NativeWidth;
+			m_NewHeight = Graphics::g_NativeHeight;
+
 		}
 		else
 		{
 			comboLabel = "Display Resolution";
 			comboValue = std::to_string(m_NewWidth) + "x" + std::to_string(m_NewHeight);
+			// Also update these - the display could have changed as a result of window resizing!
+			m_NewWidth = Graphics::g_DisplayWidth;
+			m_NewHeight = Graphics::g_DisplayHeight;
+
 		}
 
 		const char* combo_preview_value = comboValue.c_str();
@@ -160,9 +164,14 @@ void GUI::Run()
 			if (SUCCEEDED(hr))
 			{
 				DEBUGPRINT("Switched to %s mode", m_bFullscreen ? "Fullscreen" : "Windowed");
-				// Update new width and height to fullscreen values
-				m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
-				m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
+
+				// Update new width and height to fullscreen values if we have entered fullscreen
+				if (m_bFullscreen)
+				{
+					m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
+					m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
+				}
+					m_bResolutionChangePending = true;
 			}
 			else
 			{

@@ -165,7 +165,6 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
     // [AZB]: Execute DLSS instead of TAA
     if (DLSS::m_DLSS_Enabled)
     {
-
         ScopedTimer _prof(L"DLSS Temporal Resolve", BaseContext);
 
         //GraphicsContext& dlssContext = BaseContext.GetGraphicsContext();
@@ -179,12 +178,12 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
         NVSDK_NGX_D3D12_DLSS_Eval_Params execParams = {};
 
         // [AZB]: Before we can actually use the resources, they need to be transitioned
-        dlssContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-        dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-        dlssContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-        dlssContext.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        dlssContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
+        dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
+        dlssContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
+        dlssContext.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
 
-        // [AZB]: Input color buffer and output buffer for the fully processed frame. Could potentially output back to scene color?
+        // [AZB]: Input color buffer and output buffer for the fully processed frame.
         execParams.Feature = NVSDK_NGX_D3D12_Feature_Eval_Params{ g_SceneColorBuffer.GetResource(), g_DLSSOutputBuffer.GetResource() };
         execParams.pInDepth = g_SceneDepthBuffer.GetResource();
         execParams.pInMotionVectors = g_VelocityBuffer.GetResource();
@@ -192,15 +191,25 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
         execParams.InJitterOffsetY = s_JitterY;
         execParams.InRenderSubrectDimensions = NVSDK_NGX_Dimensions{ DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderWidth, DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderHeight };
 
-
+        // [AZB]: Finalise reqs struct with these params
         reqs.m_DlSSEvalParams = execParams;
+
+        // [AZB]: Before executing DLSS, we need to save the state of our command list and resources, as DLSS will modify them under the hood
+        // Save the current descriptor heap
+        ID3D12DescriptorHeap* originalHeap = dlssContext.GetCurrentDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
         DLSS::Execute(reqs);
 
         // [AZB]: Transition resources back to what they used to be so the rest of the pipeline can execute smoothly!
-       dlssContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
-       //dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-       dlssContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
-       dlssContext.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        dlssContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+        dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_COMMON, true);
+        dlssContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ, true);
+        dlssContext.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
+
+        // [AZB]: Reapply the original descriptor heap
+        ID3D12DescriptorHeap* ppHeaps[] = { originalHeap };
+        //dlssContext.SetDescriptorHeaps(_countof(ppHeaps), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, ppHeaps);
+
     }
     else
     {

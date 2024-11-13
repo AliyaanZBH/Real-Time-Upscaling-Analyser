@@ -167,6 +167,12 @@ public:
 
     void SetPredication(ID3D12Resource* Buffer, UINT64 BufferOffset, D3D12_PREDICATION_OP Op);
 
+#if AZB_MOD
+    // [AZB]: DLSS modifies the command context and descriptor heaps when executing, so I've created public accessors so that state can be saved and restored!
+    //ID3D12DescriptorHeap** GetCurrentDescriptorHeaps() const;
+    ID3D12DescriptorHeap* GetCurrentDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
+#endif
+
 protected:
 
     void BindDescriptorHeaps( void );
@@ -797,3 +803,8 @@ inline void CommandContext::ResolveTimeStamps(ID3D12Resource* pReadbackHeap, ID3
 {
     m_CommandList->ResolveQueryData(pQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, 0, NumQueries, pReadbackHeap, 0);
 }
+
+#if AZB_MOD
+//inline ID3D12DescriptorHeap** CommandContext::GetCurrentDescriptorHeaps() const { return m_CurrentDescriptorHeaps; }
+inline ID3D12DescriptorHeap*  CommandContext::GetCurrentDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type) const { return m_CurrentDescriptorHeaps[type]; }
+#endif
