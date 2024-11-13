@@ -14,6 +14,26 @@
 
 //===============================================================================
 
+
+
+// Pallete consts for ease of use, readabilty and editability
+namespace ThemeColours
+{
+    const ImVec4 m_HighlightColour = ImVec4(1.0f, 0.4f, 0.4f, 1.f);
+    const ImVec4 m_PureBlack = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
+    const ImVec4 m_PureWhite = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+
+    const ImVec4 m_RtuaBlack = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
+    const ImVec4 m_RtuaLightBlack = ImVec4(0.04f, 0.04f, 0.04f, 0.85f);
+    const ImVec4 m_PurgatoryGrey = ImVec4(0.25f, 0.25f, 0.25f, 0.5f);
+    const ImVec4 m_Charcoal = ImVec4(0.15f, 0.15f, 0.21f, 0.965f);
+    const ImVec4 m_GunmetalGrey = ImVec4(0.068f, 0.068f, 0.068f, 0.965f);
+    const ImVec4 m_RtuaGold = ImVec4(1.f, 0.8f, 0.f, 1.f);
+    const ImVec4 m_DarkerGold = ImVec4(1.f, 0.72f, 0.f, 1.f);
+    const ImVec4 m_DarkestGold = ImVec4(1.f, 0.67f, 0.f, 1.f);
+    const ImVec4 m_BasicallyRed = ImVec4(0.9f, 0.05f, 0.f, 0.9f);
+};
+
 class GUI
 {
 public:
@@ -39,6 +59,9 @@ public:
 
     // Public flag to enable/disable tonemapping!
     bool m_bEnablePostFX = true;
+
+    // Flag to show startup modal
+    bool m_bShowStartupModal = true;
 
 private:
 
@@ -68,7 +91,11 @@ private:
 	//	Functions to break up smaller sections of the UI
 	//
 
+
+    void StartupModal();
+
 	void MainWindowTitle();
+
 
 	//
 	// Constants to help with the UI
@@ -129,36 +156,38 @@ private:
 	// 
 	//============================================================================
 
+
 	void SetStyle()
 	{
         ImVec4* colors = ImGui::GetStyle().Colors;
 
         // Pallete consts for ease of use, readabilty and editability
-        const ImVec4 pureBlack(0.04f, 0.04f, 0.04f, 1.00f);
-        const ImVec4 pureWhite(1.00f, 1.00f, 1.00f, 1.00f);
+       //const ImVec4 pureBlack(0.04f, 0.04f, 0.04f, 1.00f);
+       //const ImVec4 pureWhite(1.00f, 1.00f, 1.00f, 1.00f);
+       //
+       //const ImVec4 rtuaBlack(0.04f, 0.04f, 0.04f, 1.00f);
+       //const ImVec4 rtuaLightBlack(0.04f, 0.04f, 0.04f, 0.85f);
+       //const ImVec4 purgatoryGrey(0.25f, 0.25f, 0.25f, 0.5f);
+       //const ImVec4 charcoal(0.15f, 0.15f, 0.21f, 0.965f);
+       //const ImVec4 gunmetalGrey(0.068f, 0.068f, 0.068f, 0.965f);
+       //const ImVec4 rtuaGold(1.f, 0.8f, 0.f, 1.f);
+       //const ImVec4 darkerGold(1.f, 0.72f, 0.f, 1.f);
+       //const ImVec4 darkestGold(1.f, 0.67f, 0.f, 1.f);
+       //const ImVec4 basicallyRed(0.9f, 0.05f, 0.f, 0.9f);
 
-        const ImVec4 rtuaBlack(0.04f, 0.04f, 0.04f, 1.00f);
-        const ImVec4 rtuaLightBlack(0.04f, 0.04f, 0.04f, 0.85f);
-        const ImVec4 purgatoryGrey(0.25f, 0.25f, 0.25f, 0.5f);
-        const ImVec4 gunmetalGrey(0.068f, 0.068f, 0.068f, 0.965f);
-        const ImVec4 rtuaGold(1.f, 0.8f, 0.f, 1.f);
-        const ImVec4 darkerGold(1.f, 0.72f, 0.f, 1.f);
-        const ImVec4 darkestGold(1.f, 0.67f, 0.f, 1.f);
-        const ImVec4 basicallyRed(0.9f, 0.05f, 0.f, 0.9f);
-
-        colors[ImGuiCol_Text] = pureWhite;
+        colors[ImGuiCol_Text] = ThemeColours::m_PureWhite;
         colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
-        colors[ImGuiCol_WindowBg] = gunmetalGrey;
+        colors[ImGuiCol_WindowBg] = ThemeColours::m_Charcoal;
         colors[ImGuiCol_ChildBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-        colors[ImGuiCol_PopupBg] = gunmetalGrey;
-        colors[ImGuiCol_Border] = pureBlack;
+        colors[ImGuiCol_PopupBg] = ThemeColours::m_Charcoal;
+        colors[ImGuiCol_Border] = ThemeColours::m_PureBlack;
         colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-        colors[ImGuiCol_FrameBg] = rtuaLightBlack;
-        colors[ImGuiCol_FrameBgHovered] = rtuaGold;
-        colors[ImGuiCol_FrameBgActive] = darkerGold;
-        colors[ImGuiCol_TitleBg] = rtuaGold;
-        colors[ImGuiCol_TitleBgActive] = darkerGold;
-        colors[ImGuiCol_TitleBgCollapsed] = darkestGold;
+        colors[ImGuiCol_FrameBg] = ThemeColours::m_GunmetalGrey;
+        colors[ImGuiCol_FrameBgHovered] = ThemeColours::m_RtuaGold;
+        colors[ImGuiCol_FrameBgActive] = ThemeColours::m_DarkerGold;
+        colors[ImGuiCol_TitleBg] = ThemeColours::m_RtuaGold;
+        colors[ImGuiCol_TitleBgActive] = ThemeColours::m_DarkerGold;
+        colors[ImGuiCol_TitleBgCollapsed] = ThemeColours::m_DarkestGold;
         colors[ImGuiCol_MenuBarBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
         colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.53f);
         colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
@@ -167,18 +196,18 @@ private:
         colors[ImGuiCol_CheckMark] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
         colors[ImGuiCol_SliderGrab] = ImVec4(0.25f, 0.25f, 0.25f, 0.5f);
         colors[ImGuiCol_SliderGrabActive] = ImVec4(1.f, 0.171f, 0.f, 0.9f);
-        colors[ImGuiCol_Button] = rtuaBlack;
-        colors[ImGuiCol_ButtonHovered] = darkerGold;
-        colors[ImGuiCol_ButtonActive] = darkestGold;
-        colors[ImGuiCol_Header] = rtuaLightBlack;
-        colors[ImGuiCol_HeaderHovered] = rtuaGold;
-        colors[ImGuiCol_HeaderActive] = darkerGold;
-        colors[ImGuiCol_Separator] = darkerGold;
+        colors[ImGuiCol_Button] = ThemeColours::m_RtuaBlack;
+        colors[ImGuiCol_ButtonHovered] = ThemeColours::m_DarkerGold;
+        colors[ImGuiCol_ButtonActive] = ThemeColours::m_DarkestGold;
+        colors[ImGuiCol_Header] = ThemeColours::m_RtuaLightBlack;
+        colors[ImGuiCol_HeaderHovered] = ThemeColours::m_RtuaGold;
+        colors[ImGuiCol_HeaderActive] = ThemeColours::m_DarkerGold;
+        colors[ImGuiCol_Separator] = ThemeColours::m_DarkerGold;
         colors[ImGuiCol_SeparatorHovered] = ImVec4(1.f, 0.171f, 0.f, 1.f);
         colors[ImGuiCol_SeparatorActive] = ImVec4(1.f, 0.1f, 0.f, 1.f);
-        colors[ImGuiCol_ResizeGrip] = darkerGold;
-        colors[ImGuiCol_ResizeGripHovered] = darkestGold;
-        colors[ImGuiCol_ResizeGripActive] = basicallyRed;
+        colors[ImGuiCol_ResizeGrip] = ThemeColours::m_DarkerGold;
+        colors[ImGuiCol_ResizeGripHovered] = ThemeColours::m_DarkestGold;
+        colors[ImGuiCol_ResizeGripActive] = ThemeColours::m_BasicallyRed;
         colors[ImGuiCol_Tab] = ImLerp(colors[ImGuiCol_Header], colors[ImGuiCol_TitleBgActive], 0.80f);
         colors[ImGuiCol_TabHovered] = colors[ImGuiCol_HeaderHovered];
         colors[ImGuiCol_TabActive] = ImLerp(colors[ImGuiCol_HeaderActive], colors[ImGuiCol_TitleBgActive], 0.60f);

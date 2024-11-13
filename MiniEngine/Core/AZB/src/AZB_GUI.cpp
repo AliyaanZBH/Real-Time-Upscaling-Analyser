@@ -78,193 +78,202 @@ void GUI::Run()
 	// The window size will have to adjust based on resolution changes
 	//ImVec2 kMainWindowStartSize = { Graphics::g_DisplayWidth / 4.f, Graphics::g_DisplayHeight / 1.5f };
 
-	ImGui::SetNextWindowPos(kMainWindowStartPos, ImGuiCond_FirstUseEver, kTopLeftPivot);
-	ImGui::SetNextWindowSize(kMainWindowStartSize, ImGuiCond_FirstUseEver);
-
-	if(!ImGui::Begin("RTUA"))
+		// Display Modal if it is the first time!
+	if (m_bShowStartupModal)
+		StartupModal();
+	else
+		// Display the rest of our lovely Window!
 	{
-		// Early out if the window is collapsed, as an optimization.
-		ImGui::End();
-		return;
-	}
-
-	// Display our lovely formatted title
-	MainWindowTitle();
 
 
+		ImGui::SetNextWindowPos(kMainWindowStartPos, ImGuiCond_FirstUseEver, kTopLeftPivot);
+		ImGui::SetNextWindowSize(kMainWindowStartSize, ImGuiCond_FirstUseEver);
 
-	std::string comboValue; 
-	// In order to make it clearer to users, create a variable combo label
-	std::string comboLabel;
-
-	if (ImGui::CollapsingHeader("Resolution Settings")) 
-	{
-		static int item_current_idx = DLSS::m_NumResolutions - 1;
-
-		// Check window display mode. 
-		// When Fullscreen, our display height will be fixed (naturally), so we want to convey native height to the user
-		// When Windowed, display height has variable, and can even be resized manually.
-		// This nlock takes that into account and ensures that the dropdown is always as helpful as possible
-		if (m_bFullscreen)
+		if(!ImGui::Begin("RTUA"))
 		{
-			comboLabel = "Native Resolution";
-			comboValue = std::to_string(Graphics::g_NativeWidth) + "x" + std::to_string(Graphics::g_NativeHeight);
-			// Also update these - the display could have changed as a result of window resizing!
-			m_NewWidth = Graphics::g_NativeWidth;
-			m_NewHeight = Graphics::g_NativeHeight;
-
-		}
-		else
-		{
-			comboLabel = "Display Resolution";
-			comboValue = std::to_string(m_NewWidth) + "x" + std::to_string(m_NewHeight);
-			// Also update these - the display could have changed as a result of window resizing!
-			m_NewWidth = Graphics::g_DisplayWidth;
-			m_NewHeight = Graphics::g_DisplayHeight;
-
+			// Early out if the window is collapsed, as an optimization.
+			ImGui::End();
+			return;
 		}
 
-		const char* combo_preview_value = comboValue.c_str();
+		// Begin with the lovely formatted title section
+		MainWindowTitle();
 
-		if(ImGui::BeginCombo(comboLabel.c_str(), combo_preview_value))
+
+
+		std::string comboValue;
+		// In order to make it clearer to users, create a variable combo label
+		std::string comboLabel;
+
+		if (ImGui::CollapsingHeader("Resolution Settings"))
 		{
-			for (int n = 0; n < DLSS::m_NumResolutions; n++)
+			static int item_current_idx = DLSS::m_NumResolutions - 1;
+
+			// Check window display mode. 
+			// When Fullscreen, our display height will be fixed (naturally), so we want to convey native height to the user
+			// When Windowed, display height has variable, and can even be resized manually.
+			// This nlock takes that into account and ensures that the dropdown is always as helpful as possible
+			if (m_bFullscreen)
 			{
-				const bool is_selected = (item_current_idx == n);
-				if (ImGui::Selectable(DLSS::m_Resolutions[n].first.c_str(), is_selected))
-				{
-					item_current_idx = n;
-					// Set flag to true so that we can update the pipeline next frame! This will result in DLSS needing to be recreated also
-					// This takes place in UpdateGraphics()
-					m_bResolutionChangePending = true;
-					// Also update what the values should be
-					m_NewWidth = DLSS::m_Resolutions[n].second.m_Width;
-					m_NewHeight = DLSS::m_Resolutions[n].second.m_Height;
-				}
+				comboLabel = "Native Resolution";
+				comboValue = std::to_string(Graphics::g_NativeWidth) + "x" + std::to_string(Graphics::g_NativeHeight);
+				// Also update these - the display could have changed as a result of window resizing!
+				m_NewWidth = Graphics::g_NativeWidth;
+				m_NewHeight = Graphics::g_NativeHeight;
 
-				if (is_selected)
-					ImGui::SetItemDefaultFocus();
-			}
-			ImGui::EndCombo();
-		}
-		
-	
-
-		// wb for Windows Bool - have to use this when querying the swapchain!
-		BOOL wbFullscreen = FALSE;
-		Display::GetSwapchain()->GetFullscreenState(&wbFullscreen, nullptr);
-
-		m_bFullscreen = wbFullscreen;
-
-		// Add a checkbox to control fullscreen
-		if (ImGui::Checkbox("Enable fullscreen mode", &m_bFullscreen))
-		{
-			// This will actually attempt to go fullscreen
-			HRESULT hr = Display::GetSwapchain()->SetFullscreenState(!wbFullscreen, nullptr);
-			if (SUCCEEDED(hr))
-			{
-				DEBUGPRINT("Switched to %s mode", m_bFullscreen ? "Fullscreen" : "Windowed");
-
-				// Update new width and height to fullscreen values if we have entered fullscreen
-				if (m_bFullscreen)
-				{
-					m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
-					m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
-				}
-					m_bResolutionChangePending = true;
 			}
 			else
 			{
-				DEBUGPRINT("\nFailed to toggle fullscreen mode.\n");
+				comboLabel = "Display Resolution";
+				comboValue = std::to_string(m_NewWidth) + "x" + std::to_string(m_NewHeight);
+				// Also update these - the display could have changed as a result of window resizing!
+				m_NewWidth = Graphics::g_DisplayWidth;
+				m_NewHeight = Graphics::g_DisplayHeight;
+
 			}
-		}
-	}
 
-	if (ImGui::CollapsingHeader("DLSS Settings"))
-	{
+			const char* combo_preview_value = comboValue.c_str();
 
-		//static bool useDLSS = false;
-		static int dlssMode = 1; // 0: Performance, 1: Balanced, 2: Quality, etc.
-		const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance"};
-
-
-
-		// Main selection for user to play with!
-		if (ImGui::Checkbox("Enable DLSS", &m_bToggleDLSS))
-		{
-			m_bDLSSUpdatePending = true;
-		}
-
-		// Wrap mode selection in disabled blcok - only want to edit this when DLSS is ON
-		if (!m_bToggleDLSS)
-			ImGui::BeginDisabled(true);
-		if (ImGui::BeginCombo("Mode", modes[dlssMode]))
-		{
-
-			for (int n = 0; n < std::size(modes); n++)
+			if (ImGui::BeginCombo(comboLabel.c_str(), combo_preview_value))
 			{
-				const bool is_selected = (dlssMode == n);
-				if (ImGui::Selectable(modes[n], is_selected))
+				for (int n = 0; n < DLSS::m_NumResolutions; n++)
 				{
-					dlssMode = n;
-					// Update current mode
-					DLSS::m_CurrentQualityMode = n;
-					// Set flags
-					DLSS::m_bNeedsReleasing = true;
-					m_bDLSSUpdatePending = true;
-					m_bUpdateDLSSMode = true;
-				}
+					const bool is_selected = (item_current_idx == n);
+					if (ImGui::Selectable(DLSS::m_Resolutions[n].first.c_str(), is_selected))
+					{
+						item_current_idx = n;
+						// Set flag to true so that we can update the pipeline next frame! This will result in DLSS needing to be recreated also
+						// This takes place in UpdateGraphics()
+						m_bResolutionChangePending = true;
+						// Also update what the values should be
+						m_NewWidth = DLSS::m_Resolutions[n].second.m_Width;
+						m_NewHeight = DLSS::m_Resolutions[n].second.m_Height;
+					}
 
-				if (is_selected)
-					ImGui::SetItemDefaultFocus();
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
 			}
-			ImGui::EndCombo();
+
+
+
+			// wb for Windows Bool - have to use this when querying the swapchain!
+			BOOL wbFullscreen = FALSE;
+			Display::GetSwapchain()->GetFullscreenState(&wbFullscreen, nullptr);
+
+			m_bFullscreen = wbFullscreen;
+
+			// Add a checkbox to control fullscreen
+			if (ImGui::Checkbox("Enable fullscreen mode", &m_bFullscreen))
+			{
+				// This will actually attempt to go fullscreen
+				HRESULT hr = Display::GetSwapchain()->SetFullscreenState(!wbFullscreen, nullptr);
+				if (SUCCEEDED(hr))
+				{
+					DEBUGPRINT("Switched to %s mode", m_bFullscreen ? "Fullscreen" : "Windowed");
+
+					// Update new width and height to fullscreen values if we have entered fullscreen
+					if (m_bFullscreen)
+					{
+						m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
+						m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
+					}
+					m_bResolutionChangePending = true;
+				}
+				else
+				{
+					DEBUGPRINT("\nFailed to toggle fullscreen mode.\n");
+				}
+			}
+		}
+
+		if (ImGui::CollapsingHeader("DLSS Settings"))
+		{
+
+			//static bool useDLSS = false;
+			static int dlssMode = 1; // 0: Performance, 1: Balanced, 2: Quality, etc.
+			const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance" };
+
+
+
+			// Main selection for user to play with!
+			if (ImGui::Checkbox("Enable DLSS", &m_bToggleDLSS))
+			{
+				m_bDLSSUpdatePending = true;
+			}
+
+			// Wrap mode selection in disabled blcok - only want to edit this when DLSS is ON
+			if (!m_bToggleDLSS)
+				ImGui::BeginDisabled(true);
+			if (ImGui::BeginCombo("Mode", modes[dlssMode]))
+			{
+
+				for (int n = 0; n < std::size(modes); n++)
+				{
+					const bool is_selected = (dlssMode == n);
+					if (ImGui::Selectable(modes[n], is_selected))
+					{
+						dlssMode = n;
+						// Update current mode
+						DLSS::m_CurrentQualityMode = n;
+						// Set flags
+						DLSS::m_bNeedsReleasing = true;
+						m_bDLSSUpdatePending = true;
+						m_bUpdateDLSSMode = true;
+					}
+
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+
+			}
+
+			if (!m_bToggleDLSS)
+				ImGui::EndDisabled();
+
+
+			ImGui::Checkbox("Enable PostFX", &m_bEnablePostFX);
 
 		}
 
-		if (!m_bToggleDLSS)
-			ImGui::EndDisabled();
+		if (ImGui::CollapsingHeader("Performance Metrics"))
+		{
+			// Frame data from MiniEngine profiler!
+			static std::vector<float> cpuTimes, gpuTimes, frameTimes;
 
-
-		ImGui::Checkbox("Enable PostFX", &m_bEnablePostFX);
-
-	}
-
-	if (ImGui::CollapsingHeader("Performance Metrics"))
-	{
-		// Frame data from MiniEngine profiler!
-		static std::vector<float> cpuTimes, gpuTimes, frameTimes;
-
-		// These functions will not exist when the mod is disabled - even though this function is never called when mod is disabled, compiler will fuss.
+			// These functions will not exist when the mod is disabled - even though this function is never called when mod is disabled, compiler will fuss.
 #if AZB_MOD
-		cpuTimes.push_back(EngineProfiling::GetCPUTime());		// CPU time per frame
-		gpuTimes.push_back(EngineProfiling::GetGPUTime());		// GPU time per frame
-		frameTimes.push_back(EngineProfiling::GetFrameRate());  // Framerate
+			cpuTimes.push_back(EngineProfiling::GetCPUTime());		// CPU time per frame
+			gpuTimes.push_back(EngineProfiling::GetGPUTime());		// GPU time per frame
+			frameTimes.push_back(EngineProfiling::GetFrameRate());  // Framerate
 #endif
 
-		// Limit buffer size
-		if (cpuTimes.size() > 1000) cpuTimes.erase(cpuTimes.begin());
-		if (gpuTimes.size() > 1000) gpuTimes.erase(gpuTimes.begin());
-		if (frameTimes.size() > 1000) frameTimes.erase(frameTimes.begin());
+			// Limit buffer size
+			if (cpuTimes.size() > 1000) cpuTimes.erase(cpuTimes.begin());
+			if (gpuTimes.size() > 1000) gpuTimes.erase(gpuTimes.begin());
+			if (frameTimes.size() > 1000) frameTimes.erase(frameTimes.begin());
 
-		// Plot the data
-		if (ImPlot::BeginPlot("Hardware Timings"))
-		{
-			// Setup axis, x then y. This will be Frame,Ms. Use autofit for now, will mess around with these later
-			ImPlot::SetupAxes("Frame", "Speed(ms)", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
-			ImPlot::PlotLine("CPU Time", cpuTimes.data(), cpuTimes.size());
-			ImPlot::PlotLine("GPU Time", gpuTimes.data(), gpuTimes.size());
-			ImPlot::EndPlot();
-		}
+			// Plot the data
+			if (ImPlot::BeginPlot("Hardware Timings"))
+			{
+				// Setup axis, x then y. This will be Frame,Ms. Use autofit for now, will mess around with these later
+				ImPlot::SetupAxes("Frame", "Speed(ms)", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
+				ImPlot::PlotLine("CPU Time", cpuTimes.data(), cpuTimes.size());
+				ImPlot::PlotLine("GPU Time", gpuTimes.data(), gpuTimes.size());
+				ImPlot::EndPlot();
+			}
 
-		if (ImPlot::BeginPlot("Frame Rate"))
-		{
-			ImPlot::SetupAxes("Count", "FPS", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
-			ImPlot::PlotLine("Frame Rate", frameTimes.data(), frameTimes.size());
-			ImPlot::EndPlot();
+			if (ImPlot::BeginPlot("Frame Rate"))
+			{
+				ImPlot::SetupAxes("Count", "FPS", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
+				ImPlot::PlotLine("Frame Rate", frameTimes.data(), frameTimes.size());
+				ImPlot::EndPlot();
+			}
 		}
-	}
 	ImGui::End();
+	}
 }
 
 void GUI::UpdateGraphics()
@@ -332,6 +341,69 @@ void GUI::Terminate()
 	ImPlot::DestroyContext();
 }
 
+void GUI::StartupModal()
+{
+	ImGui::OpenPopup("Welcome!");
+	// Always center this window when appearing
+	ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+	ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, kCenterPivot);
+	ImGui::BeginPopupModal("Welcome!", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+	{
+		DoubleLineBreak();
+
+		SectionTitle("Welcome to Real-Time Upscaling Analyser!");
+
+		Separator();
+
+		ImGui::TextWrapped("If this is your first time using the app, or you'd like a refresher, please view the tutorial before using the tool.");
+		SingleLineBreak();
+		ImGui::TextWrapped("If you would like to jump straight into the tool, please feel free to do so!");
+		DoubleLineBreak();
+
+		// Highlight this baby!
+		ImGui::Text("LCTRL+M to toggle input between the GUI and the scene!");
+
+		// Calculate position to draw rect of last item
+		ImVec2 firstItemPosMin = ImGui::GetItemRectMin();
+		ImVec2 firstItemPosMax = ImGui::GetItemRectMax();
+
+		float offset = 5.f;
+		ImVec2 firstRectPosMin = ImVec2(firstItemPosMin.x - offset, firstItemPosMin.y - offset);
+		ImVec2 firstRectPosMax = ImVec2(firstItemPosMax.x + offset, firstItemPosMax.y + offset);
+
+
+		ImGui::GetWindowDrawList()->AddRect(firstRectPosMin, firstRectPosMax, ImColor(ThemeColours::m_HighlightColour), 0, ImDrawFlags_None, 3.f);
+
+		DoubleLineBreak();
+
+		// Temp var to store the text that will go inside a button
+		const char* btnText = "Start Tutorial";
+		// This makes it so the next item we define (in this case a button) will have the right size
+		MakeNextItemFitText(btnText);
+		// Center the button within the modal
+		CenterNextTextItem(btnText);
+
+		if (ImGui::Button(btnText))
+			ImGui::CloseCurrentPopup();
+
+		ImGui::SetItemDefaultFocus();
+
+		SingleLineBreak();
+
+		btnText = "Free Roam";
+		MakeNextItemFitText(btnText);
+		CenterNextTextItem(btnText);
+		if (ImGui::Button(btnText))
+		{
+			m_bShowStartupModal = false;
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::EndPopup();
+	}
+
+}
+
 void GUI::MainWindowTitle()
 {
 	DoubleLineBreak();
@@ -353,5 +425,88 @@ void GUI::MainWindowTitle()
 	ImGui::BulletText("Change the currently implemented upscaler or disable it entirely!");
 
 
+	Separator();
+
+	//
+	// DEBUG
+	//
+	
+	// Try and draw some shapes
+	ImDrawList* draw_list = ImGui::GetWindowDrawList();
+	static float size = 36.0f;
+	static float thickness = 3.0f;
+	static ImVec4 colf = ImVec4(1.0f, 0.4f, 0.4f, 1.f);
+
+	ImGui::DragFloat("Size", &size, 0.2f, 2.0f, 100.0f, "%.0f");
+	ImGui::DragFloat("Thickness", &thickness, 0.05f, 1.0f, 8.0f, "%.02f");
+	ImGui::ColorEdit4("Color", &colf.x);
+
+	const ImVec2 p = ImGui::GetCursorScreenPos();
+	float x = p.x + 4.0f;
+	float y = p.y + 4.0f;
+	const ImU32 col = ImColor(colf);
+	const float spacing = 10.0f;
+	const ImDrawFlags corners_tl_br = ImDrawFlags_RoundCornersTopLeft | ImDrawFlags_RoundCornersBottomRight;
+	const float rounding = size / 5.0f;
+
+	draw_list->AddRect(ImVec2(x, y), ImVec2(x + size, y + size), col, rounding, corners_tl_br, thickness);         x += size + spacing;  // Square with two rounded corners
+	draw_list->AddTriangle(ImVec2(x + size * 0.5f, y), ImVec2(x + size, y + size - 0.5f), ImVec2(x, y + size - 0.5f), col, thickness); x += size + spacing;  // Triangle
+	//y += size + spacing;
+
+	draw_list->AddRectFilled(ImVec2(x, y), ImVec2(x + size, y + size), col, 10.0f, corners_tl_br);              x += size + spacing;  // Square with two rounded corners
+	draw_list->AddTriangleFilled(ImVec2(x + size * 0.5f, y), ImVec2(x + size, y + size - 0.5f), ImVec2(x, y + size - 0.5f), col);  x += size + spacing;  // Triangle
+
+	DoubleLineBreak();
+	DoubleLineBreak();
+	Separator();
+
+	static float highlightOffset = 0.f;
+	ImGui::DragFloat("Highlight Spacing", &highlightOffset, 0.05f, -1.f, 10.0f, "%.02f");
+
+	static bool bEnableHighlighting;
+	ImGui::Checkbox("Toggle Highlighting", &bEnableHighlighting);
+
+	DoubleLineBreak();
+	
+	ImGui::Text("Text to try highlighting edges!");
+
+	// Calculate position to draw rect of last item
+	ImVec2 firstItemPosMin = ImGui::GetItemRectMin();
+	ImVec2 firstItemPosMax = ImGui::GetItemRectMax();
+
+	ImVec2 firstRectPosMin = ImVec2(firstItemPosMin.x - highlightOffset, firstItemPosMin.y - highlightOffset);
+	ImVec2 firstRectPosMax = ImVec2(firstItemPosMax.x + highlightOffset, firstItemPosMax.y + highlightOffset);
+
+
+	if (bEnableHighlighting)
+		draw_list->AddRect(firstRectPosMin, firstRectPosMax, col,0, ImDrawFlags_None, thickness);     // Regular square highlight 
+	DoubleLineBreak();
+
+	// Split channels so that text doesn't get covered by rect - rect gets covered by text!
+	draw_list->ChannelsSplit(2);
+	// Set next item (in this case text) to be drawn onto first channel. This represents the top layer / foreground
+	draw_list->ChannelsSetCurrent(1);
+	ImGui::Text("Text to try highlighting fully!");
+
+	// Recalculate rect pos
+	ImVec2 secondItemPosMin = ImGui::GetItemRectMin();
+	ImVec2 secondItemPosMax = ImGui::GetItemRectMax();
+	ImVec2 secondRectPosMin = ImVec2(secondItemPosMin.x - highlightOffset, secondItemPosMin.y - highlightOffset);
+	ImVec2 secondRectPosMax = ImVec2(secondItemPosMax.x + highlightOffset, secondItemPosMax.y + highlightOffset);
+
+	// Set next item (in this case the highlight rect) to be drawn onto 0th channel. This represents the lowest layer / background
+	draw_list->ChannelsSetCurrent(0);
+	if (bEnableHighlighting)
+		draw_list->AddRectFilled(secondRectPosMin, secondRectPosMax, col);     // Filled square highlight 
+
+	// Merge layers!
+	DoubleLineBreak();
+	draw_list->ChannelsMerge();
+
+	ImGui::Button("Button to try highlighting!");
+	//
+	// END DEBUG
+	//
+	DoubleLineBreak();
 	Separator();
 }
