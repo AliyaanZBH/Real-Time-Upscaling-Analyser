@@ -298,6 +298,13 @@ void GUI::UpdateGraphics()
 
 	if (m_bDLSSUpdatePending)
 	{
+		// If we're fullscreen, we need to reset back to full res
+		if (m_bFullscreen)
+		{
+			m_NewWidth = Graphics::g_DisplayWidth;
+			m_NewHeight = Graphics::g_DisplayHeight;
+		}
+
 		DLSS::UpdateDLSS(m_bToggleDLSS, m_bUpdateDLSSMode, { m_NewWidth, m_NewHeight });
 		// DLSS may need the pipeline to update as a result of the changes made. Check the internal flag and then update as appropriate
 		if (DLSS::m_bPipelineUpdate)
@@ -309,11 +316,7 @@ void GUI::UpdateGraphics()
 		// This is set to true when disabling DLSS
 		if (DLSS::m_bPipelineReset)
 		{
-			// When fullscreen, set back to native
-			if (m_bFullscreen)
-				Display::SetPipelineResolution(false, Graphics::g_NativeWidth, Graphics::g_NativeHeight);
-			else
-				Display::SetPipelineResolution(false, m_NewWidth, m_NewHeight);
+			Display::SetPipelineResolution(false, m_NewWidth, m_NewHeight);
 			DLSS::m_bPipelineReset = false;
 		}
 		m_bDLSSUpdatePending = false;

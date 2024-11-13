@@ -251,9 +251,6 @@ void DLSS::UpdateDLSS(bool toggle, bool updateMode, Resolution currentResolution
 	// If the mode has changed, we also need to recreate DLSS with this value
 	if (m_DLSS_Enabled || updateMode)
 	{
-		// First, release the current feature if our flag has been set. This gets set in GUI.cpp when the resolution is changed by the user.
-		//if (m_bNeedsReleasing)
-		//{
 		
 		// Check if feature has already been created, release if so
 		if(m_DLSS_FeatureHandle != nullptr)
