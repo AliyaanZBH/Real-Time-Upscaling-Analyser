@@ -382,10 +382,6 @@ void Display::Initialize(void)
 
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = {};
     fsSwapChainDesc.Windowed = TRUE;
-#if AZB_MOD
-    // [AZB]: Allows for stretching in fullscreen
-    fsSwapChainDesc.Scaling = DXGI_MODE_SCALING_STRETCHED;
-#endif
     ASSERT_SUCCEEDED(dxgiFactory->CreateSwapChainForHwnd(
         g_CommandManager.GetCommandQueue(),
         GameCore::g_hWnd,
