@@ -200,9 +200,6 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
         // [AZB]: Finalise reqs struct with these params
         reqs.m_DlSSEvalParams = execParams;
 
-        // [AZB]: Before executing DLSS, we need to save the state of our command list and resources, as DLSS will modify them under the hood
-        // Save the current descriptor heap
-        ID3D12DescriptorHeap* originalHeap = dlssContext.GetCurrentDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
         DLSS::Execute(reqs);
 
@@ -212,14 +209,9 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
         dlssContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ, true);
         dlssContext.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
 
-        // [AZB]: Reapply the original descriptor heap
-        ID3D12DescriptorHeap* ppHeaps[] = { originalHeap };
-        dlssContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, originalHeap);
+        // [AZB]: DLSS Messes with the command list, so flush it and reset it back to avoid errors!
 
-        // [AZB]: Restore state and signature too, just in case!
-        dlssContext.SetRootSignature(g_CommonRS);
-        dlssContext.SetPipelineState(s_TemporalBlendCS);
-
+       dlssContext.Flush();
     }
     else
     {
