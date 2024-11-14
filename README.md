@@ -11,3 +11,8 @@ The repo uses submodules so remember to clone using --recurse-submodules
 # Build
 
 For the time being, you need to manually copy the nvgx-dlss.dll from the lib folder and place it next to the MiniEngine exe in RTUA. This will soon be improved to be completed within a post-build step.
+
+
+# Third Party
+
+I use the Amazon Bistro scene provided by ORCA, the NVIDIA research group. The original files were provided in FBX format but these have been converted to GLTF, and the original files are not included in the repo directly.
