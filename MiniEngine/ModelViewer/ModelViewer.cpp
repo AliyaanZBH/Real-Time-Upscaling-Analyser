@@ -174,8 +174,16 @@ void LoadIBLTextures()
 
 void ModelViewer::Startup( void )
 {
+#if AZB_MOD
+    // [AZB] Disable these for maximum image clarity!
+    MotionBlur::Enable = false;
+    TemporalEffects::EnableTAA = false;
+    // [AZB]: Disable this so that we can get real frame-times!
+    //s_EnableVSync = false;
+#else
     MotionBlur::Enable = true;
     TemporalEffects::EnableTAA = true;
+#endif
     FXAA::Enable = false;
     PostEffects::EnableHDR = true;
     PostEffects::EnableAdaptation = true;
