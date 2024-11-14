@@ -5,8 +5,11 @@
 //===============================================================================
 #include "nvsdk_ngx.h"
 #include "nvsdk_ngx_helpers.h"
+#include "AZB_Utils.h"
 
 #include <array>
+#include <vector>
+#include <string>
 
 namespace DLSS
 {
@@ -17,8 +20,8 @@ namespace DLSS
 		unsigned int m_RenderWidth = 0;
 		unsigned int m_RenderHeight = 0;
 
-		// Maps to DLSS modes e.g. 1 = Balanced which I think is a good default setting for now
-		const int m_PerfQualityValue = 1;
+		// Maps to DLSS modes e.g. 1 = Balanced which I think is a good default setting for now. To be changed when implementing multiple modes
+		int m_PerfQualityValue = 1;
 	};
 
 	// Data required by DLSS to create the feature
@@ -43,15 +46,22 @@ namespace DLSS
 	void Init(ID3D12Device* device);
 
 	// Query optimal resolution settings for a given DLSS Mode
-	void QueryOptimalSettings(const int targetWidth, const int targetHeight, OptimalSettings& settings);
+	void QueryOptimalSettings(const uint32_t targetWidth, const uint32_t targetHeight, OptimalSettings& settings);
 
 	// Pre-Query for all performance quality levels and store them. Useful for instantly switching at run-time, we can avoid running queries repeatedly
-	void PreQueryAllSettings(const int targetWidth, const int targetHeight);
+	void PreQueryAllSettings(const uint32_t targetWidth, const uint32_t targetHeight);
 
 	// Create DLSS feature using the optimal settings
 	void Create(CreationRequirements& reqs);
 
+	// Execute the upscale step
 	void Execute(ExecutionRequirements& params);
+
+	// Dispose of the DLSS feature - use when changing native resolution
+	void Release();
+
+	// Turn DLSS on and off, aswell as change quality mode
+	void UpdateDLSS(bool toggle, bool updateMode, Resolution currentResolution);
 
 	void SetD3DDevice(ID3D12Device* device);
 
@@ -60,8 +70,7 @@ namespace DLSS
 
 	//
 	// Namespace members
-	// 
-	 
+	//  
 
 	// Handle to DLSS feature
 	extern NVSDK_NGX_Handle* m_DLSS_FeatureHandle;
@@ -76,9 +85,36 @@ namespace DLSS
 	// Array indices map to DLSS modes e.g. 0 = MaxPerformance etc
 	extern std::array<OptimalSettings, 5> m_DLSS_Modes;
 
-	// Flag that is determined by feauture capability query
-	extern bool m_bIsNGXSupported;
+	//
+	// Resolution handling
+	// 
+
+	extern uint32_t m_NumResolutions;
+	extern 	std::vector<std::pair<std::string, Resolution>> m_Resolutions;
+
+	// Keep note of the maximum possible native resolution
+	extern Resolution m_MaxNativeResolution;
+	// Track the current native resolution
+	extern Resolution m_CurrentNativeResolution;
+
+	// Track which DLSS mode is currently selectd
+	extern uint8_t m_CurrentQualityMode;
 
 	// Place to store debug logs from NGX
 	extern const wchar_t* m_AppDataPath;
+	
+	// Flag that is determined by feauture capability query
+	extern bool m_bIsNGXSupported;
+
+	// Flag to allow for runtime toggling of DLSS
+	extern bool m_DLSS_Enabled;
+
+	// Flag to track when native resolution has changed and DLSS needs re-creating
+	extern bool m_bNeedsReleasing;
+
+	// Flag to track when the pipeline needs to update
+	extern bool m_bPipelineUpdate;
+
+	// Flag to track when the pipeline needs to reset back to native!
+	extern bool m_bPipelineReset;
 };

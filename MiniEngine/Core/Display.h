@@ -42,6 +42,15 @@ namespace Display
     void Shutdown(void);
     void Resize(uint32_t width, uint32_t height);
     void Present(void);
+
+#if AZB_MOD
+    // [AZB]: Making this function public so that resolution can be changed in ImGui
+    void SetWindowedResolution(uint32_t width, uint32_t height);
+    // [AZB]: This function replicates setNativeRes() that is defined within Graphics namespace in the implementation file for display. The key difference here is that it can be called from ImGui!
+    void SetPipelineResolution(bool bDLSS, uint32_t queriedWidth, uint32_t queriedHeight, bool bFullscreen = false);
+    // [AZB]: Some extra accessors to further ease GUI usability when it comes to controlling rendering
+    IDXGISwapChain1* GetSwapchain();
+#endif
 }
 
 namespace Graphics
@@ -51,6 +60,10 @@ namespace Graphics
     extern bool g_bEnableHDROutput;
 
 #if AZB_MOD
+
+    // [AZB]: These variables already exist but aren't available externally
+    extern uint32_t g_NativeWidth;
+    extern uint32_t g_NativeHeight;
 
     // [AZB]: These will be evaluated when the swapchain gets created in Display::Initialise(), which is when the DLSS Query will be called
     extern uint32_t g_DLSSWidth;

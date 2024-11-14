@@ -4,6 +4,7 @@
 // auth: Aliyaan Zulfiqar
 //===============================================================================
 #include "Utility.h"
+#include "CommandContext.h"	// To allow for creation and execution of DLSS, we need the global command context and queue
 
 // Define externals to ensure no redefinition occurs elsewhere
 namespace DLSS
@@ -13,8 +14,21 @@ namespace DLSS
 	NVSDK_NGX_Parameter* m_DLSS_Parameters = nullptr;
 	std::array<OptimalSettings, 5> m_DLSS_Modes = {};
 
+	uint32_t m_NumResolutions = 0;
+	std::vector<std::pair<std::string, Resolution>> m_Resolutions;
+
+	Resolution m_MaxNativeResolution = {};
+	Resolution m_CurrentNativeResolution = {};
+
+	uint8_t m_CurrentQualityMode = 1;
+
 	const wchar_t* m_AppDataPath = L"./../../DLSS_Data/";
+
 	bool m_bIsNGXSupported = false;
+	bool m_DLSS_Enabled = false;
+	bool m_bNeedsReleasing = false;
+	bool m_bPipelineUpdate = false;
+	bool m_bPipelineReset = false;
 }
 
 void DLSS::QueryFeatureRequirements(IDXGIAdapter* Adapter)
@@ -40,7 +54,6 @@ void DLSS::QueryFeatureRequirements(IDXGIAdapter* Adapter)
 	FeatureDiscoveryInfo.ApplicationDataPath = m_AppDataPath;
 	FeatureDiscoveryInfo.FeatureInfo = &ftInfo;
 
-
 	// This is a pointer to a NVSDK_NGX_FeatureRequirement structure. Check the values returned in OutSupported if NVSDK_NGX_Result_Success is returned
 	NVSDK_NGX_FeatureRequirement OutSupported;
 
@@ -58,7 +71,6 @@ void DLSS::QueryFeatureRequirements(IDXGIAdapter* Adapter)
 		Utility::Print("\nNVIDIA DLSS not supported - have you got the right hardware and software?\n\n");
 }
 
-
 void DLSS::Init(ID3D12Device* device)
 {
 	NVSDK_NGX_Result ret;
@@ -73,9 +85,8 @@ void DLSS::Init(ID3D12Device* device)
 		if (NVSDK_NGX_FAILED(ret))
 			Utility::Print("\nNGX Failed to init, check D3D device!\n\n");
 	}
-
-
-	//
+	else
+		return;
 
 	// Secondary runtime check specifically for DLSS after device and NGX init
 	// Successful initialization of the NGX SDK instance indicates that the target system is capable of running NGX features. However, each feature can have additional dependencies
@@ -125,8 +136,11 @@ void DLSS::Init(ID3D12Device* device)
 
 }
 
-void DLSS::QueryOptimalSettings(const int targetWidth, const int targetHeight, OptimalSettings& settings)
+void DLSS::QueryOptimalSettings(const uint32_t targetWidth, const uint32_t targetHeight, OptimalSettings& settings)
 {
+	// Early return for non DLSS-Capable hardware
+	if (!m_bIsNGXSupported)
+		return;
 
 	// These values need a valid memory address in order for the query to work, even though the values are ultimately unused!
 	
@@ -159,9 +173,12 @@ void DLSS::QueryOptimalSettings(const int targetWidth, const int targetHeight, O
 		Utility::Print("\nThis PerfQuality mode has not been made available yet.\n\n");
 		Utility::Print("\nPlease request another PerfQuality mode.\n\n");
 	}
+
+	// Store target resolution for later use
+	m_CurrentNativeResolution = { targetWidth, targetHeight };
 }
 
-void DLSS::PreQueryAllSettings(const int targetWidth, const int targetHeight)
+void DLSS::PreQueryAllSettings(const uint32_t targetWidth, const uint32_t targetHeight)
 {
 	// See QueryOptimalSettings for more explanation on these values
 	unsigned int maxDW = 0;
@@ -173,7 +190,7 @@ void DLSS::PreQueryAllSettings(const int targetWidth, const int targetHeight)
 	// PerfQualityValue [0 MaxPerformance, 1 Balance, 2 MaxQuality, 3 UltraPerformance, 4 UltraQuality]
 	// DLAA sits here at 5, but NVIDIA recommend exposing it as a different UI option later.
 	// Check all settings by looping through the integer values of the enum
-	for (int perfQualityValue = 0; perfQualityValue <= 4; ++perfQualityValue)
+	for (int perfQualityValue = 0; perfQualityValue < 5; ++perfQualityValue)
 	{
 		NVSDK_NGX_Result ret = NGX_DLSS_GET_OPTIMAL_SETTINGS(
 			m_DLSS_Parameters,
@@ -182,15 +199,26 @@ void DLSS::PreQueryAllSettings(const int targetWidth, const int targetHeight)
 			&m_DLSS_Modes[perfQualityValue].m_RenderWidth, &m_DLSS_Modes[perfQualityValue].m_RenderHeight,
 			&maxDW, &maxDH, &minDW, &minDH, &sharpness
 		);
+
+		// All the modes start with a default value of 1 - which corresponds to Balanced. Update this to match the correct one
+		m_DLSS_Modes[perfQualityValue].m_PerfQualityValue = perfQualityValue;
 	}
+
+	// Store target resolution for later use
+	m_CurrentNativeResolution = { targetWidth, targetHeight };
 }
 
 void DLSS::Create(CreationRequirements& reqs)
 {
-	// Supposedly device could not be found
+	// Early return for non DLSS-Capable hardware
+	if (!m_bIsNGXSupported)
+		return;
+
 	NVSDK_NGX_Result ret = NGX_D3D12_CREATE_DLSS_EXT(reqs.m_pCmdList, 1, 1, &m_DLSS_FeatureHandle, m_DLSS_Parameters, &reqs.m_DlSSCreateParams);
 	if (NVSDK_NGX_SUCCEED(ret))
-		Utility::Print("\nDLSS created succesfully! Get motion vectors for evaluation\n\n");
+	{
+		Utility::Print("\nDLSS created for the current resolution succesfully!\n\n");
+	}
 	else
 		Utility::Print("\nDLSS could not be created - something is not integrated correctly within the rendering pipeline\n\n");
 
@@ -198,11 +226,74 @@ void DLSS::Create(CreationRequirements& reqs)
 
 void DLSS::Execute(ExecutionRequirements& params)
 {
+	// Early return for non DLSS-Capable hardware
+	if (!m_bIsNGXSupported)
+		return;
+
 	NVSDK_NGX_Result ret = NGX_D3D12_EVALUATE_DLSS_EXT(params.m_pCmdList, m_DLSS_FeatureHandle, m_DLSS_Parameters, &params.m_DlSSEvalParams);
 	if (NVSDK_NGX_SUCCEED(ret))
 		Utility::Print("\nDLSS executed!!\nCheck that the final image looks right!\n\n");
 	else
 		Utility::Print("\nDLSS could not be evaluated - something is not integrated correctly within the rendering pipeline\n\n");
+}
+
+void DLSS::Release()
+{
+	NVSDK_NGX_D3D12_ReleaseFeature(m_DLSS_FeatureHandle);
+}
+
+void DLSS::UpdateDLSS(bool toggle, bool updateMode, Resolution currentResolution)
+{
+	// Flip our flag
+	m_DLSS_Enabled = toggle;
+
+	// If we are going from disabled to enabled, we need to recreate the feature if the target resolution has changed!
+	// If the mode has changed, we also need to recreate DLSS with this value
+	if (m_DLSS_Enabled || updateMode)
+	{
+		
+		// Check if feature has already been created, release if so
+		if(m_DLSS_FeatureHandle != nullptr)
+		{
+			Release();
+			// Reset flag
+			m_bNeedsReleasing = false;
+
+			// Begin creating the feature and for execution next frame
+			ComputeContext& dlssContext = ComputeContext::Begin(L"DLSS Enable");
+
+			// Query for recommended settings
+			PreQueryAllSettings(currentResolution.m_Width, currentResolution.m_Height);
+
+			// Fill in requirements struct ready for the feature creation
+			DLSS::CreationRequirements reqs;
+			reqs.m_pCmdList = dlssContext.GetCommandList();
+
+			NVSDK_NGX_Feature_Create_Params dlssParams = { m_DLSS_Modes[m_CurrentQualityMode].m_RenderWidth, m_DLSS_Modes[m_CurrentQualityMode].m_RenderHeight,
+														   currentResolution.m_Width, currentResolution.m_Height, static_cast<NVSDK_NGX_PerfQuality_Value>(m_CurrentQualityMode) };
+
+			// Even though we may not render to HDR, our color buffer is infact in HDR format, so set the appropriate flag!
+			reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_DepthInverted | NVSDK_NGX_DLSS_Feature_Flags_AutoExposure /*| NVSDK_NGX_DLSS_Feature_Flags_IsHDR*/ };
+			DLSS::Create(reqs);
+
+			// Set flag to update the pipeline so that DLSS can execute next frame at correct resolution! See TemporalEffects.cpp, ResolveImage() to see implementation
+			m_bPipelineUpdate = true;
+
+			// Close context
+			dlssContext.Finish();
+		}
+		// If DLSS has already been created (e.g. in Resize() event) DLSS has already been created for the correct output resolution
+	}
+	else
+	{
+		// If DLSS is being disabled, we don't necessarily need to release the full feature, but we do need to reset the pipeline still!
+		m_bPipelineReset = true;
+		m_bNeedsReleasing = true;
+	}
+
+	// Update current resolution
+	m_CurrentNativeResolution = currentResolution;
+
 }
 
 void DLSS::SetD3DDevice(ID3D12Device* device)

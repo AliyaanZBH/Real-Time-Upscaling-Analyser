@@ -314,6 +314,48 @@ void Graphics::Initialize(bool RequireDXRSupport)
                 // [AZB]: Flip our dirty flag to ensure we don't try to query the SDK again, which would lead to the query failing (due to not being an RTX adapter), which would effectively de-init DLSS!
                 isNGXQueried = true;
             }
+
+            // [AZB]: Also query display possibilities to get maximum fullscreen resolution output!
+            IDXGIOutput* output = nullptr;
+            if (SUCCEEDED(pAdapter->EnumOutputs(0, &output)))
+            {
+                DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
+                UINT modeCount = 0;
+
+                // [AZB]:First, get the number of display modes
+                output->GetDisplayModeList(format, 0, &modeCount, nullptr);
+
+                // [AZB]: Allocate space and get the list of display modes
+                DXGI_MODE_DESC* modeList = new DXGI_MODE_DESC[modeCount];
+                output->GetDisplayModeList(format, 0, &modeCount, modeList);
+
+                DXGI_MODE_DESC maxResolution = {};
+
+                for (UINT i = 0; i < modeCount; ++i) 
+                {
+                    if (modeList[i].Width > maxResolution.Width ||
+                        (modeList[i].Width == maxResolution.Width && modeList[i].Height > maxResolution.Height))
+                    {
+                        Utility::Printf(L"\nNew Resolution Found: %ux%u", maxResolution.Width, maxResolution.Height);
+                        maxResolution = modeList[i];
+                        // [AZB]: Store this resolution inside DLSS namespace and increase our counter so we know how big to create our array in ImGui
+                        ++DLSS::m_NumResolutions;
+                        std::string resName = std::to_string(maxResolution.Width) + "x" + std::to_string(maxResolution.Height);
+                        DLSS::m_Resolutions.push_back(std::pair<std::string, Resolution>(resName, { maxResolution.Width, maxResolution.Height }));
+
+                    }
+                }
+
+                Utility::Printf(L"\n\nMax Fullscreen Resolution: %ux%u\n", maxResolution.Width, maxResolution.Height);
+
+                // [AZB]: Store this value inside DLSS namespace
+                DLSS::m_MaxNativeResolution = { maxResolution.Width, maxResolution.Height };
+                DLSS::m_CurrentNativeResolution = DLSS::m_MaxNativeResolution;
+                delete[] modeList;
+                output->Release();
+
+            }
+           
 #endif
 
             Utility::Printf(L"Selected GPU:  %s (%u MB)\n", desc.Description, desc.DedicatedVideoMemory >> 20);
@@ -466,18 +508,19 @@ void Graphics::Initialize(bool RequireDXRSupport)
 
 #if AZB_MOD    // [AZB]: Now we can actually create the DLSS feature
     
-    // [AZB]: Create context for DLSS as we need to grab a command list and pass motion vector data etc.
-    GraphicsContext& Context = GraphicsContext::Begin(L"DLSS Creation");
-    // [AZB]: Fill in requirements struct ready for the feature creation
-    DLSS::CreationRequirements reqs;
-    reqs.m_pCmdList = Context.GetCommandList();
+    //// [AZB]: Create context for DLSS as we need to grab a command list and pass motion vector data etc.
+    //GraphicsContext& Context = GraphicsContext::Begin(L"DLSS Initial Creation");
+    //// [AZB]: Fill in requirements struct ready for the feature creation
+    //DLSS::CreationRequirements reqs;
+    //reqs.m_pCmdList = Context.GetCommandList();
 
-    NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, NVSDK_NGX_PerfQuality_Value_Balanced };
-    // [AZB]: Even though we may not render to HDR, our color buffer is infact in HDR format, so set the appropriate flag!
-    reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_None /*| NVSDK_NGX_DLSS_Feature_Flags_IsHDR*/ };
-    DLSS::Create(reqs);
+    //// [AZB]: Create feature with balanced settings at start
+    //NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, NVSDK_NGX_PerfQuality_Value_Balanced };
+    //// [AZB]: Even though we may not render to HDR, our color buffer is infact in HDR format, so set the appropriate flag!
+    //reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_None /*| NVSDK_NGX_DLSS_Feature_Flags_IsHDR*/ };
+    //DLSS::Create(reqs);
 
-    Context.Finish();
+    //Context.Finish();
 
 #endif
 }

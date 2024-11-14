@@ -275,6 +275,7 @@ void Graphics::ResizeDisplayDependentBuffers(uint32_t NativeWidth, uint32_t Nati
 
 #if AZB_MOD
     // [AZB]: ImGui and DLSS need resizing
+    (NativeWidth);
     g_ImGuiBuffer.Create(L"ImGui Heap", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R10G10B10A2_UNORM);
     g_DLSSOutputBuffer.Create(L"DLSS Output Buffer", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R10G10B10A2_UNORM);
 #endif
@@ -294,6 +295,7 @@ void Graphics::DestroyRenderingBuffers()
 #if AZB_MOD
     // [AZB]: Destroy ImGui
     g_ImGuiBuffer.Destroy();
+    g_DLSSOutputBuffer.Destroy();
 #endif
 
     g_ShadowBuffer.Destroy();
