@@ -266,7 +266,7 @@ std::shared_ptr<Model> Renderer::LoadModel(const std::wstring& filePath, bool fo
     }
 
     std::vector<uint8_t> textureOptions(header.numTextures);
-    inFile.read((char*)textureOptions.data(), header.numTextures * sizeof(uint8_t));
+    inFile.read((char*)textureOptions.data(), header.numTextures *sizeof(uint8_t));
 
     LoadMaterials(*model, materialTextures, textureNames, textureOptions, basePath);
 

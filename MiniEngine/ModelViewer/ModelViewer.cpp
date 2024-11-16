@@ -62,7 +62,7 @@
 #include "AZB_DLSS.h"
 #endif
 
-#define LEGACY_RENDERER
+//#define LEGACY_RENDERER
 
 using namespace GameCore;
 using namespace Math;
@@ -106,8 +106,13 @@ void ChangeIBLBias(EngineVar::ActionType);
 
 DynamicEnumVar g_IBLSet("Viewer/Lighting/Environment", ChangeIBLSet);
 std::vector<std::pair<TextureRef, TextureRef>> g_IBLTextures;
-NumVar g_IBLBias("Viewer/Lighting/Gloss Reduction", 2.0f, 0.0f, 10.0f, 1.0f, ChangeIBLBias);
 
+#if AZB_MOD
+// [AZB]: Default IBL bias makes Bistro appear in pure Chrome!
+NumVar g_IBLBias("Viewer/Lighting/Gloss Reduction", 8.0f, 0.0f, 16.0f, 1.0f, ChangeIBLBias);
+#else
+NumVar g_IBLBias("Viewer/Lighting/Gloss Reduction", 2.0f, 0.0f, 10.0f, 1.0f, ChangeIBLBias);
+#endif
 void ChangeIBLSet(EngineVar::ActionType)
 {
     int setIdx = g_IBLSet - 1;
@@ -129,6 +134,84 @@ void ChangeIBLBias(EngineVar::ActionType)
 
 #include <direct.h> // for _getcwd() to check data root path
 
+#if AZB_MOD
+// [AZB]: Modified method that detects PNGs and converts to DDS!
+void LoadIBLTextures()
+{
+    char CWD[256];
+    _getcwd(CWD, 256);
+
+    Utility::Printf("Loading IBL environment maps\n");
+
+    WIN32_FIND_DATA ffd;
+    HANDLE hFind = FindFirstFile(L"Textures/*_diffuseIBL.dds", &ffd);
+    // [AZB]: Added step to find any PNGS aswell, and pass them on to convert func
+    HANDLE hFindPNGs = FindFirstFile(L"Textures/*_diffuseIBL.png", &ffd);
+
+    g_IBLSet.AddEnum(L"None");
+
+    // Loop through PNGs and convert!
+    if (hFindPNGs != INVALID_HANDLE_VALUE) do
+    {
+        if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            continue;
+
+        TextureManager::ConvertToDDS();
+
+        std::wstring diffuseFile = ffd.cFileName;
+        std::wstring baseFile = diffuseFile;
+
+        baseFile.resize(baseFile.rfind(L"_diffuseIBL.dds"));
+        std::wstring specularFile = baseFile + L"_specularIBL.dds";
+
+        TextureRef diffuseTex = TextureManager::LoadDDSFromFile(L"Textures/" + diffuseFile);
+        if (diffuseTex.IsValid())
+        {
+            TextureRef specularTex = TextureManager::LoadDDSFromFile(L"Textures/" + specularFile);
+            if (specularTex.IsValid())
+            {
+                g_IBLSet.AddEnum(baseFile);
+                g_IBLTextures.push_back(std::make_pair(diffuseTex, specularTex));
+            }
+        }
+    } while (FindNextFile(hFind, &ffd) != 0);
+
+
+    // [AZB]: This bit loops through all DDS files in the folder and will eventually find our PNG, so ensure it's converted before here!
+    if (hFind != INVALID_HANDLE_VALUE) do
+    {
+        if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            continue;
+
+        std::wstring diffuseFile = ffd.cFileName;
+        std::wstring baseFile = diffuseFile;
+        
+        baseFile.resize(baseFile.rfind(L"_diffuseIBL.dds"));
+        std::wstring specularFile = baseFile + L"_specularIBL.dds";
+
+        TextureRef diffuseTex = TextureManager::LoadDDSFromFile(L"Textures/" + diffuseFile);
+        if (diffuseTex.IsValid())
+        {
+            TextureRef specularTex = TextureManager::LoadDDSFromFile(L"Textures/" + specularFile);
+            if (specularTex.IsValid())
+            {
+                g_IBLSet.AddEnum(baseFile);
+                g_IBLTextures.push_back(std::make_pair(diffuseTex, specularTex));
+            }
+        }
+    } while (FindNextFile(hFind, &ffd) != 0);
+
+    FindClose(hFind);
+
+    Utility::Printf("Found %u IBL environment map sets\n", g_IBLTextures.size());
+
+    if (g_IBLTextures.size() > 0)
+        g_IBLSet.Increment();
+}
+
+#else
+
+// [AZB]: Original Method
 void LoadIBLTextures()
 {
     char CWD[256];
@@ -171,6 +254,7 @@ void LoadIBLTextures()
     if (g_IBLTextures.size() > 0)
         g_IBLSet.Increment();
 }
+#endif
 
 void ModelViewer::Startup( void )
 {
@@ -215,18 +299,35 @@ void ModelViewer::Startup( void )
     }
     else
     {
+        //[AZB]: This block will load our Bistro scene!... but only one of them!
         m_ModelInst = Renderer::LoadModel(gltfFileName, forceRebuild);
         m_ModelInst.LoopAllAnimations();
-        m_ModelInst.Resize(10.0f);
+        //m_ModelInst.Resize(10.0f);
+        m_ModelInst.Resize(100.0f * m_ModelInst.GetRadius());
+        OrientedBox obb = m_ModelInst.GetBoundingBox();
+        float modelRadius = Length(obb.GetDimensions()) * 0.5f;
+        const Vector3 eye = obb.GetCenter() + Vector3(modelRadius * 0.5f, 0.0f, modelRadius * 0.5f);
+        m_Camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kYUnitVector));
+        float newFov = m_Camera.GetFOV() * 2.5f;
+        m_Camera.SetFOV(newFov);
 
         MotionBlur::Enable = false;
     }
 
+#if AZB_MOD
+    m_Camera.SetZRange(0.01f, 40000.0f);
+    
+    // [AZB]: FPS camera has weeeird culling!
+    m_CameraController.reset(new FlyingFPSCamera(m_Camera, Vector3(kYUnitVector)));
+    //m_CameraController.reset(new OrbitCamera(m_Camera, m_ModelInst.GetBoundingSphere(), Vector3(kYUnitVector)));
+
+#else
     m_Camera.SetZRange(1.0f, 10000.0f);
     if (gltfFileName.size() == 0)
         m_CameraController.reset(new FlyingFPSCamera(m_Camera, Vector3(kYUnitVector)));
     else
         m_CameraController.reset(new OrbitCamera(m_Camera, m_ModelInst.GetBoundingSphere(), Vector3(kYUnitVector)));
+#endif
 }
 
 void ModelViewer::Cleanup( void )
