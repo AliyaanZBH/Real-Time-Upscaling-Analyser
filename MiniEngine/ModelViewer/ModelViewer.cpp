@@ -60,11 +60,12 @@
 // [AZB]: These will only be included if the global modificiation macro is defined as true (=1)
 #if AZB_MOD
 #include "AZB_DLSS.h"
+#include "AZB_BistroRenderer.h"     
 
 #include "TextureConvert.h"     // For converting HDRI PNGs to DDS
 #endif
 
-//#define LEGACY_RENDERER
+#define LEGACY_RENDERER
 
 using namespace GameCore;
 using namespace Math;
@@ -111,7 +112,7 @@ std::vector<std::pair<TextureRef, TextureRef>> g_IBLTextures;
 
 #if AZB_MOD
 // [AZB]: Default IBL bias makes Bistro appear in pure Chrome!
-NumVar g_IBLBias("Viewer/Lighting/Gloss Reduction", 8.0f, 0.0f, 16.0f, 1.0f, ChangeIBLBias);
+NumVar g_IBLBias("Viewer/Lighting/Gloss Reduction", 7.0f, 0.0f, 16.0f, 1.0f, ChangeIBLBias);
 #else
 NumVar g_IBLBias("Viewer/Lighting/Gloss Reduction", 2.0f, 0.0f, 10.0f, 1.0f, ChangeIBLBias);
 #endif
@@ -232,6 +233,8 @@ void LoadIBLTextures()
     } while (FindNextFile(hFind, &ffd) != 0);
 
     FindClose(hFind);
+    FindClose(hFindPNGs);
+    FindClose(hFindHDRs);
 
     Utility::Printf("Found %u IBL environment map sets\n", g_IBLTextures.size());
 
@@ -240,6 +243,9 @@ void LoadIBLTextures()
 
     // [AZB]: Set IBL glossiness bias as alot of custom models come in looking like pure Chrome due to overtuned specular maps
     Renderer::SetIBLBias(g_IBLBias);
+    // [AZB} Set Stonewall as starting env since it seems to be the only one that lets the scene look right!
+    int setIdx = 8;
+    Renderer::SetIBLTextures(g_IBLTextures[setIdx].first, g_IBLTextures[setIdx].second);
 }
 
 #else
@@ -320,7 +326,11 @@ void ModelViewer::Startup( void )
     if (CommandLineArgs::GetString(L"model", gltfFileName) == false)
     {
 #ifdef LEGACY_RENDERER
+#if AZB_MOD
+        // [AZB] Do nothing!
+#else
         Sponza::Startup(m_Camera);
+#endif
 #else
         m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
         m_ModelInst.Resize(100.0f * m_ModelInst.GetRadius());
@@ -330,21 +340,32 @@ void ModelViewer::Startup( void )
         m_Camera.SetEyeAtUp( eye, Vector3(kZero), Vector3(kYUnitVector) );
 #endif
     }
-    else
+    else // [AZB]: A GLTF has been supplied through command line
     {
-        //[AZB]: This block will load our Bistro scene!... but only one of them!
+
+#if AZB_MOD
+        // [AZB]: Still load our lovely bistro model from GLTF
         m_ModelInst = Renderer::LoadModel(gltfFileName, forceRebuild);
         m_ModelInst.LoopAllAnimations();
         //m_ModelInst.Resize(10.0f);
         m_ModelInst.Resize(100.0f * m_ModelInst.GetRadius());
-        OrientedBox obb = m_ModelInst.GetBoundingBox();
-        float modelRadius = Length(obb.GetDimensions()) * 0.5f;
-        const Vector3 eye = obb.GetCenter() + Vector3(modelRadius * 0.5f, 0.0f, modelRadius * 0.5f);
-        m_Camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kYUnitVector));
-        float newFov = m_Camera.GetFOV() * 2.5f;
-        m_Camera.SetFOV(newFov);
 
-        MotionBlur::Enable = false;
+        // [AZB]: Pass this along to our custom Bistro Renderer!
+        Bistro::Startup(m_Camera, m_ModelInst);
+#endif
+       // //[AZB]: This block will load our Bistro scene!... but only one of them!
+       // m_ModelInst = Renderer::LoadModel(gltfFileName, forceRebuild);
+       // m_ModelInst.LoopAllAnimations();
+       // //m_ModelInst.Resize(10.0f);
+       // m_ModelInst.Resize(100.0f * m_ModelInst.GetRadius());
+       // OrientedBox obb = m_ModelInst.GetBoundingBox();
+       // float modelRadius = Length(obb.GetDimensions()) * 0.5f;
+       // const Vector3 eye = obb.GetCenter() + Vector3(modelRadius * 0.5f, 0.0f, modelRadius * 0.5f);
+       // m_Camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kYUnitVector));
+       // float newFov = m_Camera.GetFOV() * 2.5f;
+       // m_Camera.SetFOV(newFov);
+       //
+       MotionBlur::Enable = false;
     }
 
 #if AZB_MOD
@@ -429,6 +450,11 @@ void ModelViewer::RenderScene( void )
 
     ParticleEffectManager::Update(gfxContext.GetComputeContext(), Graphics::GetFrameTime());
 
+#if AZB_MOD
+#ifdef LEGACY_RENDERER
+    Bistro::RenderScene(gfxContext, m_Camera, viewport, scissor);
+#endif
+#else
     if (m_ModelInst.IsNull())
     {
 #ifdef LEGACY_RENDERER
@@ -514,6 +540,7 @@ void ModelViewer::RenderScene( void )
             sorter.RenderMeshes(MeshSorter::kTransparent, gfxContext, globals);
         }
     }
+#endif
 
     // Some systems generate a per-pixel velocity buffer to better track dynamic and skinned meshes.  Everything
     // is static in our scene, so we generate velocity from camera motion and the depth buffer.  A velocity buffer

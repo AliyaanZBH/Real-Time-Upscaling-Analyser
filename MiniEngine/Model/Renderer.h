@@ -71,7 +71,12 @@ namespace Renderer
     {
     public:
 		enum BatchType { kDefault, kShadows };
+        // [AZB]: Adding a draw pass!
+#if AZB_MOD
+        enum DrawPass { kZPass, kOpaque, kTransparent, kBakedLight, kNumPasses };
+#else
         enum DrawPass { kZPass, kOpaque, kTransparent, kNumPasses };
+#endif
 
 		MeshSorter(BatchType type)
 		{

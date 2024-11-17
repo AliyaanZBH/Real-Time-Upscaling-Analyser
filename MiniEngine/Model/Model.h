@@ -162,6 +162,12 @@ public:
     void UpdateAnimations(float deltaTime);
     void LoopAllAnimations(void);
 
+#if AZB_MOD
+    std::shared_ptr<const Model> GetModel() { return m_Model; }
+    ByteAddressBuffer& GetGPUMeshConstants() { return m_MeshConstantsGPU; }
+
+#endif
+
 private:
     std::shared_ptr<const Model> m_Model;
     UploadBuffer m_MeshConstantsCPU;

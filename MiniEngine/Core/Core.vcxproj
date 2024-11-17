@@ -75,9 +75,9 @@
     <ClInclude Include="..\..\ThirdParty\imgui\imstb_truetype.h" />
     <ClInclude Include="..\..\ThirdParty\implot\implot.h" />
     <ClInclude Include="..\..\ThirdParty\implot\implot_internal.h" />
+    <ClInclude Include="AZB\include\AZB_DLSS.h" />
     <ClInclude Include="AZB\include\AZB_GUI.h" />
     <ClInclude Include="AZB\include\AZB_Utils.h" />
-    <ClInclude Include="AZB_DLSS.h" />
     <ClInclude Include="BitonicSort.h" />
     <ClInclude Include="BuddyAllocator.h" />
     <ClInclude Include="BufferManager.h" />
@@ -178,10 +178,8 @@
     <ClCompile Include="..\..\ThirdParty\implot\implot_items.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="AZB\src\AZB_DLSS.cpp" />
     <ClCompile Include="AZB\src\AZB_GUI.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="AZB_DLSS.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="BitonicSort.cpp" />
