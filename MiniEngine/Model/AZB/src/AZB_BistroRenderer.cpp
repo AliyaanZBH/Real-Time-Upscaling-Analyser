@@ -178,43 +178,38 @@ void Bistro::RenderObjects(GraphicsContext& gfxContext, const Matrix4& ViewProjM
 
     __declspec(align(16)) uint32_t materialIdx = 0xFFFFFFFFul;
 
+    // [AZB]: Shortcut for readability
+    auto model = m_Model->GetModel();
+    if (!model)
+        return;
 
-    uint16_t VertexStride = 16u;
-    uint32_t curVertOffset = 0;
-    uint32_t curIndexOffset = 0;
+    // [AZB]: Pointer to start of data buffers!
+    const auto& dataBufferStart = model->m_DataBuffer.GetGpuVirtualAddress();
 
-    // Pointer to current mesh
-    const uint8_t* pMesh = m_Model->GetModel()->m_MeshData.get();    
 
-    for (uint32_t meshIndex = 0; meshIndex < m_Model->GetModel()->m_NumMeshes; meshIndex++)
+    for (uint32_t meshIndex = 0; meshIndex < model->m_NumMeshes; meshIndex++)
     {
-        Mesh& mesh = *(Mesh*)pMesh;
+        const Mesh& mesh = reinterpret_cast<Mesh*>(model->m_MeshData.get())[meshIndex];
 
-        mesh.draw->baseVertex = curVertOffset;
-        mesh.draw->startIndex = curIndexOffset;
+        gfxContext.SetDescriptorTable(Renderer::kMaterialSRVs, s_TextureHeap[mesh.srvTable]);
+        //gfxContext.SetDescriptorTable(kMaterialSamplers, s_SamplerHeap[mesh.samplerTable]);
 
-        uint32_t indexCount = mesh.draw->primCount;
-        uint32_t startIndex = mesh.draw->startIndex / sizeof(uint16_t);
-        uint32_t baseVertex = mesh.draw->baseVertex / VertexStride;
+        uint32_t VertexStride = mesh.vbStride;
 
-        if (mesh.materialCBV != materialIdx)
-        {
-            // Not using cutout pass
-            //if (m_pMaterialIsCutout[mesh.materialCBV] && !(Filter & kCutout) ||
-            //    !m_pMaterialIsCutout[mesh.materialCBV] && !(Filter & kOpaque))
-            //    continue;
+        // [AZB]: Set correct index and vertex buffer according to mesh values!
+        gfxContext.SetVertexBuffer(0, { dataBufferStart + mesh.vbOffset, mesh.vbSize, mesh.vbStride });
+        gfxContext.SetIndexBuffer({ dataBufferStart + mesh.ibOffset, mesh.ibSize, (DXGI_FORMAT)mesh.ibFormat });
+
+
+        for (uint32_t drawIdx = 0; drawIdx < mesh.numDraws; drawIdx++) {
+            const Mesh::Draw& draw = mesh.draw[drawIdx];
 
             materialIdx = mesh.materialCBV;
-            gfxContext.SetDescriptorTable(Renderer::kMaterialSRVs, s_TextureHeap[mesh.srvTable]);
 
-            gfxContext.SetDynamicConstantBufferView(Renderer::kCommonCBV, sizeof(MeshConstants)* mesh.meshCBV, &m_Model->GetGPUMeshConstants());
+            gfxContext.SetDynamicConstantBufferView(Renderer::kCommonCBV, sizeof(uint32_t), &materialIdx);
+
+            gfxContext.DrawIndexed(draw.primCount, draw.startIndex, draw.baseVertex);
         }
-
-        gfxContext.DrawIndexed(indexCount, startIndex, baseVertex);
-
-        pMesh += sizeof(Mesh) + (mesh.numDraws - 1) * sizeof(Mesh::Draw);
-        curVertOffset += (uint32_t)mesh.vbSize /  mesh.vbStride;
-        curIndexOffset += (uint32_t)mesh.ibSize >> mesh.ibFormat;
 
     }
 }
@@ -299,6 +294,7 @@ void Bistro::RenderScene(
             gfxContext.SetRootSignature(Renderer::m_RootSig);
             gfxContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, Renderer::s_TextureHeap.GetHeapPointer());
             gfxContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            // [AZB]: RED HERRING! Meshes will use their own index buffer!
             gfxContext.SetIndexBuffer(m_Model->GetModel()->m_DataBuffer.IndexBufferView());
             gfxContext.SetVertexBuffer(0, m_Model->GetModel()->m_DataBuffer.VertexBufferView());
         };
@@ -386,7 +382,7 @@ void Bistro::RenderScene(
 
     {
         RenderLightShadows(gfxContext, camera);
-
+    
         {
             ScopedTimer _prof(L"Z PrePass", gfxContext);
     

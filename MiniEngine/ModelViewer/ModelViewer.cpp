@@ -352,6 +352,8 @@ void ModelViewer::Startup( void )
 
         // [AZB]: Pass this along to our custom Bistro Renderer!
         Bistro::Startup(m_Camera, m_ModelInst);
+        //Sponza::Startup(m_Camera);
+
 #endif
        // //[AZB]: This block will load our Bistro scene!... but only one of them!
        // m_ModelInst = Renderer::LoadModel(gltfFileName, forceRebuild);
@@ -453,6 +455,7 @@ void ModelViewer::RenderScene( void )
 #if AZB_MOD
 #ifdef LEGACY_RENDERER
     Bistro::RenderScene(gfxContext, m_Camera, viewport, scissor);
+    //Sponza::RenderScene(gfxContext, m_Camera, viewport, scissor);
 #endif
 #else
     if (m_ModelInst.IsNull())
