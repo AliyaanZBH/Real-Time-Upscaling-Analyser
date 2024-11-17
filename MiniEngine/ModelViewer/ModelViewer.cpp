@@ -155,7 +155,7 @@ void LoadIBLTextures()
 
     g_IBLSet.AddEnum(L"None");
 
-    // Loop through PNGs and convert!
+    // [AZB]: Loop through PNGs and convert!
     if (hFindPNGs != INVALID_HANDLE_VALUE) do
     {
         if (ffdPNGs.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
@@ -181,7 +181,31 @@ void LoadIBLTextures()
        // [AZB]: Look for any more pairs of PNG HDRI files!
     } while (FindNextFile(hFindPNGs, &ffdPNGs) != 0);
 
-    // [AZB]: Once all PNGs have been completed, continue with regular loading loop and allow the newly generated DDS files to be loaded!
+
+    // [AZB]: Repeat for .HDRs!
+    if (hFindHDRs != INVALID_HANDLE_VALUE) do
+    {
+        if (ffdHDRs.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            continue;
+
+
+        // [AZB]: Get filename as wstring
+        std::wstring hdrFile = ffdHDRs.cFileName;
+
+        // [AZB]: Convert to DDS
+        CompileTextureOnDemand(L"Textures/" + hdrFile, 0);
+
+        // [AZB]: These HDR's end up as single textures, so load them into the set here
+        TextureRef hdrTex = TextureManager::LoadDDSFromFile(L"Textures/" + hdrFile);
+        TextureRef emptyTex = TextureManager::LoadDDSFromFile(L"empty");
+        g_IBLSet.AddEnum(hdrFile);
+        g_IBLTextures.push_back(std::make_pair(hdrTex, nullptr));
+
+        // [AZB]: Look for any more pairs of PNG HDRI files!
+    } while (FindNextFile(hFindHDRs, &ffdHDRs) != 0);
+
+
+    // [AZB]: Once all conversions have been completed, continue with regular loading loop and allow the newly generated DDS files to be loaded!
 
     // [AZB]: This bit loops through all DDS files in the folder and will eventually find our PNG, so ensure it's converted before here!
     if (hFind != INVALID_HANDLE_VALUE) do
