@@ -60,6 +60,8 @@
 // [AZB]: These will only be included if the global modificiation macro is defined as true (=1)
 #if AZB_MOD
 #include "AZB_DLSS.h"
+
+#include "TextureConvert.h"     // For converting HDRI PNGs to DDS
 #endif
 
 //#define LEGACY_RENDERER
@@ -135,7 +137,7 @@ void ChangeIBLBias(EngineVar::ActionType)
 #include <direct.h> // for _getcwd() to check data root path
 
 #if AZB_MOD
-// [AZB]: Modified method that detects PNGs and converts to DDS!
+// [AZB]: Modified method that detects PNGs and HDRs and converts to DDS!
 void LoadIBLTextures()
 {
     char CWD[256];
@@ -144,38 +146,42 @@ void LoadIBLTextures()
     Utility::Printf("Loading IBL environment maps\n");
 
     WIN32_FIND_DATA ffd;
+    WIN32_FIND_DATA ffdPNGs;
+    WIN32_FIND_DATA ffdHDRs;
     HANDLE hFind = FindFirstFile(L"Textures/*_diffuseIBL.dds", &ffd);
     // [AZB]: Added step to find any PNGS aswell, and pass them on to convert func
-    HANDLE hFindPNGs = FindFirstFile(L"Textures/*_diffuseIBL.png", &ffd);
+    HANDLE hFindPNGs = FindFirstFile(L"Textures/*_diffuseIBL.png", &ffdPNGs);
+    HANDLE hFindHDRs = FindFirstFile(L"Textures/*.hdr", &ffdHDRs);
 
     g_IBLSet.AddEnum(L"None");
 
     // Loop through PNGs and convert!
     if (hFindPNGs != INVALID_HANDLE_VALUE) do
     {
-        if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+        if (ffdPNGs.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
             continue;
 
-        TextureManager::ConvertToDDS();
 
-        std::wstring diffuseFile = ffd.cFileName;
-        std::wstring baseFile = diffuseFile;
+        // [AZB]: Get filename as wstring
+        std::wstring diffuseFile = ffdPNGs.cFileName;
+        // [AZB]: Concatenate with path for convertion function to use
+        std::wstring pathToFile = L"Textures/" + diffuseFile;
 
-        baseFile.resize(baseFile.rfind(L"_diffuseIBL.dds"));
-        std::wstring specularFile = baseFile + L"_specularIBL.dds";
+        // [AZB]: Convert to DDS
+        CompileTextureOnDemand(pathToFile, 0);
 
-        TextureRef diffuseTex = TextureManager::LoadDDSFromFile(L"Textures/" + diffuseFile);
-        if (diffuseTex.IsValid())
-        {
-            TextureRef specularTex = TextureManager::LoadDDSFromFile(L"Textures/" + specularFile);
-            if (specularTex.IsValid())
-            {
-                g_IBLSet.AddEnum(baseFile);
-                g_IBLTextures.push_back(std::make_pair(diffuseTex, specularTex));
-            }
-        }
-    } while (FindNextFile(hFind, &ffd) != 0);
+        // [AZB]: Repeat for specular map, resizing original string
+        diffuseFile.resize(diffuseFile.rfind(L"_diffuseIBL.png"));
+        std::wstring specularFile = diffuseFile + L"_specularIBL.png";
+        pathToFile = L"Textures/" + specularFile;
 
+        CompileTextureOnDemand(pathToFile, 0);
+
+
+       // [AZB]: Look for any more pairs of PNG HDRI files!
+    } while (FindNextFile(hFindPNGs, &ffdPNGs) != 0);
+
+    // [AZB]: Once all PNGs have been completed, continue with regular loading loop and allow the newly generated DDS files to be loaded!
 
     // [AZB]: This bit loops through all DDS files in the folder and will eventually find our PNG, so ensure it's converted before here!
     if (hFind != INVALID_HANDLE_VALUE) do
@@ -207,6 +213,9 @@ void LoadIBLTextures()
 
     if (g_IBLTextures.size() > 0)
         g_IBLSet.Increment();
+
+    // [AZB]: Set IBL glossiness bias as alot of custom models come in looking like pure Chrome due to overtuned specular maps
+    Renderer::SetIBLBias(g_IBLBias);
 }
 
 #else
