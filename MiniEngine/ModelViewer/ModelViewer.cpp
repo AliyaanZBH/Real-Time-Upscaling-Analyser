@@ -65,7 +65,7 @@
 #include "TextureConvert.h"     // For converting HDRI PNGs to DDS
 #endif
 
-#define LEGACY_RENDERER
+//#define LEGACY_RENDERER
 
 using namespace GameCore;
 using namespace Math;
@@ -242,6 +242,7 @@ void LoadIBLTextures()
         g_IBLSet.Increment();
 
     // [AZB]: Set IBL glossiness bias as alot of custom models come in looking like pure Chrome due to overtuned specular maps
+    //g_IBLBias = 7;
     Renderer::SetIBLBias(g_IBLBias);
     // [AZB} Set Stonewall as starting env since it seems to be the only one that lets the scene look right!
     int setIdx = 8;
@@ -327,7 +328,13 @@ void ModelViewer::Startup( void )
     {
 #ifdef LEGACY_RENDERER
 #if AZB_MOD
-        // [AZB] Do nothing!
+        // [AZB] No cmd line param, so load sponza!
+        m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
+        m_ModelInst.Resize(100.0f * m_ModelInst.GetRadius());
+        OrientedBox obb = m_ModelInst.GetBoundingBox();
+        float modelRadius = Length(obb.GetDimensions()) * 0.5f;
+        const Vector3 eye = obb.GetCenter() + Vector3(modelRadius * 0.5f, 0.0f, 0.0f);
+        m_Camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kYUnitVector));
 #else
         Sponza::Startup(m_Camera);
 #endif
@@ -337,7 +344,7 @@ void ModelViewer::Startup( void )
         OrientedBox obb = m_ModelInst.GetBoundingBox();
         float modelRadius = Length(obb.GetDimensions()) * 0.5f;
         const Vector3 eye = obb.GetCenter() + Vector3(modelRadius * 0.5f, 0.0f, 0.0f);
-        m_Camera.SetEyeAtUp( eye, Vector3(kZero), Vector3(kYUnitVector) );
+        m_Camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kYUnitVector));
 #endif
     }
     else // [AZB]: A GLTF has been supplied through command line
@@ -347,11 +354,21 @@ void ModelViewer::Startup( void )
         // [AZB]: Still load our lovely bistro model from GLTF
         m_ModelInst = Renderer::LoadModel(gltfFileName, forceRebuild);
         m_ModelInst.LoopAllAnimations();
-        //m_ModelInst.Resize(10.0f);
+        //m_ModelInst.Resize(20.0f);                  // Glossiness gets solved at this size only!
+        //m_ModelInst.Resize(500.0f * m_ModelInst.GetRadius());
         m_ModelInst.Resize(100.0f * m_ModelInst.GetRadius());
+        //Quaternion tmp = m_ModelInst.GetTransfrom().GetRotation();
+        //m_ModelInst.GetTransfrom().SetRotation(Quaternion(XMConvertToRadians(0.f), XMConvertToRadians(90.f), XMConvertToRadians(90.f)));    // This seems to solve glossiness??
+        //tmp = m_ModelInst.GetTransfrom().GetRotation();
+        OrientedBox obb = m_ModelInst.GetBoundingBox();
+
+        float modelRadius = Length(obb.GetDimensions()) * 0.5f;
+        const Vector3 eye = obb.GetCenter() + Vector3(modelRadius * 0.5f, 0.0f, 0.f);
+        m_Camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kYUnitVector));
+        //m_Camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kXUnitVector)); // This seems to solve glossiness??
 
         // [AZB]: Pass this along to our custom Bistro Renderer!
-        Bistro::Startup(m_Camera, m_ModelInst);
+        //Bistro::Startup(m_Camera, m_ModelInst);
         //Sponza::Startup(m_Camera);
 
 #endif
@@ -454,8 +471,93 @@ void ModelViewer::RenderScene( void )
 
 #if AZB_MOD
 #ifdef LEGACY_RENDERER
-    Bistro::RenderScene(gfxContext, m_Camera, viewport, scissor);
+    //Bistro::RenderScene(gfxContext, m_Camera, m_ModelInst, viewport, scissor);
     //Sponza::RenderScene(gfxContext, m_Camera, viewport, scissor);
+#else
+
+    float costheta = cosf(g_SunOrientation);
+    float sintheta = sinf(g_SunOrientation);
+    float cosphi = cosf(g_SunInclination * 3.14159f * 0.5f);
+    float sinphi = sinf(g_SunInclination * 3.14159f * 0.5f);
+
+    Vector3 SunDirection = Normalize(Vector3(costheta * cosphi, sinphi, sintheta * cosphi));
+    Vector3 ShadowBounds = Vector3(m_ModelInst.GetRadius());
+    //m_SunShadowCamera.UpdateMatrix(-SunDirection, m_ModelInst.GetCenter(), ShadowBounds,
+
+
+    // [AZB]: New method of calculating sun shadow cam from https://github.com/microsoft/DirectX-Graphics-Samples/pull/891/commits/bec16cef860fee2a68a07b7c18551b942e1374a4
+    // Make sure that the x and z coordinates are 0 for the shadowcenter 
+    // in order for the orthographic frustum to be correctly calculated.
+    Vector3 origin = Vector3(0);
+    Vector3 ShadowCenter = origin;
+
+    m_SunShadowCamera.UpdateMatrix(-SunDirection, ShadowCenter, Vector3(5000, 3000, 3000),
+        (uint32_t)g_ShadowBuffer.GetWidth(), (uint32_t)g_ShadowBuffer.GetHeight(), 16);
+
+    GlobalConstants globals;
+    globals.ViewProjMatrix = m_Camera.GetViewProjMatrix();
+    globals.SunShadowMatrix = m_SunShadowCamera.GetShadowMatrix();
+    globals.CameraPos = m_Camera.GetPosition();
+    globals.SunDirection = SunDirection;
+    globals.SunIntensity = Vector3(Scalar(g_SunLightIntensity));
+
+    // Begin rendering depth
+    gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
+    gfxContext.ClearDepth(g_SceneDepthBuffer);
+
+    MeshSorter sorter(MeshSorter::kDefault);
+    sorter.SetCamera(m_Camera);
+    sorter.SetViewport(viewport);
+    sorter.SetScissor(scissor);
+    sorter.SetDepthStencilTarget(g_SceneDepthBuffer);
+    sorter.AddRenderTarget(g_SceneColorBuffer);
+
+    m_ModelInst.Render(sorter);
+
+    sorter.Sort();
+
+    {
+        ScopedTimer _prof(L"Depth Pre-Pass", gfxContext);
+        sorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
+    }
+
+    SSAO::Render(gfxContext, m_Camera);
+
+    if (!SSAO::DebugDraw)
+    {
+        ScopedTimer _outerprof(L"Main Render", gfxContext);
+
+        {
+            ScopedTimer _prof(L"Sun Shadow Map", gfxContext);
+
+            MeshSorter shadowSorter(MeshSorter::kShadows);
+            shadowSorter.SetCamera(m_SunShadowCamera);
+            shadowSorter.SetDepthStencilTarget(g_ShadowBuffer);
+
+            m_ModelInst.Render(shadowSorter);
+
+            shadowSorter.Sort();
+            shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
+        }
+
+        gfxContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+        gfxContext.ClearColor(g_SceneColorBuffer);
+
+        {
+            ScopedTimer _prof(L"Render Color", gfxContext);
+
+            gfxContext.TransitionResource(g_SSAOFullScreen, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
+            gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV(), g_SceneDepthBuffer.GetDSV_DepthReadOnly());
+            gfxContext.SetViewportAndScissor(viewport, scissor);
+
+            sorter.RenderMeshes(MeshSorter::kOpaque, gfxContext, globals);
+        }
+
+        Renderer::DrawSkybox(gfxContext, m_Camera, viewport, scissor);
+
+        sorter.RenderMeshes(MeshSorter::kTransparent, gfxContext, globals);
+    }
 #endif
 #else
     if (m_ModelInst.IsNull())
