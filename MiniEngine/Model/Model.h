@@ -164,6 +164,7 @@ public:
 
 #if AZB_MOD
     std::shared_ptr<const Model> GetModel() { return m_Model; }
+    Math::UniformTransform& GetTransfrom() { return m_Locator; }
     ByteAddressBuffer& GetGPUMeshConstants() { return m_MeshConstantsGPU; }
 
 #endif

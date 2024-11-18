@@ -1,5 +1,9 @@
 #include "AZB_BistroRenderer.h"
-
+//===============================================================================
+// desc: This is modelled after the SponzaRenderer namespace, allowing for Bistro to be rendered in a non-HDR environment using baked lights!
+// auth: Aliyaan Zulfiqar
+//===============================================================================
+// 
 // From Core
 #include "GraphicsCore.h"
 #include "BufferManager.h"
@@ -12,11 +16,13 @@
 #include "ParticleEffects.h"
 #include "SponzaRenderer.h"
 #include "Renderer.h"
-
+//===============================================================================
+// 
 // From Model
 // [AZB]: Replace ModelH3D with glTF model class
 #include "Model.h"
-
+//===============================================================================
+// 
 // From ModelViewer
 #include "LightManager.h"
 
@@ -24,8 +30,9 @@
 #include "CompiledShaders/DepthViewerPS.h"
 #include "CompiledShaders/ModelViewerVS.h"
 #include "CompiledShaders/ModelViewerPS.h"
-
+//===============================================================================
 #include "ConstantBuffers.h" // For GlobalConstants
+
 using namespace Renderer;
 
 using namespace Math;
@@ -33,10 +40,10 @@ using namespace Graphics;
 
 namespace Bistro
 {
-    void RenderLightShadows(GraphicsContext& gfxContext, const Camera& camera);
+    void RenderLightShadows(GraphicsContext& gfxContext, const Camera& camera, ModelInstance& model);
 
     enum eObjectFilter { kOpaque = 0x1, kCutout = 0x2, kTransparent = 0x4, kAll = 0xF, kNone = 0x0 };
-    void RenderObjects(GraphicsContext& Context, const Matrix4& ViewProjMat, const Vector3& viewerPos, eObjectFilter Filter = kAll);
+    void RenderObjects(GraphicsContext& Context, ModelInstance& model, const Matrix4& ViewProjMat, const Vector3& viewerPos, eObjectFilter Filter = kAll);
 
     GraphicsPSO m_DepthPSO = { (L"Bistro: Depth PSO") };
     GraphicsPSO m_CutoutDepthPSO = { (L"Bistro: Cutout Depth PSO") };
@@ -50,10 +57,11 @@ namespace Bistro
 
     Vector3 m_SunDirection;
     ShadowCamera m_SunShadow;
+    std::vector<std::string> m_TextureNames;
 
     ExpVar m_AmbientIntensity("Bistro/Lighting/Ambient Intensity", 0.1f, -16.0f, 16.0f, 0.1f);
-    ExpVar m_SunLightIntensity("Bistro/Lighting/Sun Light Intensity", 4.0f, 0.0f, 16.0f, 0.1f);
-    NumVar m_SunOrientation("Bistro/Lighting/Sun Orientation", -0.5f, -100.0f, 100.0f, 0.1f);
+    ExpVar m_SunLightIntensity("Bistro/Lighting/Sun Light Intensity", 1.0f, 0.0f, 16.0f, 0.1f);
+    NumVar m_SunOrientation("Bistro/Lighting/Sun Orientation", 50.0f, -100.0f, 100.0f, 0.1f);
     NumVar m_SunInclination("Bistro/Lighting/Sun Inclination", 0.75f, 0.0f, 1.0f, 0.01f);
     NumVar ShadowDimX("Bistro/Lighting/Shadow Dim X", 5000, 1000, 10000, 100);
     NumVar ShadowDimY("Bistro/Lighting/Shadow Dim Y", 3000, 1000, 10000, 100);
@@ -125,27 +133,27 @@ void Bistro::Startup(Math::Camera& camera, ModelInstance& model)
 
     // The caller of this function can override which materials are considered cutouts
     // [AZB]: Use this to find plant textures and indicate that they are cutouts
-    //m_pMaterialIsCutout.resize(m_Model->GetModel()->m_MaterialConstants.GetElementCount());
-    //for (uint32_t i = 0; i < m_Model->GetModel()->m_MaterialConstants.GetElementCount(); ++i)
-    //{
-    //  // [AZB]: Solve how to replicate this bit
-    //    //const ModelH3D::Material& mat = m_Model->GetModel()->textures(i);
-    //    if (std::string(mat.texDiffusePath).find("foliage") != std::string::npos //||
-    //        /*std::string(mat.texDiffusePath).find("chain") != std::string::npos*/)
-    //    {
-    //        m_pMaterialIsCutout[i] = true;
-    //    }
-    //    else
-    //    {
-    //        m_pMaterialIsCutout[i] = false;
-    //    }
-    //}
+    int numTextures = m_TextureNames.size();
+    m_pMaterialIsCutout.resize(numTextures);
+    for (uint32_t i = 0; i < numTextures; ++i)
+    {
+        const auto mat = m_TextureNames[i];
+        if (mat.find("Foliage") != std::string::npos ||
+            mat.find("Glass") != std::string::npos)
+        {
+            m_pMaterialIsCutout[i] = true;
+        }
+        else
+        {
+            m_pMaterialIsCutout[i] = false;
+        }
+    }
 
     ParticleEffects::InitFromJSON(L"Sponza/particles.json");
 
-    float modelRadius = Length(m_Model->GetBoundingBox().GetDimensions()) * 0.5f;
-    const Vector3 eye = m_Model->GetBoundingBox().GetCenter() + Vector3(modelRadius * 0.5f, 0.0f, 0.0f);
-    camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kYUnitVector));
+    //float modelRadius = Length(m_Model->GetBoundingBox().GetDimensions()) * 0.5f;
+    //const Vector3 eye = m_Model->GetBoundingBox().GetCenter() + Vector3(modelRadius * 0.5f, 0.0f, 0.0f);
+    //camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kYUnitVector));
 
     //Lighting::CreateRandomLights(m_Model->GetBoundingBox().GetDimensions().GetMin(), m_Model->GetBoundingBox().GetMax());
 }
@@ -162,7 +170,7 @@ void Bistro::Cleanup(void)
     TextureManager::Shutdown();
 }
 
-void Bistro::RenderObjects(GraphicsContext& gfxContext, const Matrix4& ViewProjMat, const Vector3& viewerPos, eObjectFilter Filter)
+void Bistro::RenderObjects(GraphicsContext& gfxContext, ModelInstance& modelInst, const Matrix4& ViewProjMat, const Vector3& viewerPos, eObjectFilter Filter)
 {
     struct VSConstants
     {
@@ -179,20 +187,19 @@ void Bistro::RenderObjects(GraphicsContext& gfxContext, const Matrix4& ViewProjM
     __declspec(align(16)) uint32_t materialIdx = 0xFFFFFFFFul;
 
     // [AZB]: Shortcut for readability
-    auto model = m_Model->GetModel();
+    auto model = modelInst.GetModel();
     if (!model)
         return;
 
     // [AZB]: Pointer to start of data buffers!
     const auto& dataBufferStart = model->m_DataBuffer.GetGpuVirtualAddress();
 
-
     for (uint32_t meshIndex = 0; meshIndex < model->m_NumMeshes; meshIndex++)
     {
         const Mesh& mesh = reinterpret_cast<Mesh*>(model->m_MeshData.get())[meshIndex];
 
         gfxContext.SetDescriptorTable(Renderer::kMaterialSRVs, s_TextureHeap[mesh.srvTable]);
-        //gfxContext.SetDescriptorTable(kMaterialSamplers, s_SamplerHeap[mesh.samplerTable]);
+        gfxContext.SetDescriptorTable(kMaterialSamplers, s_SamplerHeap[mesh.samplerTable]);
 
         uint32_t VertexStride = mesh.vbStride;
 
@@ -204,9 +211,17 @@ void Bistro::RenderObjects(GraphicsContext& gfxContext, const Matrix4& ViewProjM
         for (uint32_t drawIdx = 0; drawIdx < mesh.numDraws; drawIdx++) {
             const Mesh::Draw& draw = mesh.draw[drawIdx];
 
-            materialIdx = mesh.materialCBV;
+            // Check for cutout materials and filter
+            if (mesh.materialCBV != materialIdx)
+            {
+                if (m_pMaterialIsCutout[mesh.materialCBV] && !(Filter & kCutout) ||
+                    !m_pMaterialIsCutout[mesh.materialCBV] && !(Filter & kOpaque))
+                    continue;
 
-            gfxContext.SetDynamicConstantBufferView(Renderer::kCommonCBV, sizeof(uint32_t), &materialIdx);
+                materialIdx = mesh.materialCBV;
+
+                gfxContext.SetDynamicConstantBufferView(Renderer::kCommonCBV, sizeof(uint32_t), &materialIdx);
+            }
 
             gfxContext.DrawIndexed(draw.primCount, draw.startIndex, draw.baseVertex);
         }
@@ -215,7 +230,7 @@ void Bistro::RenderObjects(GraphicsContext& gfxContext, const Matrix4& ViewProjM
 }
 
 
-void Bistro::RenderLightShadows(GraphicsContext& gfxContext, const Camera& camera)
+void Bistro::RenderLightShadows(GraphicsContext& gfxContext, const Camera& camera, ModelInstance& modelInst)
 {
     using namespace Lighting;
 
@@ -228,9 +243,9 @@ void Bistro::RenderLightShadows(GraphicsContext& gfxContext, const Camera& camer
     m_LightShadowTempBuffer.BeginRendering(gfxContext);
     {
         gfxContext.SetPipelineState(m_ShadowPSO);
-        RenderObjects(gfxContext, m_LightShadowMatrix[LightIndex], camera.GetPosition(), kOpaque);
+        RenderObjects(gfxContext, modelInst, m_LightShadowMatrix[LightIndex], camera.GetPosition(), kOpaque);
         gfxContext.SetPipelineState(m_CutoutShadowPSO);
-        RenderObjects(gfxContext, m_LightShadowMatrix[LightIndex], camera.GetPosition(), kCutout);
+        RenderObjects(gfxContext, modelInst, m_LightShadowMatrix[LightIndex], camera.GetPosition(), kCutout);
     }
     //m_LightShadowTempBuffer.EndRendering(gfxContext);
 
@@ -247,6 +262,7 @@ void Bistro::RenderLightShadows(GraphicsContext& gfxContext, const Camera& camer
 void Bistro::RenderScene(
     GraphicsContext& gfxContext,
     const Camera& camera,
+    ModelInstance& model,
     const D3D12_VIEWPORT& viewport,
     const D3D12_RECT& scissor,
     bool skipDiffusePass,
@@ -292,96 +308,20 @@ void Bistro::RenderScene(
     auto& pfnSetupGraphicsState = [&](void)
         {
             gfxContext.SetRootSignature(Renderer::m_RootSig);
-            gfxContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, Renderer::s_TextureHeap.GetHeapPointer());
             gfxContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            gfxContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, Renderer::s_TextureHeap.GetHeapPointer());
+            gfxContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, s_SamplerHeap.GetHeapPointer());
             // [AZB]: RED HERRING! Meshes will use their own index buffer!
-            gfxContext.SetIndexBuffer(m_Model->GetModel()->m_DataBuffer.IndexBufferView());
-            gfxContext.SetVertexBuffer(0, m_Model->GetModel()->m_DataBuffer.VertexBufferView());
+            gfxContext.SetIndexBuffer(model.GetModel()->m_DataBuffer.IndexBufferView());
+            gfxContext.SetIndexBuffer(model.GetModel()->m_DataBuffer.IndexBufferView());
+           //gfxContext.SetVertexBuffer(0, m_Model->GetModel()->m_DataBuffer.VertexBufferView());
+           //gfxContext.SetVertexBuffer(0, m_Model->GetModel()->m_DataBuffer.VertexBufferView());
         };
 
     pfnSetupGraphicsState();
 
-
-    // TMP: ModelViewer.cpp render 
-   //{
-   //
-   //    Vector3 ShadowBounds = Vector3(m_Model->GetRadius());
-   //    m_SunShadow.UpdateMatrix(-m_SunDirection, Vector3(0, -500.0f, 0), Vector3(5000, 3000, 3000),
-   //        (uint32_t)g_ShadowBuffer.GetWidth(), (uint32_t)g_ShadowBuffer.GetHeight(), 16);
-   //
-   //    GlobalConstants globals = {};
-   //    globals.ViewProjMatrix = camera.GetViewProjMatrix();
-   //    globals.SunShadowMatrix = m_SunShadow.GetShadowMatrix();
-   //    globals.CameraPos = camera.GetPosition();
-   //    globals.SunDirection = m_SunDirection;
-   //    globals.SunIntensity = Vector3(Scalar(m_SunLightIntensity));
-   //
-   //    // Begin rendering depth
-   //    gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
-   //    gfxContext.ClearDepth(g_SceneDepthBuffer);
-   //
-   //    MeshSorter sorter(MeshSorter::kDefault);
-   //    sorter.SetCamera(camera);
-   //    sorter.SetViewport(viewport);
-   //    sorter.SetScissor(scissor);
-   //    sorter.SetDepthStencilTarget(g_SceneDepthBuffer);
-   //    sorter.AddRenderTarget(g_SceneColorBuffer);
-   //
-   //    m_Model->Render(sorter);
-   //
-   //    sorter.Sort();
-
-   //    //RenderLightShadows(gfxContext, camera);
-   //
-   //    {
-   //        ScopedTimer _prof(L"Depth Pre-Pass", gfxContext);
-   //        sorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
-   //    }
-   //
-   //    SSAO::Render(gfxContext, camera);
-   //
-   //    if (!SSAO::DebugDraw)
-   //    {
-   //        ScopedTimer _outerprof(L"Main Render", gfxContext);
-   //
-   //        {
-   //            ScopedTimer _prof(L"Sun Shadow Map", gfxContext);
-   //
-   //            MeshSorter shadowSorter(MeshSorter::kShadows);
-   //            shadowSorter.SetCamera(m_SunShadow);
-   //            shadowSorter.SetDepthStencilTarget(g_ShadowBuffer);
-   //
-   //            m_Model->Render(shadowSorter);
-   //
-   //            shadowSorter.Sort();
-   //            shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
-   //        }
-   //
-   //        gfxContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
-   //        gfxContext.ClearColor(g_SceneColorBuffer);
-   //
-   //        {
-   //            ScopedTimer _prof(L"Render Color", gfxContext);
-   //
-   //            gfxContext.TransitionResource(g_SSAOFullScreen, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-   //            gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
-   //            gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV(), g_SceneDepthBuffer.GetDSV_DepthReadOnly());
-   //            gfxContext.SetViewportAndScissor(viewport, scissor);
-   //
-   //            sorter.RenderMeshes(MeshSorter::kOpaque, gfxContext, globals);
-   //        }
-   //
-   //        //Renderer::DrawSkybox(gfxContext, camera, viewport, scissor);
-   //
-   //        sorter.RenderMeshes(MeshSorter::kTransparent, gfxContext, globals);
-   //    }
-   //}
-
-
-    // Original render
-
     {
-        RenderLightShadows(gfxContext, camera);
+        RenderLightShadows(gfxContext, camera, model);
     
         {
             ScopedTimer _prof(L"Z PrePass", gfxContext);
@@ -397,7 +337,7 @@ void Bistro::RenderScene(
                     gfxContext.SetDepthStencilTarget(g_SceneDepthBuffer.GetDSV());
                     gfxContext.SetViewportAndScissor(viewport, scissor);
                 }
-                RenderObjects(gfxContext, camera.GetViewProjMatrix(), camera.GetPosition(), kOpaque);
+                RenderObjects(gfxContext, model, camera.GetViewProjMatrix(), camera.GetPosition(), kOpaque);
             }
     
             {
@@ -405,7 +345,7 @@ void Bistro::RenderScene(
                 {
                     gfxContext.SetPipelineState(m_CutoutDepthPSO);
                 }
-                RenderObjects(gfxContext, camera.GetViewProjMatrix(), camera.GetPosition(), kCutout);
+                RenderObjects(gfxContext, model, camera.GetViewProjMatrix(), camera.GetPosition(), kCutout);
             }
         }
     
@@ -439,9 +379,9 @@ void Bistro::RenderScene(
     
                     g_ShadowBuffer.BeginRendering(gfxContext);
                     gfxContext.SetPipelineState(m_ShadowPSO);
-                    RenderObjects(gfxContext, m_SunShadow.GetViewProjMatrix(), camera.GetPosition(), kOpaque);
+                    RenderObjects(gfxContext, model, m_SunShadow.GetViewProjMatrix(), camera.GetPosition(), kOpaque);
                     gfxContext.SetPipelineState(m_CutoutShadowPSO);
-                    RenderObjects(gfxContext, m_SunShadow.GetViewProjMatrix(), camera.GetPosition(), kCutout);
+                    RenderObjects(gfxContext, model, m_SunShadow.GetViewProjMatrix(), camera.GetPosition(), kCutout);
                     g_ShadowBuffer.EndRendering(gfxContext);
                 }
             }
@@ -475,10 +415,10 @@ void Bistro::RenderScene(
                         gfxContext.SetRenderTargets(ARRAYSIZE(rtvs), rtvs, g_SceneDepthBuffer.GetDSV_DepthReadOnly());
                         gfxContext.SetViewportAndScissor(viewport, scissor);
                     }
-                    RenderObjects(gfxContext, camera.GetViewProjMatrix(), camera.GetPosition(), Bistro::kOpaque);
+                    RenderObjects(gfxContext, model, camera.GetViewProjMatrix(), camera.GetPosition(), Bistro::kOpaque);
     
                     gfxContext.SetPipelineState(m_CutoutModelPSO);
-                    RenderObjects(gfxContext, camera.GetViewProjMatrix(), camera.GetPosition(), Bistro::kCutout);
+                    RenderObjects(gfxContext, model, camera.GetViewProjMatrix(), camera.GetPosition(), Bistro::kCutout);
                 }
             }
         }

@@ -4,6 +4,8 @@
 // auth: Aliyaan Zulfiqar
 //===============================================================================
 #include <d3d12.h>
+#include <vector>
+#include <string>
 #include "AZB_Utils.h"
 //===============================================================================
 
@@ -26,6 +28,7 @@ namespace Bistro
     void RenderScene(
         GraphicsContext& gfxContext,
         const Math::Camera& camera,
+        ModelInstance& model,
         const D3D12_VIEWPORT& viewport,
         const D3D12_RECT& scissor,
         bool skipDiffusePass = false,
@@ -38,4 +41,7 @@ namespace Bistro
     extern ExpVar m_AmbientIntensity;
     extern ExpVar m_SunLightIntensity;
 
+
+    // Use these to determine which textures are cutouts and alter rendering pass accordingly
+    extern std::vector<std::string> m_TextureNames;
 }
