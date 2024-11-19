@@ -265,7 +265,29 @@ float4 main(VSOutput vsOutput) : SV_Target0
 
     // [AZB]: Enabling this as per https://github.com/microsoft/DirectX-Graphics-Samples/pull/891/commits/bec16cef860fee2a68a07b7c18551b942e1374a4
 #if 1
-    float sunShadow = texSunShadow.SampleCmpLevelZero( shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z );
+    
+    // [AZB]: Applying Percentage Closer Filtering (PCF)
+    float shadowTexelSizeX = 1.0f / 2048.0f; //2048 == shadowBuffer.Height()
+    const float Dilation = 2.0;
+    float d1 = Dilation * shadowTexelSizeX * 0.125;
+    float d2 = Dilation * shadowTexelSizeX * 0.875;
+    float d3 = Dilation * shadowTexelSizeX * 0.625;
+    float d4 = Dilation * shadowTexelSizeX * 0.375;
+    float sunShadow = (
+        2.0 * texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z) +
+        texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy + float2(-d2, d1), vsOutput.sunShadowCoord.z) +
+        texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy + float2(-d1, -d2), vsOutput.sunShadowCoord.z) +
+        texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy + float2(d2, -d1), vsOutput.sunShadowCoord.z) +
+        texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy + float2(d1, d2), vsOutput.sunShadowCoord.z) +
+        texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy + float2(-d4, d3), vsOutput.sunShadowCoord.z) +
+        texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy + float2(-d3, -d4), vsOutput.sunShadowCoord.z) +
+        texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy + float2(d4, -d3), vsOutput.sunShadowCoord.z) +
+        texSunShadow.SampleCmpLevelZero(shadowSampler, vsOutput.sunShadowCoord.xy + float2(d3, d4), vsOutput.sunShadowCoord.z)
+        ) / 10.0;
+    
+    // [AZB]: Original light model
+    //float sunShadow = texSunShadow.SampleCmpLevelZero( shadowSampler, vsOutput.sunShadowCoord.xy, vsOutput.sunShadowCoord.z );
+    
     colorAccum += ShadeDirectionalLight(Surface, SunDirection, sunShadow * SunIntensity);
 
     uint2 pixelPos = uint2(vsOutput.position.xy);

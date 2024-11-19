@@ -388,7 +388,7 @@ void ModelViewer::Startup( void )
     }
 
 #if AZB_MOD
-    m_Camera.SetZRange(0.01f, 40000.0f);
+    m_Camera.SetZRange(1.0f, 10000.0f);
     
     // [AZB]: FPS camera has weeeird culling!
     m_CameraController.reset(new FlyingFPSCamera(m_Camera, Vector3(kYUnitVector)));
