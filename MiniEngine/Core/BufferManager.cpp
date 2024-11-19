@@ -43,9 +43,10 @@ namespace Graphics
     ColorBuffer g_HorizontalBuffer;
 
 #if AZB_MOD
-    // [AZB]: Create a buffer for ImGui
+    // [AZB]: Create buffers
     ColorBuffer g_ImGuiBuffer;
     ColorBuffer g_DLSSOutputBuffer;
+    ColorBuffer g_DecodedMVBuffer;
 #endif
 
     ShadowBuffer g_ShadowBuffer;
@@ -134,11 +135,10 @@ void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t buffer
         g_SceneNormalBuffer.Create( L"Normals Buffer", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R16G16B16A16_FLOAT, esram );
 
 #if AZB_MOD
-        // [AZB]: DLSS wants it's motion vectors in a different format to what MiniEngine originally provides
-        g_VelocityBuffer.Create( L"Motion Vectors", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32G32_FLOAT);
-#else
-        g_VelocityBuffer.Create( L"Motion Vectors", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32_UINT);
+        // [AZB]: DLSS wants it's motion vectors in a different format to what MiniEngine originally provides, so create a buffer that will decode the MVs!
+        g_DecodedMVBuffer.Create( L"Decoded Motion Vectors", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32G32_FLOAT);
 #endif
+        g_VelocityBuffer.Create( L"Motion Vectors", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32_UINT);
         g_PostEffectsBuffer.Create( L"Post Effects Buffer", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32_UINT );
 
         esram.PushStack();	// Render HDR image

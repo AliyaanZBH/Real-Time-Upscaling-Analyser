@@ -41,8 +41,9 @@ namespace Graphics
     extern ColorBuffer g_HorizontalBuffer;  // For separable (bicubic) upsampling
 
 #if AZB_MOD
-    extern ColorBuffer g_ImGuiBuffer;     // [AZB]: For ImGui R10G10B10A2_UNORM
+    extern ColorBuffer g_ImGuiBuffer;          // [AZB]: For ImGui R10G10B10A2_UNORM
     extern ColorBuffer g_DLSSOutputBuffer;     // [AZB]: For DLSS to Upscale to R10G10B10A2_UNORM
+    extern ColorBuffer g_DecodedMVBuffer;      // [AZB]: For DLSS to use, decoded from g_VelocityBuffer, to R32G32_FLOAT
 #endif
     extern ColorBuffer g_VelocityBuffer;    // R10G10B10  (3D velocity)
     extern ShadowBuffer g_ShadowBuffer;
