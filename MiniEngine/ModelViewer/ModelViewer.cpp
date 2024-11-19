@@ -145,6 +145,9 @@ void ChangeIBLBias(EngineVar::ActionType)
 
 #include <direct.h> // for _getcwd() to check data root path
 
+//[AZB]: Test for particles in sponza glTF
+//#include <ParticleEffects.h>
+
 #if AZB_MOD
 // [AZB]: Modified method that detects PNGs and HDRs and converts to DDS!
 void LoadIBLTextures()
@@ -360,6 +363,9 @@ void ModelViewer::Startup( void )
     float modelRadius = Length(obb.GetDimensions()) * 0.5f;
     const Vector3 eye = obb.GetCenter() + Vector3(modelRadius * 0.5f, 0.0f, 0.f);
     m_Camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kYUnitVector));
+
+    // [AZB]: TMP TEST, do particles look alright on sponza glTF?
+    //ParticleEffects::InitFromJSON(L"Sponza/particles.json");
 #endif
 
     // [AZB]: Set near/far planes and start our FPS camera!
