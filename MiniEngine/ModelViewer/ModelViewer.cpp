@@ -65,7 +65,7 @@
 #include "TextureConvert.h"     // For converting HDRI PNGs to DDS
 #endif
 
-#define LEGACY_RENDERER
+//#define LEGACY_RENDERER
 
 using namespace GameCore;
 using namespace Math;
@@ -353,7 +353,7 @@ void ModelViewer::Startup( void )
 
     // [AZB]: If we're not legacy rendering, load sponza from glTF
     m_Scenes[1] = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
-    m_Scenes[1].Resize(100.0f * m_ModelInst.GetRadius());
+    m_Scenes[1].Resize(100.0f * m_Scenes[1].GetRadius());
 
     // [AZB]: Set up camera starting position. Use the scene at index 0 (Bistro)for now
     OrientedBox obb = m_Scenes[0].GetBoundingBox();
@@ -437,8 +437,9 @@ void ModelViewer::Update( float deltaT )
 
 #if AZB_MOD
 #ifndef LEGACY_RENDERER
-    // [AZB]: Only update model when it's being used, which is when legacy rendering is disabled!
-    m_ModelInst.Update(gfxContext, deltaT);
+    // [AZB]: Only update models when they're being used, which is when legacy rendering is disabled!
+    m_Scenes[0].Update(gfxContext, deltaT);
+    m_Scenes[1].Update(gfxContext, deltaT);
 #endif
 #else
     // [AZB]: Always update model
@@ -499,7 +500,8 @@ void ModelViewer::RenderScene( void )
     float sinphi = sinf(g_SunInclination * 3.14159f * 0.5f);
 
     Vector3 SunDirection = Normalize(Vector3(costheta * cosphi, sinphi, sintheta * cosphi));
-    Vector3 ShadowBounds = Vector3(m_ModelInst.GetRadius());
+    // [AZB]: Only render the active scene geo!
+    Vector3 ShadowBounds = Vector3(m_Scenes[activeScene].GetRadius());
 
     // [AZB]: Original method for calculating sun shadow cam
     //m_SunShadowCamera.UpdateMatrix(-SunDirection, m_ModelInst.GetCenter(), ShadowBounds,
@@ -532,7 +534,7 @@ void ModelViewer::RenderScene( void )
     sorter.SetDepthStencilTarget(g_SceneDepthBuffer);
     sorter.AddRenderTarget(g_SceneColorBuffer);
 
-    m_ModelInst.Render(sorter);
+    m_Scenes[activeScene].Render(sorter);
 
     sorter.Sort();
 
@@ -568,7 +570,7 @@ void ModelViewer::RenderScene( void )
             shadowSorter.SetCamera(m_Camera);
             //globals.ViewProjMatrix = m_SunShadowCamera.GetViewProjMatrix();
             shadowSorter.SetDepthStencilTarget(g_ShadowBuffer);
-            m_ModelInst.Render(shadowSorter);
+            m_Scenes[activeScene].Render(shadowSorter);
             
             shadowSorter.Sort();
             // [AZB]: Use viewProjMat of sun_shadow, where the light is!
