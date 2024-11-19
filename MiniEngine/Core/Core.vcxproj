@@ -243,6 +243,14 @@
     <ClCompile Include="Util\CommandLineArg.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="AZB_DecodeMVsCS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
+    </FxCompile>
     <FxCompile Include="Shaders\AdaptExposureCS.hlsl" />
     <FxCompile Include="Shaders\AoBlurUpsampleBlendOutCS.hlsl" />
     <FxCompile Include="Shaders\AoBlurUpsampleCS.hlsl" />

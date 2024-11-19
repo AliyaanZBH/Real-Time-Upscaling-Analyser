@@ -9,7 +9,18 @@
 // Developed by Minigraph
 //
 // Author:  James Stanard 
-//
+
+
+//===============================================================================
+// desc: A collection of functions that extend beyond just motion blur - the entirety of motion velocity calculation takes here and within a compute shader!
+// mod: Aliyaan Zulfiqar
+//===============================================================================
+
+/*
+   Change Log:
+   [AZB] 19/11/24: Added an extra step to call my helper CS to decode MVs into a format ready for DLSS!
+
+*/
 
 #include "pch.h"
 #include "MotionBlur.h"
@@ -45,6 +56,9 @@ namespace MotionBlur
     ComputePSO s_MotionBlurFinalPassCS(L"Motion Blur: Motion Blur Final Pass CS");
     GraphicsPSO s_MotionBlurFinalPassPS(L"Motion Blur: Motion Blur Final Pass PS");
     ComputePSO s_CameraVelocityCS[2] = { { L"Motion Blur: Camera Velocity CS" },{ L"Motion Blur: Camera Velocity Linear Z CS" } };
+#if AZB_MOD
+    ComputePSO s_AZB_DecodeMVsCS(L"DLSS: Motion Vector Decode CS");
+#endif
 }
 
 void MotionBlur::Initialize( void )
@@ -140,6 +154,16 @@ void MotionBlur::GenerateCameraVelocityBuffer( CommandContext& BaseContext, cons
     Context.SetDynamicDescriptor(1, 0, UseLinearZ ? LinearDepth.GetSRV() : g_SceneDepthBuffer.GetDepthSRV());
     Context.SetDynamicDescriptor(2, 0, g_VelocityBuffer.GetUAV());
     Context.Dispatch2D(Width, Height);
+
+    // [AZB]: Take the finished motion vectors and decode them for DLSS
+#if AZB_MOD
+    // [AZB]: Set pipeline state to the one needed for my new shader
+    Context.SetPipelineState(s_DecodeMVsCS);
+    // [AZB]: Set descriptors to upload data to the shader
+    //Context.SetDynamicDescriptor(0, g_VelocityBuffer.GetSRV());
+    //Context.SetDynamicDescriptor(1, g_DecodedMVsBuffer);
+
+#endif
 }
 
 
