@@ -116,7 +116,10 @@ namespace Renderer
         void Sort();
 
         void RenderMeshes(DrawPass pass, GraphicsContext& context, GlobalConstants& globals);
-
+#if AZB_MOD
+        // [AZB]: Overloaded version to take the viewProjMat of the sunShadow
+        void RenderMeshes(DrawPass pass, GraphicsContext& context, GlobalConstants& globals, const Math::Matrix4& vpm);
+#endif
     private:
 
         struct SortKey

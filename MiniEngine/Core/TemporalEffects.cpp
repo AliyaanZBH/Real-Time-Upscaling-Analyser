@@ -217,28 +217,28 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
     {
         // [AZB]: TODO: Turn these repeated code blocks into functions or macros!
         // [AZB]: Revert back to TAA
-        //ScopedTimer _prof(L"Temporal Resolve", BaseContext);
+        ScopedTimer _prof(L"Temporal Resolve", BaseContext);
 
-        //ComputeContext& Context = BaseContext.GetComputeContext();
+        ComputeContext& Context = BaseContext.GetComputeContext();
 
-        //static bool s_EnableTAA = false;
-        //static bool s_EnableCBR = false;
+        static bool s_EnableTAA = false;
+        static bool s_EnableCBR = false;
 
-        //if (EnableTAA != s_EnableTAA || EnableCBR && !s_EnableCBR || TriggerReset)
-        //{
-        //    ClearHistory(Context);
-        //    s_EnableTAA = EnableTAA;
-        //    s_EnableCBR = EnableCBR;
-        //    TriggerReset = false;
-        //}
+        if (EnableTAA != s_EnableTAA || EnableCBR && !s_EnableCBR || TriggerReset)
+        {
+            ClearHistory(Context);
+            s_EnableTAA = EnableTAA;
+            s_EnableCBR = EnableCBR;
+            TriggerReset = false;
+        }
 
-        //uint32_t Src = s_FrameIndexMod2;
-        //uint32_t Dst = Src ^ 1;
+        uint32_t Src = s_FrameIndexMod2;
+        uint32_t Dst = Src ^ 1;
 
-        //{
-        //    ApplyTemporalAA(Context);
-        //    SharpenImage(Context, g_TemporalColor[Dst]);
-        //}
+        {
+            ApplyTemporalAA(Context);
+            SharpenImage(Context, g_TemporalColor[Dst]);
+        }
     }
 
 

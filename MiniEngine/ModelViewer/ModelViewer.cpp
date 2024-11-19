@@ -327,18 +327,10 @@ void ModelViewer::Startup( void )
     if (CommandLineArgs::GetString(L"model", gltfFileName) == false)
     {
 #ifdef LEGACY_RENDERER
-#if AZB_MOD
         // [AZB] No cmd line param, so load sponza!
-        m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
-        m_ModelInst.Resize(100.0f * m_ModelInst.GetRadius());
-        OrientedBox obb = m_ModelInst.GetBoundingBox();
-        float modelRadius = Length(obb.GetDimensions()) * 0.5f;
-        const Vector3 eye = obb.GetCenter() + Vector3(modelRadius * 0.5f, 0.0f, 0.0f);
-        m_Camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kYUnitVector));
-#else
         Sponza::Startup(m_Camera);
-#endif
 #else
+        // [AZB]: If we're not legacy rendering, and there is no command line param load sponza glTF
         m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
         m_ModelInst.Resize(100.0f * m_ModelInst.GetRadius());
         OrientedBox obb = m_ModelInst.GetBoundingBox();
@@ -351,50 +343,31 @@ void ModelViewer::Startup( void )
     {
 
 #if AZB_MOD
-        // [AZB]: Still load our lovely bistro model from GLTF
+        // [AZB]: Load our lovely bistro model from GLTF
         m_ModelInst = Renderer::LoadModel(gltfFileName, forceRebuild);
         m_ModelInst.LoopAllAnimations();
-        //m_ModelInst.Resize(20.0f);                  // Glossiness gets solved at this size only!
-        //m_ModelInst.Resize(500.0f * m_ModelInst.GetRadius());
-        m_ModelInst.Resize(100.0f * m_ModelInst.GetRadius());
-        //Quaternion tmp = m_ModelInst.GetTransfrom().GetRotation();
-        //m_ModelInst.GetTransfrom().SetRotation(Quaternion(XMConvertToRadians(0.f), XMConvertToRadians(90.f), XMConvertToRadians(90.f)));    // This seems to solve glossiness??
-        //tmp = m_ModelInst.GetTransfrom().GetRotation();
-        OrientedBox obb = m_ModelInst.GetBoundingBox();
+        m_ModelInst.Resize(5.0f * m_ModelInst.GetRadius());
 
+        // [AZB]: Set up camera starting position and near/far planes
+        OrientedBox obb = m_ModelInst.GetBoundingBox();
         float modelRadius = Length(obb.GetDimensions()) * 0.5f;
         const Vector3 eye = obb.GetCenter() + Vector3(modelRadius * 0.5f, 0.0f, 0.f);
         m_Camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kYUnitVector));
-        //m_Camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kXUnitVector)); // This seems to solve glossiness??
+        m_Camera.SetZRange(1.0f, 20000.0f);
 
-        // [AZB]: Pass this along to our custom Bistro Renderer!
-        //Bistro::Startup(m_Camera, m_ModelInst);
-        //Sponza::Startup(m_Camera);
+        // [AZB]: Pass this along to our custom Bistro Renderer if we want legacy rendering!
+#ifdef LEGACY_RENDERER
+        Bistro::Startup(m_Camera, m_ModelInst);
+#endif
 
 #endif
-       // //[AZB]: This block will load our Bistro scene!... but only one of them!
-       // m_ModelInst = Renderer::LoadModel(gltfFileName, forceRebuild);
-       // m_ModelInst.LoopAllAnimations();
-       // //m_ModelInst.Resize(10.0f);
-       // m_ModelInst.Resize(100.0f * m_ModelInst.GetRadius());
-       // OrientedBox obb = m_ModelInst.GetBoundingBox();
-       // float modelRadius = Length(obb.GetDimensions()) * 0.5f;
-       // const Vector3 eye = obb.GetCenter() + Vector3(modelRadius * 0.5f, 0.0f, modelRadius * 0.5f);
-       // m_Camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kYUnitVector));
-       // float newFov = m_Camera.GetFOV() * 2.5f;
-       // m_Camera.SetFOV(newFov);
-       //
-       MotionBlur::Enable = false;
+    
     }
 
-#if AZB_MOD
-    m_Camera.SetZRange(1.0f, 10000.0f);
-    
-    // [AZB]: FPS camera has weeeird culling!
+    // [AZB]: FPS camera been solved!
     m_CameraController.reset(new FlyingFPSCamera(m_Camera, Vector3(kYUnitVector)));
-    //m_CameraController.reset(new OrbitCamera(m_Camera, m_ModelInst.GetBoundingSphere(), Vector3(kYUnitVector)));
 
-#else
+#if !AZB_MOD
     m_Camera.SetZRange(1.0f, 10000.0f);
     if (gltfFileName.size() == 0)
         m_CameraController.reset(new FlyingFPSCamera(m_Camera, Vector3(kYUnitVector)));
@@ -471,9 +444,18 @@ void ModelViewer::RenderScene( void )
 
 #if AZB_MOD
 #ifdef LEGACY_RENDERER
-    //Bistro::RenderScene(gfxContext, m_Camera, m_ModelInst, viewport, scissor);
-    //Sponza::RenderScene(gfxContext, m_Camera, viewport, scissor);
+    // [AZB]: If we haven't supplied a custom glTF - our bistro- render the old fashioned sponza
+    if (m_ModelInst.IsNull())
+    {
+        Sponza::RenderScene(gfxContext, m_Camera, viewport, scissor);
+    }
+    else
+    {
+        // [AZB]: If we have got bistro loaded, but we want to see it through the legacy renderer, go ahead and render
+        Bistro::RenderScene(gfxContext, m_Camera, m_ModelInst, viewport, scissor);
+    }
 #else
+    // [AZB]: Use modern way of rendering glTF
 
     float costheta = cosf(g_SunOrientation);
     float sintheta = sinf(g_SunOrientation);
@@ -482,6 +464,8 @@ void ModelViewer::RenderScene( void )
 
     Vector3 SunDirection = Normalize(Vector3(costheta * cosphi, sinphi, sintheta * cosphi));
     Vector3 ShadowBounds = Vector3(m_ModelInst.GetRadius());
+
+    // [AZB]: Original method for calculating sun shadow cam
     //m_SunShadowCamera.UpdateMatrix(-SunDirection, m_ModelInst.GetCenter(), ShadowBounds,
 
 
@@ -528,16 +512,32 @@ void ModelViewer::RenderScene( void )
         ScopedTimer _outerprof(L"Main Render", gfxContext);
 
         {
+            // [AZB]: Original method
+           //ScopedTimer _prof(L"Sun Shadow Map", gfxContext);
+           //
+           //MeshSorter shadowSorter(MeshSorter::kShadows);
+           //shadowSorter.SetCamera(m_SunShadowCamera);
+           //shadowSorter.SetDepthStencilTarget(g_ShadowBuffer);
+           //
+           //m_ModelInst.Render(shadowSorter);
+           //
+           //shadowSorter.Sort();
+           //shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
+
+            // [AZB]: New Method from https://github.com/microsoft/DirectX-Graphics-Samples/pull/891/commits/bec16cef860fee2a68a07b7c18551b942e1374a4 
             ScopedTimer _prof(L"Sun Shadow Map", gfxContext);
-
+            
             MeshSorter shadowSorter(MeshSorter::kShadows);
-            shadowSorter.SetCamera(m_SunShadowCamera);
+            // [AZB]: Use main camera instead for position
+            shadowSorter.SetCamera(m_Camera);
+            //globals.ViewProjMatrix = m_SunShadowCamera.GetViewProjMatrix();
             shadowSorter.SetDepthStencilTarget(g_ShadowBuffer);
-
             m_ModelInst.Render(shadowSorter);
-
+            
             shadowSorter.Sort();
-            shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
+            // [AZB]: Use viewProjMat of sun_shadow, where the light is!
+            //shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
+            shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals, m_SunShadowCamera.GetViewProjMatrix());
         }
 
         gfxContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
