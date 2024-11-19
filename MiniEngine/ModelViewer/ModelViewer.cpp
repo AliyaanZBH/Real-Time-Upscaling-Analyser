@@ -65,7 +65,7 @@
 #include "TextureConvert.h"     // For converting HDRI PNGs to DDS
 #endif
 
-//#define LEGACY_RENDERER
+#define LEGACY_RENDERER
 
 using namespace GameCore;
 using namespace Math;
@@ -94,7 +94,15 @@ private:
     D3D12_VIEWPORT m_MainViewport;
     D3D12_RECT m_MainScissor;
 
+#if AZB_MOD
+    // [AZB]: Create array with number of scenes
+    std::array<ModelInstance, kNumScenes> m_Scenes;
+    // [AZB]: Index into array, acting as a track on currently active scene to render
+    int activeScene = 1;        // 0 for Bistro, 1 for Sponza
+#else
+    // [AZB]: Original singular instance
     ModelInstance m_ModelInst;
+#endif
     ShadowCamera m_SunShadowCamera;
 };
 
@@ -301,9 +309,9 @@ void ModelViewer::Startup( void )
 #if AZB_MOD
     // [AZB] Disable these for maximum image clarity!
     MotionBlur::Enable = false;
-    TemporalEffects::EnableTAA = false;
-    // [AZB]: Disable this so that we can get real frame-times!
-    //s_EnableVSync = false;
+    //TemporalEffects::EnableTAA = false;
+    // [AZB]: Disable this so that we can get real frame-times! Has to be done within Display.cpp itself
+    //Display::s_EnableVSync = false;
 #else
     MotionBlur::Enable = true;
     TemporalEffects::EnableTAA = true;
@@ -324,13 +332,47 @@ void ModelViewer::Startup( void )
     if (CommandLineArgs::GetInteger(L"rebuild", rebuildValue))
         forceRebuild = rebuildValue != 0;
 
+
+    //[AZB]: Source code originally loaded models through command line. Going to go my own way on this as I want multiple scenes loaded!
+#if AZB_MOD
+
+    // [AZB]: First, begin explicitly loading Bistro scene. Regardless of rendering mode, we want this model loaded
+    // [AZB]: Load our lovely bistro model
+    m_Scenes[0] = Renderer::LoadModel(L"Bistro/BistroExterior/BistroExterior.gltf", forceRebuild);
+    m_Scenes[0].LoopAllAnimations();
+    m_Scenes[0].Resize(5.0f * m_Scenes[0].GetRadius());
+
+    // [AZB]: Deal with legacy vs modern renderer.
+#ifdef LEGACY_RENDERER
+
+    // [AZB]: Get sponza started up
+    Sponza::Startup(m_Camera);
+    // [AZB]: Now spin up bistro
+    Bistro::Startup(m_Camera, m_Scenes[0]);
+#else
+
+    // [AZB]: If we're not legacy rendering, load sponza from glTF
+    m_Scenes[1] = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
+    m_Scenes[1].Resize(100.0f * m_ModelInst.GetRadius());
+
+    // [AZB]: Set up camera starting position. Use the scene at index 0 (Bistro)for now
+    OrientedBox obb = m_Scenes[0].GetBoundingBox();
+    float modelRadius = Length(obb.GetDimensions()) * 0.5f;
+    const Vector3 eye = obb.GetCenter() + Vector3(modelRadius * 0.5f, 0.0f, 0.f);
+    m_Camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kYUnitVector));
+#endif
+
+    // [AZB]: Set near/far planes and start our FPS camera!
+    m_Camera.SetZRange(1.0f, 20000.0f);
+    m_CameraController.reset(new FlyingFPSCamera(m_Camera, Vector3(kYUnitVector)));
+
+#else
+    // [AZB]: Original model loading
     if (CommandLineArgs::GetString(L"model", gltfFileName) == false)
     {
 #ifdef LEGACY_RENDERER
-        // [AZB] No cmd line param, so load sponza!
         Sponza::Startup(m_Camera);
 #else
-        // [AZB]: If we're not legacy rendering, and there is no command line param load sponza glTF
         m_ModelInst = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
         m_ModelInst.Resize(100.0f * m_ModelInst.GetRadius());
         OrientedBox obb = m_ModelInst.GetBoundingBox();
@@ -339,35 +381,15 @@ void ModelViewer::Startup( void )
         m_Camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kYUnitVector));
 #endif
     }
-    else // [AZB]: A GLTF has been supplied through command line
+    else
     {
-
-#if AZB_MOD
-        // [AZB]: Load our lovely bistro model from GLTF
         m_ModelInst = Renderer::LoadModel(gltfFileName, forceRebuild);
         m_ModelInst.LoopAllAnimations();
-        m_ModelInst.Resize(5.0f * m_ModelInst.GetRadius());
+        m_ModelInst.Resize(10.0f);
 
-        // [AZB]: Set up camera starting position and near/far planes
-        OrientedBox obb = m_ModelInst.GetBoundingBox();
-        float modelRadius = Length(obb.GetDimensions()) * 0.5f;
-        const Vector3 eye = obb.GetCenter() + Vector3(modelRadius * 0.5f, 0.0f, 0.f);
-        m_Camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kYUnitVector));
-        m_Camera.SetZRange(1.0f, 20000.0f);
-
-        // [AZB]: Pass this along to our custom Bistro Renderer if we want legacy rendering!
-#ifdef LEGACY_RENDERER
-        Bistro::Startup(m_Camera, m_ModelInst);
-#endif
-
-#endif
-    
+        MotionBlur::Enable = false;
     }
 
-    // [AZB]: FPS camera been solved!
-    m_CameraController.reset(new FlyingFPSCamera(m_Camera, Vector3(kYUnitVector)));
-
-#if !AZB_MOD
     m_Camera.SetZRange(1.0f, 10000.0f);
     if (gltfFileName.size() == 0)
         m_CameraController.reset(new FlyingFPSCamera(m_Camera, Vector3(kYUnitVector)));
@@ -378,7 +400,13 @@ void ModelViewer::Startup( void )
 
 void ModelViewer::Cleanup( void )
 {
+#if AZB_MOD
+    // [AZB]: Cleanup scene array
+    m_Scenes[0] = nullptr;
+    m_Scenes[1] = nullptr;
+#else
     m_ModelInst = nullptr;
+#endif
 
     g_IBLTextures.clear();
 
@@ -407,7 +435,16 @@ void ModelViewer::Update( float deltaT )
 
     GraphicsContext& gfxContext = GraphicsContext::Begin(L"Scene Update");
 
+#if AZB_MOD
+#ifndef LEGACY_RENDERER
+    // [AZB]: Only update model when it's being used, which is when legacy rendering is disabled!
     m_ModelInst.Update(gfxContext, deltaT);
+#endif
+#else
+    // [AZB]: Always update model
+    m_ModelInst.Update(gfxContext, deltaT);
+#endif
+
 
     gfxContext.Finish();
 
@@ -444,18 +481,17 @@ void ModelViewer::RenderScene( void )
 
 #if AZB_MOD
 #ifdef LEGACY_RENDERER
-    // [AZB]: If we haven't supplied a custom glTF - our bistro- render the old fashioned sponza
-    if (m_ModelInst.IsNull())
+    // [AZB]: Switch which legacy scene to render based on our active scene flag
+    if (activeScene == 0)
+    {
+        Bistro::RenderScene(gfxContext, m_Camera, m_Scenes[activeScene], viewport, scissor);
+    }
+    else if (activeScene == 1)
     {
         Sponza::RenderScene(gfxContext, m_Camera, viewport, scissor);
     }
-    else
-    {
-        // [AZB]: If we have got bistro loaded, but we want to see it through the legacy renderer, go ahead and render
-        Bistro::RenderScene(gfxContext, m_Camera, m_ModelInst, viewport, scissor);
-    }
 #else
-    // [AZB]: Use modern way of rendering glTF
+    // [AZB]: Use modern way of rendering glTFs
 
     float costheta = cosf(g_SunOrientation);
     float sintheta = sinf(g_SunOrientation);
@@ -558,8 +594,10 @@ void ModelViewer::RenderScene( void )
 
         sorter.RenderMeshes(MeshSorter::kTransparent, gfxContext, globals);
     }
+
 #endif
 #else
+// [AZB]: Original scene render
     if (m_ModelInst.IsNull())
     {
 #ifdef LEGACY_RENDERER
@@ -670,6 +708,7 @@ void ModelViewer::RenderScene( void )
 #else
     ParticleEffectManager::Render(gfxContext, m_Camera, g_SceneColorBuffer, g_SceneDepthBuffer,  g_LinearDepth[FrameIndex]);
 #endif
+
     // Until I work out how to couple these two, it's "either-or".
     if (DepthOfField::Enable)
         DepthOfField::Render(gfxContext, m_Camera.GetNearClip(), m_Camera.GetFarClip());
