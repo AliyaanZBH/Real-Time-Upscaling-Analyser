@@ -454,6 +454,9 @@
     <FxCompile Include="Shaders\AZB_DecodeMotionVectorsCS.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\AZB_PerPixelMotionVectorsCS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BitonicSort.cpp" />
@@ -544,7 +547,7 @@
     <ClCompile Include="AZB\src\AZB_DLSS.cpp">
       <Filter>AZB_Source</Filter>
     </ClCompile>
-    <ClCompile Include="AZB_MotionVectors.cpp">
+    <ClCompile Include="AZB\src\AZB_MotionVectors.cpp">
       <Filter>AZB_Source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -677,7 +680,7 @@
     <ClInclude Include="AZB\include\AZB_DLSS.h">
       <Filter>AZB_Include</Filter>
     </ClInclude>
-    <ClInclude Include="AZB_MotionVectors.h">
+    <ClInclude Include="AZB\include\AZB_MotionVectors.h">
       <Filter>AZB_Include</Filter>
     </ClInclude>
   </ItemGroup>

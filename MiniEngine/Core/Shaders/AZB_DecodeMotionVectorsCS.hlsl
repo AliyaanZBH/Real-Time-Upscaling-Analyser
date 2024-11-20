@@ -11,10 +11,10 @@
 //
 
 // This is the original packed velocity buffer, which should have been written to in cameraVelocityCS.hlsl!
-Texture2D<uint> packedVelocityBuffer : register(t0); // SRV, input only
+Texture2D<uint> PackedVelocityBuffer : register(t0); // SRV, input only
 
 // This is where we are going to output our decoded buffers, which is a custom buffer created in BufferManager
-RWTexture2D<float2> decodedMotionVectors : register(u0); // UAV, we are writing to this buffer.
+RWTexture2D<float2> DecodedMotionVectors : register(u0); // UAV, we are writing to this buffer.
 
 
 
@@ -32,11 +32,11 @@ void main(uint3 DTid : SV_DispatchThreadID)
     uint2 pixel = DTid.xy;
     
     // Read the packed motion vectors for this pixel
-    uint packedMV = packedVelocityBuffer[pixel];
+    uint packedMV = PackedVelocityBuffer[pixel];
     
     // Unpack it - thank you MiniEngine for this function!
     float3 unpackedMV = UnpackVelocity(packedMV);
     
      // Store only the X and Y components for DLSS - the motion vectors are 3D but we don't need Z!
-    decodedMotionVectors[pixel] = unpackedMV.xy;
+    DecodedMotionVectors[pixel] = unpackedMV.xy;
 }

@@ -45,10 +45,6 @@
 #include "CompiledShaders/TemporalBlendCS.h"
 #include "CompiledShaders/BoundNeighborhoodCS.h"
 
-#if AZB_MOD
-#include "CompiledShaders/AZB_DecodeMotionVectorsCS.h"
-#endif
-
 using namespace Graphics;
 using namespace Math;
 
@@ -98,11 +94,6 @@ void MotionBlur::Initialize( void )
     CreatePSO( s_MotionBlurPrePassCS, g_pMotionBlurPrePassCS );
     CreatePSO( s_CameraVelocityCS[0], g_pCameraVelocityCS );
     CreatePSO( s_CameraVelocityCS[1], g_pCameraVelocityCS );
-
-#if AZB_MOD
-    CreatePSO(s_AZB_DecodeMotionVectorsCS, g_pAZB_DecodeMotionVectorsCS);
-#endif
-
 #undef CreatePSO
 }
 
@@ -164,35 +155,6 @@ void MotionBlur::GenerateCameraVelocityBuffer( CommandContext& BaseContext, cons
     Context.SetDynamicDescriptor(1, 0, UseLinearZ ? LinearDepth.GetSRV() : g_SceneDepthBuffer.GetDepthSRV());
     Context.SetDynamicDescriptor(2, 0, g_VelocityBuffer.GetUAV());
     Context.Dispatch2D(Width, Height);
-
-
-    // [AZB]: Take the finished motion vectors and decode them for DLSS
-    {
-
-    #if AZB_MOD
-        ScopedTimer _prof(L"Decode Camera Velocity for DLSS", BaseContext);
-    
-        // [AZB]: Set pipeline state to the one needed for my new shader
-        Context.SetPipelineState(s_AZB_DecodeMotionVectorsCS);
-
-        // [AZB]: Transition packed MV buffer so that it can be read by the CS
-        Context.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-        // [AZB]: Transition output buffer so that it can be written to
-        Context.TransitionResource(g_DecodedVelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-
-        // [AZB]: Set descriptors to upload data to the shader
-        Context.SetDynamicDescriptor(1, 0, g_VelocityBuffer.GetSRV());
-        Context.SetDynamicDescriptor(2, 0, g_DecodedVelocityBuffer.GetUAV());
-
-        // [AZB]: Fire off the compute shader!
-        Context.Dispatch2D(Width, Height);
-
-        // [AZB]: Transition main packed buffer back to UAV
-        Context.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-
-    #endif
-
-    }
 }
 
 
