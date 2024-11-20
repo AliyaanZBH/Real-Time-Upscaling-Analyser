@@ -11,13 +11,14 @@
 
 // For performance metrics
 #include "EngineProfiling.h"
-// To allow ImGui to trigger swapchain resize and handle global resolution controls!
-#include "Display.h"
+#include "Display.h"		// To allow ImGui to trigger swapchain resize and handle global resolution controls!
 #include "BufferManager.h"	// For debug rendering buffers
 #include "CommandContext.h"	// For transitioning resources
 
 // TODO: Improve this tmp
 constexpr int kResolutionArraySize = 8;
+
+constexpr int kNumBuffers = 3;
 
 //===============================================================================
 
@@ -46,16 +47,31 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 	// MiniEngine uses dynamic heap allocation, sharing this with ImGui will probably cause more headaches than is needed, so create a dedicated heap for ImGui
 	// This will simplify resource management and allow for better scalability as the UI continues to grow in complexity and polish
 
+	// Begin integrating into mini engine
+
+	//m_RootSignature.Reset(2, 1);
+	//m_RootSignature.InitStaticSampler(0, Graphics::SamplerLinearClampDesc, D3D12_SHADER_VISIBILITY_PIXEL);
+	//m_RootSignature[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL); // SRV table
+	//m_RootSignature.Finalize(L"ImGuiRootSignature");
+
 	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDescriptor = {};
 	descriptorHeapDescriptor.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	descriptorHeapDescriptor.NumDescriptors = 8;				// Increase and reserve spot for more textures!
+	descriptorHeapDescriptor.NumDescriptors = kNumBuffers + 1;						// Increase and reserve spot for more textures! The first spot is used for built-in font hence the + 1
 	descriptorHeapDescriptor.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
 	ASSERT_SUCCEEDED(pDevice->CreateDescriptorHeap(&descriptorHeapDescriptor, IID_PPV_ARGS(&m_pSrvDescriptorHeap)));
 
+	//m_pSrvDescriptorHeap.Create(L"ImGui GBuffer Descriptors", D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 128);
+
 	// Set ImGui up with his heap
 	ImGui_ImplDX12_Init(pDevice, numFramesInFlight, renderTargetFormat, m_pSrvDescriptorHeap,
 		m_pSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), m_pSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+
+	// Store device for heap allocations!
+	m_pD3DDevice = pDevice;
+	
+	// ImGui_ImplDX12_Init(pDevice, numFramesInFlight, renderTargetFormat, m_pSrvDescriptorHeap.GetHeapPointer(),
+	//	 m_pSrvDescriptorHeap.GetHeapPointer()->GetCPUDescriptorHandleForHeapStart(), m_pSrvDescriptorHeap.GetHeapPointer()->GetGPUDescriptorHandleForHeapStart());
 
 	// Set app to use our custom style!
 	// TODO: Remember that because Dear ImGui is a submodule, I need to fork it and commit stuff there in order for the changes to be reflected in Git!!!!
@@ -244,27 +260,79 @@ void GUI::Run(CommandContext& Context)
 
 		if (ImGui::CollapsingHeader("Graphics Settings"))
 		{
+
+		
+
 			static bool showMV = false;
-			ImGui::Checkbox("Show motion vectors", &showMV);
+			ImGui::Checkbox("Show GBuffers", &showMV);
 
 			if (showMV)
 			{
+				//for (UINT i = 0; i < kNumBuffers; ++i)
+				//{
+				//	D3D12_CPU_DESCRIPTOR_HANDLE handle = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+				//	handle.ptr += i * descriptorSize; // Offset for each descriptor
+				//	device->CreateShaderResourceView(textures[i], &srvDesc, handle);
+				//}
+				// 
+				
 				//ScopedTimer _prof(L"Render GBuffers in ImGui");
 				
 				GraphicsContext& imguiGBufferContext = Context.GetGraphicsContext();
 
-				imguiGBufferContext.TransitionResource(Graphics::g_MotionVectorRTBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, true);
 
+				imguiGBufferContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, true);
+				//imguiGBufferContext.TransitionResource(Graphics::g_MotionVectorRTBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, true);
+
+				//
+				// Update ImGui descriptor heap by adding GBuffer texture
+				//
+				
+				// Get handle to the start of this heap
+				D3D12_CPU_DESCRIPTOR_HANDLE newCPUHandle = m_pSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+				// Calculate the size of each descriptor
+				UINT descriptorSize = m_pD3DDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+				// Hardcoding to 1 for now as we only have 1 Gbuffer, and font is loaded in at slot 0, so swe want to load our texture into slot 1
+				int descriptorIndex = 1;						
+				newCPUHandle.ptr += descriptorIndex * descriptorSize; // Offset for each descriptor
+
+				// Copy our existing SRV into the new descriptor heap!
+				D3D12_CPU_DESCRIPTOR_HANDLE existingSRVHandle = Graphics::g_SceneColorBuffer.GetSRV();
+				m_pD3DDevice->CopyDescriptorsSimple(1, newCPUHandle, existingSRVHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+				// Create a new SRV in this heap using the existing texture SRV
+				//m_pD3DDevice->CreateShaderResourceView(Graphics::g_MotionVectorRTBuffer.GetResource(), nullptr, newCPUHandle);
+
+				// ImGui recommends explicitly usign the GPU handle to our texture, but MiniEngine doesn't support returning that
+				// However, in copying the Descriptor to the correct slot on the CPU side, the GPU should now also be at that same index, and we simply need to update
+				//		the ptr from the start of the new heap!
+
+				// Repeat for GPU
+				D3D12_GPU_DESCRIPTOR_HANDLE newGPUHandle = m_pSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+				newGPUHandle.ptr += (descriptorIndex * descriptorSize);
+
+				// 
+				// 
 				// ImGui wants a copy dest state aswell as SRV!
 				//Context.TransitionResource(Graphics::g_MotionVectorRTBuffer, D3D12_RESOURCE_STATE_COPY_DEST);
 
-				D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = m_pSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+				//D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = m_pSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
 				// Open in new window
 
-				ImGui::Begin("Motion Vectors",0, ImGuiWindowFlags_AlwaysAutoResize);
+				ImGui::Begin("GBuffer Rendering Test",0, ImGuiWindowFlags_AlwaysAutoResize);
 
-				D3D12_CPU_DESCRIPTOR_HANDLE SRVHandle = Graphics::g_MotionVectorRTBuffer.GetSRV();
-				ImGui::Image(SRVHandle.ptr, ImVec2(800, 600));
+				ImGui::Text("CPU handle = %p", newCPUHandle.ptr);
+				SingleLineBreak();
+				ImGui::Text("GPU handle = %p", newGPUHandle.ptr);
+				DoubleLineBreak();
+				//ImGui::Text("size = %d x %d", my_image_width, my_image_height);
+
+				//ImGui::Image(SRVHandle.ptr, ImVec2(800, 600));
+				//D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = descriptorHeap->GetGPUDescriptorHandleForHeapStart();
+				//ImGui::Image((ImTextureID)newCPUHandle.ptr, ImVec2(800, 600));
+
+				// ImGui recommends explicitly usign the GPU handle to our texture, but MiniEngine doesn't support returning that one
+				ImGui::Image((ImTextureID)newGPUHandle.ptr, ImVec2(800, 600));
 
 				ImGui::End();
 

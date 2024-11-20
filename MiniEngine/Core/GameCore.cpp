@@ -185,7 +185,6 @@ namespace GameCore
 
 
         // [AZB]: Set the descriptor heap that we set up in the GUI class
-        //ImGuiContext.GetCommandList()->SetDescriptorHeaps(1, &AZB_GUI->m_pSrvDescriptorHeap);
         ImGuiContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, AZB_GUI->m_pSrvDescriptorHeap);
 
         // [AZB]: Run our UI! Pass context down for GBuffer manipulation

@@ -51,9 +51,12 @@ public:
 
 	// Shutdown ImGui safely
 	void Terminate();
+    
+
 
 	// A handle to render ImGui within MiniEngine
 	ID3D12DescriptorHeap* m_pSrvDescriptorHeap = nullptr;
+    //DescriptorHeap m_pSrvDescriptorHeap;
 
 
 
@@ -67,6 +70,14 @@ public:
     bool m_bShowStartupModal = true;
 
 private:
+
+
+    //
+    //  MiniEngine Integration
+    //  
+    
+    // Handle to global device - needed to update descriptor heap!
+    ID3D12Device* m_pD3DDevice;
 
     //
     // Member variables that allow for safe manipulation of graphics pipeline.
