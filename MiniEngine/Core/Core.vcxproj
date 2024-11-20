@@ -78,6 +78,7 @@
     <ClInclude Include="AZB\include\AZB_DLSS.h" />
     <ClInclude Include="AZB\include\AZB_GUI.h" />
     <ClInclude Include="AZB\include\AZB_Utils.h" />
+    <ClInclude Include="AZB_MotionVectors.h" />
     <ClInclude Include="BitonicSort.h" />
     <ClInclude Include="BuddyAllocator.h" />
     <ClInclude Include="BufferManager.h" />

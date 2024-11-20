@@ -674,6 +674,9 @@
     <ClInclude Include="AZB\include\AZB_DLSS.h">
       <Filter>AZB_Include</Filter>
     </ClInclude>
+    <ClInclude Include="AZB_MotionVectors.h">
+      <Filter>AZB_Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Math\Functions.inl" />

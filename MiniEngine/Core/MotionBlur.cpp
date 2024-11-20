@@ -61,7 +61,8 @@ namespace MotionBlur
     GraphicsPSO s_MotionBlurFinalPassPS(L"Motion Blur: Motion Blur Final Pass PS");
     ComputePSO s_CameraVelocityCS[2] = { { L"Motion Blur: Camera Velocity CS" },{ L"Motion Blur: Camera Velocity Linear Z CS" } };
 #if AZB_MOD
-    ComputePSO s_AZB_DecodeMotionVectorsCS(L"DLSS: Motion Vector Decode CS");
+    ComputePSO s_AZB_DecodeMotionVectorsCS(L"DLSS: Camera Motion Vector Decode CS");
+    ComputePSO s_AZB_PerPixelMotionVectorsCS(L"DLSS: Per-Pixel Motion Vector Creation CS");
 #endif
 }
 
@@ -176,11 +177,11 @@ void MotionBlur::GenerateCameraVelocityBuffer( CommandContext& BaseContext, cons
         // [AZB]: Transition packed MV buffer so that it can be read by the CS
         Context.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         // [AZB]: Transition output buffer so that it can be written to
-        Context.TransitionResource(g_DecodedMVBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        Context.TransitionResource(g_DecodedVelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
         // [AZB]: Set descriptors to upload data to the shader
         Context.SetDynamicDescriptor(1, 0, g_VelocityBuffer.GetSRV());
-        Context.SetDynamicDescriptor(2, 0, g_DecodedMVBuffer.GetUAV());
+        Context.SetDynamicDescriptor(2, 0, g_DecodedVelocityBuffer.GetUAV());
 
         // [AZB]: Fire off the compute shader!
         Context.Dispatch2D(Width, Height);

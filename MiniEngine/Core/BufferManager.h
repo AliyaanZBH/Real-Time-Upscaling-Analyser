@@ -41,10 +41,12 @@ namespace Graphics
     extern ColorBuffer g_HorizontalBuffer;  // For separable (bicubic) upsampling
 
 #if AZB_MOD
-    extern ColorBuffer g_ImGuiBuffer;          // [AZB]: For ImGui R10G10B10A2_UNORM
-    extern ColorBuffer g_DLSSOutputBuffer;     // [AZB]: For DLSS to Upscale to R10G10B10A2_UNORM
-    extern ColorBuffer g_DecodedMVBuffer;      // [AZB]: For DLSS to use, decoded from g_VelocityBuffer, to R32G32_FLOAT
+    extern ColorBuffer g_ImGuiBuffer;                // [AZB]: For ImGui R10G10B10A2_UNORM
+    extern ColorBuffer g_DLSSOutputBuffer;           // [AZB]: For DLSS to Upscale to R10G10B10A2_UNORM
+    extern ColorBuffer g_PerPixelMotionBuffer;       // [AZB]: For DLSS to use, per-pixel motion vectors, to R32G32_FLOAT
+    extern ColorBuffer g_DecodedVelocityBuffer;      // [AZB]: For DLSS to use in addition to per-pixel MVs, decoded from g_VelocityBuffer, to R32G32_FLOAT
 #endif
+    // [AZB]: This only stores camera velocity, which is not enough for DLSS! We need per-pixel motion vectors
     extern ColorBuffer g_VelocityBuffer;    // R10G10B10  (3D velocity)
     extern ShadowBuffer g_ShadowBuffer;
 
