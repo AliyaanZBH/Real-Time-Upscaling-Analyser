@@ -132,6 +132,6 @@ void MotionVectors::GeneratePerPixelMotionVectors(CommandContext& BaseContext, c
 
         Context.Dispatch2D(Width, Height);
 
-        Context.TransitionResource(Graphics::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        //Context.TransitionResource(Graphics::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     }
 }

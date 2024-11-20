@@ -60,6 +60,7 @@
 // [AZB]: These will only be included if the global modificiation macro is defined as true (=1)
 #if AZB_MOD
 #include "AZB_DLSS.h"
+#include "AZB_MotionVectors.h"
 #include "AZB_BistroRenderer.h"     
 
 #include "TextureConvert.h"     // For converting HDRI PNGs to DDS
@@ -699,8 +700,13 @@ void ModelViewer::RenderScene( void )
     MotionBlur::GenerateCameraVelocityBuffer(gfxContext, m_Camera, true);
 
 #if AZB_MOD
+
+    // [AZB]: Generate true per-pixel motion vectors!
+    MotionVectors::GeneratePerPixelMotionVectors(gfxContext, m_Camera);
+
     // [AZB]: TMP: Particle rendering assumes that the depth buffer and output buffer are the same size. Experimenting with moving it to before DLSS so that the particles can get upscaled too!
     ParticleEffectManager::Render(gfxContext, m_Camera, g_SceneColorBuffer, g_SceneDepthBuffer,  g_LinearDepth[FrameIndex]);
+
 #endif
     // [AZB]: This is where DLSS gets executed!
     TemporalEffects::ResolveImage(gfxContext);

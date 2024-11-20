@@ -188,12 +188,15 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
         dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
         dlssContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
         dlssContext.TransitionResource(g_DecodedVelocityBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
+        //dlssContext.TransitionResource(g_PerPixelMotionBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
 
         // [AZB]: Input color buffer and output buffer for the fully processed frame.
         execParams.Feature = NVSDK_NGX_D3D12_Feature_Eval_Params{ g_SceneColorBuffer.GetResource(), g_DLSSOutputBuffer.GetResource() };
         execParams.pInDepth = g_SceneDepthBuffer.GetResource();
-        // [AZB]: Use our hand-decoded motion vectors!
-        execParams.pInMotionVectors = g_DecodedVelocityBuffer.GetResource();
+        // [AZB]: Use hand-made per-pixel motion vectors
+        //execParams.pInMotionVectors = g_PerPixelMotionBuffer.GetResource();
+        // [AZB]: Use our hand-decoded camera motion vectors!
+       execParams.pInMotionVectors = g_DecodedVelocityBuffer.GetResource();
         execParams.InJitterOffsetX = s_JitterX;
         execParams.InJitterOffsetY = s_JitterY;
         execParams.InRenderSubrectDimensions = NVSDK_NGX_Dimensions{ DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderWidth, DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderHeight };
@@ -207,6 +210,7 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
         dlssContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
         dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_COMMON, true);
         dlssContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ, true);
+        //dlssContext.TransitionResource(g_PerPixelMotionBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
         dlssContext.TransitionResource(g_DecodedVelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
 
         // [AZB]: DLSS Messes with the command list, so flush it and reset it back to avoid errors!
