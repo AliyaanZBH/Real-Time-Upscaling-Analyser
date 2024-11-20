@@ -505,24 +505,6 @@ void Graphics::Initialize(bool RequireDXRSupport)
     TextRenderer::Initialize();
     GraphRenderer::Initialize();
     ParticleEffectManager::Initialize(3840, 2160);
-
-#if AZB_MOD    // [AZB]: Now we can actually create the DLSS feature
-    
-    //// [AZB]: Create context for DLSS as we need to grab a command list and pass motion vector data etc.
-    //GraphicsContext& Context = GraphicsContext::Begin(L"DLSS Initial Creation");
-    //// [AZB]: Fill in requirements struct ready for the feature creation
-    //DLSS::CreationRequirements reqs;
-    //reqs.m_pCmdList = Context.GetCommandList();
-
-    //// [AZB]: Create feature with balanced settings at start
-    //NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, NVSDK_NGX_PerfQuality_Value_Balanced };
-    //// [AZB]: Even though we may not render to HDR, our color buffer is infact in HDR format, so set the appropriate flag!
-    //reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_None /*| NVSDK_NGX_DLSS_Feature_Flags_IsHDR*/ };
-    //DLSS::Create(reqs);
-
-    //Context.Finish();
-
-#endif
 }
 
 void Graphics::Shutdown( void )

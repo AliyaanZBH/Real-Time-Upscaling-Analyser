@@ -14,7 +14,7 @@
 
 //===============================================================================
 
-
+class CommandContext;
 
 // Pallete consts for ease of use, readabilty and editability
 namespace ThemeColours
@@ -43,7 +43,7 @@ public:
 	void Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const DXGI_FORMAT& renderTargetFormat);
 
 	// Run ImGui render loop!
-	void Run();
+	void Run(CommandContext& ImGuiContext);
 
     // Our GUI can control resolution and other pipeline state at runtime, however we don't want to be messing about with this while frames are in flight!
     // This function will be called at the start of the update loop of the next frame, submitting any changes we made on the previous one.
@@ -58,7 +58,10 @@ public:
 
 
     // Public flag to enable/disable tonemapping!
-    bool m_bEnablePostFX = true;
+    bool m_bEnablePostFX = true; 
+    
+    // Public flag to enable/disable Motion Vector visualisation!
+    bool m_bEnableMotionVisualisation = true;
 
     // Flag to show startup modal
     bool m_bShowStartupModal = true;

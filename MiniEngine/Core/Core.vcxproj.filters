@@ -457,6 +457,9 @@
     <FxCompile Include="Shaders\AZB_PerPixelMotionVectorsCS.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\AZB_MotionVectorRenderPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BitonicSort.cpp" />

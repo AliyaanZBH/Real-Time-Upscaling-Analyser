@@ -196,7 +196,7 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
         // [AZB]: Use hand-made per-pixel motion vectors
         //execParams.pInMotionVectors = g_PerPixelMotionBuffer.GetResource();
         // [AZB]: Use our hand-decoded camera motion vectors!
-       execParams.pInMotionVectors = g_DecodedVelocityBuffer.GetResource();
+        execParams.pInMotionVectors = g_DecodedVelocityBuffer.GetResource();
         execParams.InJitterOffsetX = s_JitterX;
         execParams.InJitterOffsetY = s_JitterY;
         execParams.InRenderSubrectDimensions = NVSDK_NGX_Dimensions{ DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderWidth, DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderHeight };

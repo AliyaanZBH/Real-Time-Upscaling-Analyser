@@ -53,6 +53,7 @@
 #if AZB_MOD
 #include "AZB_GUI.h"
 #include "AZB_DLSS.h"
+#include "AZB_MotionVectors.h"
 
 // [AZB]: Set bool here, ensuring a single declaration and definiton.
 bool g_bMouseExclusive = true;
@@ -141,7 +142,15 @@ namespace GameCore
         game.RenderScene();
 
 #if AZB_MOD
-        // Also added an option to toggle the step entirely!
+
+
+        // [AZB]: Check if we want to render MVs
+        if (AZB_GUI->m_bEnableMotionVisualisation)
+        {
+            //MotionVectors::Render();
+        }
+
+        // [AZB]: Also added an option to toggle the post step entirely!
         if (AZB_GUI->m_bEnablePostFX)
         {
 
@@ -172,28 +181,32 @@ namespace GameCore
         // [AZB]: Run our ImGui windows and render them correctly within the MiniEngine's pipeline
 #if AZB_MOD
 
-        // [AZB]: Run our UI!
-        AZB_GUI->Run();
-
-        // [AZB]: Submit ImGui draw calls within engine context
-        ImGui::Render();
-
-        // [AZB]: Setup ImGui buffer using the GraphicsContext API
         GraphicsContext& ImGuiContext = GraphicsContext::Begin(L"Render ImGui");
-        ImGuiContext.TransitionResource(g_ImGuiBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+
+
+        // [AZB]: Set the descriptor heap that we set up in the GUI class
+        //ImGuiContext.GetCommandList()->SetDescriptorHeaps(1, &AZB_GUI->m_pSrvDescriptorHeap);
+        ImGuiContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, AZB_GUI->m_pSrvDescriptorHeap);
+
+        // [AZB]: Run our UI! Pass context down for GBuffer manipulation
+        AZB_GUI->Run(ImGuiContext);
+
+     
+        // [AZB]: Setup ImGui buffer using the GraphicsContext API
+        //ImGuiContext.TransitionResource(g_ImGuiBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
         
         // [AZB]: This also calls ClearRTV()
-        ImGuiContext.ClearColor(g_ImGuiBuffer);
+        //ImGuiContext.ClearColor(g_ImGuiBuffer);
 
         // [AZB]: Using the overlay buffer render target - can't use the one from g_ImGuiBuffer
         ImGuiContext.SetRenderTarget(g_OverlayBuffer.GetRTV());
         ImGuiContext.SetViewportAndScissor(0, 0, g_OverlayBuffer.GetWidth(), g_OverlayBuffer.GetHeight());
 
-        // [AZB]: Set the descriptor heap that we set up in the GUI class
-        ImGuiContext.GetCommandList()->SetDescriptorHeaps(1, &AZB_GUI->m_pSrvDescriptorHeap);
-        ImGuiContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, AZB_GUI->m_pSrvDescriptorHeap);
-        
-        // [AZB]: Use the ImGui draw call
+
+        // [AZB]: Submit ImGui draw calls within engine context
+        ImGui::Render();
+
+        // [AZB]: Actually draw ImGui
         ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), ImGuiContext.GetCommandList());
 
         // [AZB]: This will execute and then close the command list and do some other super optimal context flushing

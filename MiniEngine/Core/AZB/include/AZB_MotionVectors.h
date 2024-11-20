@@ -14,6 +14,9 @@ namespace MotionVectors
 	void Initialize(void);
 	void Shutdown(void);
 
+	// This function actually generates the data!
 	void GeneratePerPixelMotionVectors(CommandContext& BaseContext, const Math::Camera& camera);
 
+	// This function will help visualise motion vectors
+	void Render();
 }

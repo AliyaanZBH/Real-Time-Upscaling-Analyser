@@ -13,6 +13,8 @@
 #include "EngineProfiling.h"
 // To allow ImGui to trigger swapchain resize and handle global resolution controls!
 #include "Display.h"
+#include "BufferManager.h"	// For debug rendering buffers
+#include "CommandContext.h"	// For transitioning resources
 
 // TODO: Improve this tmp
 constexpr int kResolutionArraySize = 8;
@@ -46,7 +48,7 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 
 	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDescriptor = {};
 	descriptorHeapDescriptor.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	descriptorHeapDescriptor.NumDescriptors = 1;
+	descriptorHeapDescriptor.NumDescriptors = 8;				// Increase and reserve spot for more textures!
 	descriptorHeapDescriptor.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
 	ASSERT_SUCCEEDED(pDevice->CreateDescriptorHeap(&descriptorHeapDescriptor, IID_PPV_ARGS(&m_pSrvDescriptorHeap)));
@@ -60,6 +62,7 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 	//
 	//ImGui::RTUAStyle(&ImGui::GetStyle());
 	// 
+	
 	// TMP - added style in header of this file
 	SetStyle();
 
@@ -68,7 +71,7 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 	m_NewHeight = Graphics::g_DisplayHeight;
 }
 
-void GUI::Run()
+void GUI::Run(CommandContext& Context)
 {
 	// Start ImGui frame
 	ImGui_ImplDX12_NewFrame();
@@ -89,7 +92,7 @@ void GUI::Run()
 		ImGui::SetNextWindowPos(kMainWindowStartPos, ImGuiCond_FirstUseEver, kTopLeftPivot);
 		ImGui::SetNextWindowSize(kMainWindowStartSize, ImGuiCond_FirstUseEver);
 
-		if(!ImGui::Begin("RTUA"))
+		if (!ImGui::Begin("RTUA"))
 		{
 			// Early out if the window is collapsed, as an optimization.
 			ImGui::End();
@@ -236,6 +239,39 @@ void GUI::Run()
 
 			ImGui::Checkbox("Enable PostFX", &m_bEnablePostFX);
 
+		}
+
+
+		if (ImGui::CollapsingHeader("Graphics Settings"))
+		{
+			static bool showMV = false;
+			ImGui::Checkbox("Show motion vectors", &showMV);
+
+			if (showMV)
+			{
+				//ScopedTimer _prof(L"Render GBuffers in ImGui");
+				
+				GraphicsContext& imguiGBufferContext = Context.GetGraphicsContext();
+
+				imguiGBufferContext.TransitionResource(Graphics::g_MotionVectorRTBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, true);
+
+				// ImGui wants a copy dest state aswell as SRV!
+				//Context.TransitionResource(Graphics::g_MotionVectorRTBuffer, D3D12_RESOURCE_STATE_COPY_DEST);
+
+				D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = m_pSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+				// Open in new window
+
+				ImGui::Begin("Motion Vectors",0, ImGuiWindowFlags_AlwaysAutoResize);
+
+				D3D12_CPU_DESCRIPTOR_HANDLE SRVHandle = Graphics::g_MotionVectorRTBuffer.GetSRV();
+				ImGui::Image(SRVHandle.ptr, ImVec2(800, 600));
+
+				ImGui::End();
+
+				//Context.FlushResourceBarriers();
+				//Context.TransitionResource(Graphics::g_MotionVectorRTBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, true);
+				//Context.Finish();
+			}
 		}
 
 		if (ImGui::CollapsingHeader("Performance Metrics"))

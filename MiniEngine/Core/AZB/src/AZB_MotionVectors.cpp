@@ -23,17 +23,21 @@
 
 #include "CompiledShaders/AZB_DecodeMotionVectorsCS.h"
 #include "CompiledShaders/AZB_PerPixelMotionVectorsCS.h"
+#include "CompiledShaders/AZB_MotionVectorRenderPS.h"
+
+#include "CompiledShaders/ScreenQuadCommonVS.h" // Allows us to render a quad to the screen for graphics!
 
 namespace MotionVectors
 {
     // Define PSOs
     ComputePSO s_AZB_DecodeMotionVectorsCS(L"DLSS: Camera Motion Vector Decode CS");
     ComputePSO s_AZB_PerPixelMotionVectorsCS(L"DLSS: Per-Pixel Motion Vector Creation CS");
+    GraphicsPSO s_AZB_MotionVectorRenderPS(L"RTUA: Render Motion Vectors PS");
 }
 
 void MotionVectors::Initialize(void)
 {
-    // Create PSOs using the method found in MotionBlur.cpp and more!
+    // Create Compute PSOs using the method found in MotionBlur.cpp and more!
 #define CreatePSO( ObjName, ShaderByteCode ) \
     ObjName.SetRootSignature(Graphics::g_CommonRS); \
     ObjName.SetComputeShader(ShaderByteCode, sizeof(ShaderByteCode) ); \
@@ -43,6 +47,20 @@ void MotionVectors::Initialize(void)
     CreatePSO(s_AZB_DecodeMotionVectorsCS, g_pAZB_DecodeMotionVectorsCS);
     CreatePSO(s_AZB_PerPixelMotionVectorsCS, g_pAZB_PerPixelMotionVectorsCS);
 #undef CreatePSO
+
+    // Graphics PSO needs setting up in a more traditional way
+    s_AZB_MotionVectorRenderPS.SetRootSignature(Graphics::g_CommonRS);
+    s_AZB_MotionVectorRenderPS.SetRasterizerState(Graphics::RasterizerTwoSided);
+    s_AZB_MotionVectorRenderPS.SetBlendState(Graphics::BlendPreMultiplied);
+    s_AZB_MotionVectorRenderPS.SetDepthStencilState(Graphics::DepthStateDisabled);
+    s_AZB_MotionVectorRenderPS.SetSampleMask(0xFFFFFFFF);
+    s_AZB_MotionVectorRenderPS.SetInputLayout(0, nullptr);
+    s_AZB_MotionVectorRenderPS.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+    // Set our vertex shader up to render a quad to the screen
+    s_AZB_MotionVectorRenderPS.SetVertexShader(g_pScreenQuadCommonVS, sizeof(g_pScreenQuadCommonVS));
+    s_AZB_MotionVectorRenderPS.SetPixelShader(g_pAZB_MotionVectorRenderPS, sizeof(g_pAZB_MotionVectorRenderPS));
+    s_AZB_MotionVectorRenderPS.SetRenderTargetFormat(Graphics::g_MotionVectorRTBuffer.GetFormat(), DXGI_FORMAT_UNKNOWN);
+    s_AZB_MotionVectorRenderPS.Finalize();
 
 }
 
@@ -125,13 +143,42 @@ void MotionVectors::GeneratePerPixelMotionVectors(CommandContext& BaseContext, c
 
         // Using the depth buffer as an input instead, as we are not simply decoding, but in fact generating wholly new MVs
         Context.TransitionResource(Graphics::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        // The actual velocity data goes here
         Context.TransitionResource(Graphics::g_PerPixelMotionBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        // A render target to visualise movement!
+        Context.TransitionResource(Graphics::g_MotionVectorVisualisationBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
         Context.SetDynamicDescriptor(1, 0, Graphics::g_SceneDepthBuffer.GetDepthSRV());
         Context.SetDynamicDescriptor(2, 0, Graphics::g_PerPixelMotionBuffer.GetUAV());
+        Context.SetDynamicDescriptor(2, 1, Graphics::g_MotionVectorVisualisationBuffer.GetUAV());
 
         Context.Dispatch2D(Width, Height);
 
-        //Context.TransitionResource(Graphics::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        // Transition to visual buffer to SRV so we can use it in ImGui!
+        Context.TransitionResource(Graphics::g_MotionVectorVisualisationBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     }
+}
+
+void MotionVectors::Render()
+{
+   //GraphicsContext& Context = GraphicsContext::Begin(L"Render Motion Vectors");
+   //
+   //Context.SetRootSignature(Graphics::g_CommonRS);
+   //Context.SetPipelineState(s_AZB_MotionVectorRenderPS);
+   //// Set up the visualisation buffer as a texture
+   //Context.TransitionResource(Graphics::g_MotionVectorVisualisationBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+   //Context.SetDynamicDescriptor(1, 0, Graphics::g_MotionVectorVisualisationBuffer.GetSRV());
+   //
+   //// Extra step here as sometimes the topology type is different
+   //Context.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+   //
+   //// Render it to main scene color buffer
+   //Context.TransitionResource(Graphics::g_MotionVectorRTBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+   //Context.SetRenderTarget(Graphics::g_MotionVectorRTBuffer.GetRTV());
+   //Context.SetViewportAndScissor(0, 0, Graphics::g_MotionVectorRTBuffer.GetWidth(), Graphics::g_MotionVectorRTBuffer.GetHeight());
+   //Context.Draw(3);
+   //
+   //// Transition to SRV and copy dest for ImGui to use!
+   //Context.TransitionResource(Graphics::g_MotionVectorRTBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE/* | D3D12_RESOURCE_STATE_COPY_DEST, true*/);
+   //Context.Finish();
 }

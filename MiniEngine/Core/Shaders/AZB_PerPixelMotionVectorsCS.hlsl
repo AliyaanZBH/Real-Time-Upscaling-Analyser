@@ -1,5 +1,5 @@
 //===============================================================================
-// desc: A helper compute shader to get motion vectors into the correct format for DLSS. Also serves as my first ever CS, hence the excessive comments to show my learning :)
+// desc: A more complete compute shader to that generates per-pixel motion vectors from scratch.
 // auth: Aliyaan Zulfiqar
 //===============================================================================
 #include "CommonRS.hlsli"
@@ -12,6 +12,7 @@
 
 Texture2D DepthBuffer : register(t0);
 RWTexture2D<float4> VelocityBuffer : register(u0);
+RWTexture2D<float4> OutputVisualiserBuffer : register(u1);          // Creating a texture to help with visual debugging
 
 
 cbuffer FrameConstants : register(b1)
@@ -45,7 +46,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
         1.0 - (currentPixel.y / ViewportHeight) * 2.0);
     
     // Use NDC and the depth value to get accurate clipPos
-    float4 clipPos = float4(ndc, depth, 1.0f);
+    float4 clipPos = float4(ndc /** depth*/, depth, 1.0f);
     
     // Reconstruct the current world-space position using the inverse view-projection matrix
     float4 worldPosCurrent = mul(clipPos, InverseViewProj);
@@ -57,5 +58,12 @@ void main(uint3 DTid : SV_DispatchThreadID)
     float2 motionVector = worldPosCurrent.xy - worldPosPrev.xy;
 
     // Write to motion vector buffer
-    VelocityBuffer[DTid.xy] = float4(motionVector, 0.0f, 1.0f);
+    VelocityBuffer[currentPixel] = float4(motionVector, 0.0f, 1.0f);
+    
+    // For visualisation, encode motion as color
+    float colorMagnitude = length(motionVector);
+    float colorAngle = atan2(motionVector.y, motionVector.x);
+    
+    // Send this to our output buffer, normalising the angle first before storing the direction in the red channel, and magnitude in the green channel.
+    OutputVisualiserBuffer[currentPixel] = float4(colorAngle / (2.0f * 3.14159265359f), colorMagnitude, 0.0f, 1.0f);
 }

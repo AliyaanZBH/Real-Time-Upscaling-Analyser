@@ -260,6 +260,9 @@
     <FxCompile Include="Shaders\ApplyBloomCS.hlsl" />
     <FxCompile Include="Shaders\AverageLumaCS.hlsl" />
     <FxCompile Include="Shaders\AZB_DecodeMotionVectorsCS.hlsl" />
+    <FxCompile Include="Shaders\AZB_MotionVectorRenderPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="Shaders\AZB_PerPixelMotionVectorsCS.hlsl" />
     <FxCompile Include="Shaders\BicubicHorizontalUpsamplePS.hlsl">
       <ShaderType>Pixel</ShaderType>
