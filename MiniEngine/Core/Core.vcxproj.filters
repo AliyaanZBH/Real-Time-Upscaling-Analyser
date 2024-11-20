@@ -544,6 +544,9 @@
     <ClCompile Include="AZB\src\AZB_DLSS.cpp">
       <Filter>AZB_Source</Filter>
     </ClCompile>
+    <ClCompile Include="AZB_MotionVectors.cpp">
+      <Filter>AZB_Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BitonicSort.h" />

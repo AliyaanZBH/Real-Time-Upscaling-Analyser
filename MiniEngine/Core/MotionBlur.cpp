@@ -19,6 +19,7 @@
 /*
    Change Log:
    [AZB] 19/11/24: Added an extra step to call my helper CS to decode MVs into a format ready for DLSS!
+   [AZB] 19/11/24: Moving my motion vector stuff into it's own namespace!
 
 */
 
@@ -169,7 +170,7 @@ void MotionBlur::GenerateCameraVelocityBuffer( CommandContext& BaseContext, cons
     {
 
     #if AZB_MOD
-        ScopedTimer _prof(L"Decode Motion Vectors for DLSS", BaseContext);
+        ScopedTimer _prof(L"Decode Camera Velocity for DLSS", BaseContext);
     
         // [AZB]: Set pipeline state to the one needed for my new shader
         Context.SetPipelineState(s_AZB_DecodeMotionVectorsCS);
