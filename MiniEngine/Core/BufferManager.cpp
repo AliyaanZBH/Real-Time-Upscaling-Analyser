@@ -28,6 +28,8 @@
    Change Log:
 
    [AZB] 16/10/24: Created buffers for ImGui
+   [AZB] 19/11/24: Created buffers for decoding velocity
+   [AZB] 20/11/24: Created buffers for creating per-pixel motion vectors
 */
 
 

@@ -1,21 +1,28 @@
-#include "AZB_MotionVectors.h"
 //===============================================================================
 // desc: A helper namespace to generate per-pixel motion vectors! The existing implementation in MiniEngine only generates camera velocity
 // auth: Aliyaan Zulfiqar
 //===============================================================================
-// 
-// Additional includes
+ //
+ // Additional includes
 
+#include "pch.h"        // Need this - get 15000 errors otherwise when including BufferManager... Weird bug!
+#include "AZB_MotionVectors.h"
+
+#include "Camera.h"
 #include "BufferManager.h"
 #include "CommandContext.h"
-#include "Camera.h"
 #include "GraphicsCommon.h" // For root signature
+#include "TemporalEffects.h"
+#include "PostEffects.h"
+#include "EngineProfiling.h"
+#include "SystemTime.h"
 
 //===============================================================================
-// 
+//
 // Compiled shaders
 
 #include "CompiledShaders/AZB_DecodeMotionVectorsCS.h"
+#include "CompiledShaders/AZB_PerPixelMotionVectorsCS.h"
 
 namespace MotionVectors
 {
@@ -34,26 +41,28 @@ void MotionVectors::Initialize(void)
 
     // Create PSO using our compiled shader
     CreatePSO(s_AZB_DecodeMotionVectorsCS, g_pAZB_DecodeMotionVectorsCS);
+    CreatePSO(s_AZB_PerPixelMotionVectorsCS, g_pAZB_PerPixelMotionVectorsCS);
 #undef CreatePSO
 
 }
 
 void MotionVectors::Shutdown(void)
 {
+    
 }
 
 void MotionVectors::GeneratePerPixelMotionVectors(CommandContext& BaseContext, const Math::Camera& camera)
 {
-    ScopedTimer _outerprof(L"Generate Per-Pixel Motion Vectors for DLSS", BaseContext);
+   ScopedTimer _outerprof(L"Generate Per-Pixel Motion Vectors for DLSS", BaseContext);
    
-    ComputeContext& Context = BaseContext.GetComputeContext();
-
-    // Set common root signature, this has the correct slots for the bindings we need
-    Context.SetRootSignature(Graphics::g_CommonRS);
-
-    // Get the width and height of the main frame
-    uint32_t Width = Graphics::g_SceneColorBuffer.GetWidth();
-    uint32_t Height = Graphics::g_SceneColorBuffer.GetHeight();
+   ComputeContext& Context = BaseContext.GetComputeContext();
+   
+   // Set common root signature, this has the correct slots for the bindings we need
+   Context.SetRootSignature(Graphics::g_CommonRS);
+   
+   // Get the width and height of the main frame
+   uint32_t Width = Graphics::g_SceneColorBuffer.GetWidth();
+   uint32_t Height = Graphics::g_SceneColorBuffer.GetHeight();
 
     {
         // Take the finished camera motion vectors and decode them
@@ -80,37 +89,16 @@ void MotionVectors::GeneratePerPixelMotionVectors(CommandContext& BaseContext, c
 
     // Now generate per-pixel motion vectors
     {
-        ScopedTimer _prof(L"Generate Per-Pixel Motion Vectors", BaseContext);
+        ScopedTimer _prof2(L"Generate Per-Pixel Motion Vectors", BaseContext);
 
         // Repeat steps for this compute shader
         Context.SetPipelineState(s_AZB_PerPixelMotionVectorsCS);
 
         // Set up some extra constants that we need for calculating the previous world-space position for each pixel in the current frame by transforming from clip space
 
-        // Method taken from MotionBlur::GenerateCameraVelocity()
-        //float RcpHalfDimX = 2.0f / Width;
-        //float RcpHalfDimY = 2.0f / Height;
-       // float nearClip = camera.GetNearClip();
-        //float RcpZMagic = nearClip / (camera.GetFarClip() - nearClip);
-
-        //Math::Matrix4 preMult = Math::Matrix4(
-        //     Math::Vector4(RcpHalfDimX, 0.0f, 0.0f, 0.0f),
-        //     Math::Vector4(0.0f, -RcpHalfDimY, 0.0f, 0.0f),
-        //     Math::Vector4(0.0f, 0.0f, 1.0f, 0.0f),
-        //     Math::Vector4(-1.0f, 1.0f, 0.0f, 1.0f)
-        //);
-
-       // Math::Matrix4 postMult = Math::Matrix4(
-       //      Math::Vector4(1.0f / RcpHalfDimX, 0.0f, 0.0f, 0.0f),
-       //      Math::Vector4(0.0f, -1.0f / RcpHalfDimY, 0.0f, 0.0f),
-       //      Math::Vector4(0.0f, 0.0f, 1.0f, 0.0f),
-       //      Math::Vector4(1.0f / RcpHalfDimX, 1.0f / RcpHalfDimY, 0.0f, 1.0f));
-
-
         // Method found from another source
         Math::Matrix4 preMult = Math::Invert(camera.GetProjMatrix());
         Math::Matrix4 postMult = camera.GetViewMatrix();
-
 
         // This is the actual value we want to upload, and represents the transformation that took place in the previous frame
         Math::Matrix4 CurToPrevXForm = postMult * camera.GetReprojectionMatrix() * preMult;
@@ -132,16 +120,15 @@ void MotionVectors::GeneratePerPixelMotionVectors(CommandContext& BaseContext, c
             Width, Height
         };
 
-        // Set binding and upload to GPU for our compute shader
-        Context.SetDynamicConstantBufferView(1, sizeof(cbv), &cbv);
+        // Set binding and upload to GPU for our compute shader - CBs go last though!
+        Context.SetDynamicConstantBufferView(3, sizeof(cbv), &cbv);
 
         // Using the depth buffer as an input instead, as we are not simply decoding, but in fact generating wholly new MVs
         Context.TransitionResource(Graphics::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         Context.TransitionResource(Graphics::g_PerPixelMotionBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-        Context.SetDynamicDescriptor(2, 0, Graphics::g_SceneDepthBuffer.GetDepthSRV());
-        Context.SetDynamicDescriptor(3, 0, Graphics::g_PerPixelMotionBuffer.GetUAV());
-
+        Context.SetDynamicDescriptor(1, 0, Graphics::g_SceneDepthBuffer.GetDepthSRV());
+        Context.SetDynamicDescriptor(2, 0, Graphics::g_PerPixelMotionBuffer.GetUAV());
 
         Context.Dispatch2D(Width, Height);
 

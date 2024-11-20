@@ -3,6 +3,7 @@
 // desc: A helper namespace to generate per-pixel motion vectors! The existing implementation in MiniEngine only generates camera velocity
 // auth: Aliyaan Zulfiqar
 //===============================================================================
+#include "EngineTuning.h"
 
 class CommandContext;
 namespace Math { class Camera; }

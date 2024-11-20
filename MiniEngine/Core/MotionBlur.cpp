@@ -57,10 +57,6 @@ namespace MotionBlur
     ComputePSO s_MotionBlurFinalPassCS(L"Motion Blur: Motion Blur Final Pass CS");
     GraphicsPSO s_MotionBlurFinalPassPS(L"Motion Blur: Motion Blur Final Pass PS");
     ComputePSO s_CameraVelocityCS[2] = { { L"Motion Blur: Camera Velocity CS" },{ L"Motion Blur: Camera Velocity Linear Z CS" } };
-#if AZB_MOD
-    ComputePSO s_AZB_DecodeMotionVectorsCS(L"DLSS: Camera Motion Vector Decode CS");
-    ComputePSO s_AZB_PerPixelMotionVectorsCS(L"DLSS: Per-Pixel Motion Vector Creation CS");
-#endif
 }
 
 void MotionBlur::Initialize( void )
