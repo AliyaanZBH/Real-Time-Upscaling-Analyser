@@ -57,14 +57,14 @@ void Model::Render(
 
         // [AZB]: Disable frustum culling
         
-       // if (frustum.IntersectSphere(sphereVS))
-       // {
+        if (frustum.IntersectSphere(sphereVS))
+        {
             float distance = -sphereVS.GetCenter().GetZ() - sphereVS.GetRadius();
             sorter.AddMesh(mesh, distance,
                 meshConstants.GetGpuVirtualAddress() + sizeof(MeshConstants) * mesh.meshCBV,
                 m_MaterialConstants.GetGpuVirtualAddress() + sizeof(MaterialConstants) * mesh.materialCBV,
                 m_DataBuffer.GetGpuVirtualAddress(), skeleton);
-       // }
+        }
 
         pMesh += sizeof(Mesh) + (mesh.numDraws - 1) * sizeof(Mesh::Draw);
     }

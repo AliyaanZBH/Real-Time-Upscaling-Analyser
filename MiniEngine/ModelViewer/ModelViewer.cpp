@@ -87,7 +87,6 @@ public:
     virtual void RenderScene( void ) override;
 
 private:
-
     Camera m_Camera;
     unique_ptr<CameraController> m_CameraController;
 
@@ -98,7 +97,7 @@ private:
     // [AZB]: Create array with number of scenes
     std::array<ModelInstance, kNumScenes> m_Scenes;
     // [AZB]: Index into array, acting as a track on currently active scene to render
-    int activeScene = 1;        // 0 for Bistro, 1 for Sponza
+    int activeScene = 0;        // 0 for Bistro, 1 for Sponza
 #else
     // [AZB]: Original singular instance
     ModelInstance m_ModelInst;
@@ -512,7 +511,6 @@ void ModelViewer::RenderScene( void )
     // [AZB]: Original method for calculating sun shadow cam
     //m_SunShadowCamera.UpdateMatrix(-SunDirection, m_ModelInst.GetCenter(), ShadowBounds,
 
-
     // [AZB]: New method of calculating sun shadow cam from https://github.com/microsoft/DirectX-Graphics-Samples/pull/891/commits/bec16cef860fee2a68a07b7c18551b942e1374a4
     // Make sure that the x and z coordinates are 0 for the shadowcenter 
     // in order for the orthographic frustum to be correctly calculated.
@@ -557,31 +555,32 @@ void ModelViewer::RenderScene( void )
 
         {
             // [AZB]: Original method
-           //ScopedTimer _prof(L"Sun Shadow Map", gfxContext);
-           //
-           //MeshSorter shadowSorter(MeshSorter::kShadows);
-           //shadowSorter.SetCamera(m_SunShadowCamera);
-           //shadowSorter.SetDepthStencilTarget(g_ShadowBuffer);
-           //
+           ScopedTimer _prof(L"Sun Shadow Map", gfxContext);
+           
+           MeshSorter shadowSorter(MeshSorter::kShadows);
+           shadowSorter.SetCamera(m_SunShadowCamera);
+           shadowSorter.SetDepthStencilTarget(g_ShadowBuffer);
+           
            //m_ModelInst.Render(shadowSorter);
-           //
-           //shadowSorter.Sort();
-           //shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
+           m_Scenes[activeScene].Render(shadowSorter);
+
+           shadowSorter.Sort();
+           shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
 
             // [AZB]: New Method from https://github.com/microsoft/DirectX-Graphics-Samples/pull/891/commits/bec16cef860fee2a68a07b7c18551b942e1374a4 
-            ScopedTimer _prof(L"Sun Shadow Map", gfxContext);
-            
-            MeshSorter shadowSorter(MeshSorter::kShadows);
-            // [AZB]: Use main camera instead for position
-            shadowSorter.SetCamera(m_Camera);
-            //globals.ViewProjMatrix = m_SunShadowCamera.GetViewProjMatrix();
-            shadowSorter.SetDepthStencilTarget(g_ShadowBuffer);
-            m_Scenes[activeScene].Render(shadowSorter);
-            
-            shadowSorter.Sort();
-            // [AZB]: Use viewProjMat of sun_shadow, where the light is!
-            //shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
-            shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals, m_SunShadowCamera.GetViewProjMatrix());
+            //ScopedTimer _prof(L"Sun Shadow Map", gfxContext);
+            //
+            //MeshSorter shadowSorter(MeshSorter::kShadows);
+            //// [AZB]: Use main camera instead for position
+            //shadowSorter.SetCamera(m_Camera);
+            ////globals.ViewProjMatrix = m_SunShadowCamera.GetViewProjMatrix();
+            //shadowSorter.SetDepthStencilTarget(g_ShadowBuffer);
+            //m_Scenes[activeScene].Render(shadowSorter);
+            //
+            //shadowSorter.Sort();
+            //// [AZB]: Use viewProjMat of sun_shadow, where the light is!
+            ////shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
+            //shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals, m_SunShadowCamera.GetViewProjMatrix());
         }
 
         gfxContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
@@ -706,7 +705,7 @@ void ModelViewer::RenderScene( void )
     TemporalEffects::ResolveImage(gfxContext);
 
 #if AZB_MOD
-    // [AZB]: The main sceneColorBuffer is effectively disposed of once DLSS executes, so run post effects on that buffer instead!
+   // [AZB]: The main sceneColorBuffer is effectively disposed of once DLSS executes, so run post effects on that buffer instead!
    // if (DLSS::m_DLSS_Enabled)
    //     //ParticleEffectManager::Render(gfxContext, m_Camera, g_DLSSOutputBuffer, g_SceneDepthBuffer, g_LinearDepth[FrameIndex]);
    // else
