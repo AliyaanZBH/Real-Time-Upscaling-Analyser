@@ -44,4 +44,8 @@ namespace TemporalEffects
 
     void ResolveImage(CommandContext& Context);
 
+#if AZB_MOD
+    // [AZB]: Accessor to original frame index!
+    uint32_t GetFrameIndex(void);
+#endif
 }

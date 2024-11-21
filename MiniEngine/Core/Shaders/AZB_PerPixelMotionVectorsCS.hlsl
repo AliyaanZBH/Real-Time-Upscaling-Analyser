@@ -36,40 +36,45 @@ void main(uint3 DTid : SV_DispatchThreadID)
 {
     // Get the center of the current pixel
     uint2 currentPixel = (DTid.xy + 0.5);
+    //uint2 currentPixel = DTid.xy;
         
-    // Fetch the depth for the current pixel so that we can reconstruct the world-space position
+    // Fetch the depth for the current pixel so that we can reconstruct the world-space position - using Linear Depth now!
     float depth = DepthBuffer[currentPixel];
 
     // First get the pixel in NDC space
-    //float2 ndc = float2(
-    //    (currentPixel.x / ViewportWidth) * 2.0 - 1.0,
-    //    1.0 - (currentPixel.y / ViewportHeight) * 2.0);
+    float2 ndcCoords = float2(
+        (currentPixel.x / ViewportWidth) * 2.0 - 1.0,
+        1.0 - (currentPixel.y / ViewportHeight) * 2.0);
+        
+    //float4 clipPos = float4(ndc * depth, depth, 1.0f);
     
-    // Use NDC and the depth value to get accurate clipPos
-    //float4 clipPos = float4(ndc /** depth*/, depth, 1.0f);
+    // Use NDC and the depth value to get accurate world position
+    float4 ndcPos = float4(ndcCoords * depth, depth, 1.0f);
     
-    // Homogeneous point
-    float4 clipPos = float4(currentPixel, depth, 1.0f);
+    // Homogeneous point - multiply with linear depth
+    //float4 clipPos = float4(currentPixel * depth, depth, 1.0f);
     
     // Reconstruct the current world-space position using the inverse view-projection matrix
-    float4 worldPosCurrent = mul(clipPos, InverseViewProj);
+    //float4 worldPosCurrent = mul(clipPos, InverseViewProj);
+    float4 worldPosCurrent = mul(ndcPos, InverseViewProj);
     
     // Divide out the perspective to get correct world space position
-    worldPosCurrent.xyz /= worldPosCurrent.w;
-    //worldPosCurrent.z = worldPosCurrent.w;
-
+    //worldPosCurrent.xyz /= worldPosCurrent.w;
+    ////worldPosCurrent.z = worldPosCurrent.w;
+    //
     // Reproject to the previous frame's world-space position using CurToPrevXForm.
     float4 worldPosPrev = mul(worldPosCurrent, CurToPrevXForm);
+    worldPosPrev.xyz /= worldPosPrev.w;
     //worldPosPrev.z = worldPosPrev.w;
     
     //float4 worldPosPrev = mul(clipPos, CurToPrevXForm);
     //float4 worldPosPrev = mul(worldPosPrev, InverseViewProj);
-
+   
     // Calculate per-pixel motion - the difference between the current and previous world positions
-    float3 motionVector = worldPosCurrent - worldPosPrev;
+    float3 motionVector = worldPosCurrent.xyz - worldPosPrev.xyz;
 
     // Write to motion vector buffer
-    VelocityBuffer[currentPixel] = float4(motionVector, 1.0f);
+    VelocityBuffer[DTid.xy] = float4(motionVector, 1.0f);
     //VelocityBuffer[currentPixel] = PackVelocity(PrevHPos.xyz - float3(CurPixel, Depth)
     
     // For visualisation, encode motion as color

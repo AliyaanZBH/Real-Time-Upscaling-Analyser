@@ -118,6 +118,24 @@ void MotionVectors::GeneratePerPixelMotionVectors(CommandContext& BaseContext, c
         Math::Matrix4 preMult = Math::Invert(camera.GetProjMatrix());
         Math::Matrix4 postMult = camera.GetViewMatrix();
 
+        //float RcpHalfDimX = 2.0f / Width;
+        //float RcpHalfDimY = 2.0f / Height;
+        //float nearClip = camera.GetNearClip();
+        //float RcpZMagic = nearClip / (camera.GetFarClip()  - nearClip);
+        //
+        //Math::Matrix4 preMult = Math::Matrix4(
+        //    Math::Vector4(RcpHalfDimX, 0.0f, 0.0f, 0.0f),
+        //    Math::Vector4(0.0f, -RcpHalfDimY, 0.0f, 0.0f),
+        //    Math::Vector4(0.0f, 0.0f, RcpZMagic, 0.0f),
+        //    Math::Vector4(-1.0f, 1.0f, -RcpZMagic, 1.0f)
+        //);
+        //
+        //Math::Matrix4 postMult = Math::Matrix4(
+        //    Math::Vector4(1.0f / RcpHalfDimX, 0.0f, 0.0f, 0.0f),
+        //    Math::Vector4(0.0f, -1.0f / RcpHalfDimY, 0.0f, 0.0f),
+        //    Math::Vector4(0.0f, 0.0f, 1.0f, 0.0f),
+        //    Math::Vector4(1.0f / RcpHalfDimX, 1.0f / RcpHalfDimY, 0.0f, 1.0f));
+
         // This is the actual value we want to upload, and represents the transformation that took place in the previous frame
         Math::Matrix4 CurToPrevXForm = postMult * camera.GetReprojectionMatrix() * preMult;
 
@@ -141,8 +159,15 @@ void MotionVectors::GeneratePerPixelMotionVectors(CommandContext& BaseContext, c
         // Set binding and upload to GPU for our compute shader - CBs go last though!
         Context.SetDynamicConstantBufferView(3, sizeof(cbv), &cbv);
 
+        // DEPTH BUFFER IS EMPTY BY THIS POINT!
+        //
         // Using the depth buffer as an input instead, as we are not simply decoding, but in fact generating wholly new MVs
-        Context.TransitionResource(Graphics::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        //Context.TransitionResource(Graphics::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+
+        // Using linear depth as that is what other post steps use, e.g. motion blur!
+        // Using index mod2 so that we don't crash by using the current frame!
+        ColorBuffer& LinearDepth = Graphics::g_LinearDepth[TemporalEffects::GetFrameIndexMod2()];
+        Context.TransitionResource(LinearDepth, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         // The actual velocity data goes here
         Context.TransitionResource(Graphics::g_PerPixelMotionBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
         // A render target to visualise movement!

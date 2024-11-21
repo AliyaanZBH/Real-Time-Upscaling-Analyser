@@ -272,6 +272,13 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
 #endif
 }
 
+#if AZB_MOD
+uint32_t TemporalEffects::GetFrameIndex(void)
+{
+    return s_FrameIndex;
+}
+#endif
+
 void TemporalEffects::ApplyTemporalAA(ComputeContext& Context)
 {
     ScopedTimer _prof(L"Resolve Image", Context);

@@ -12,6 +12,7 @@
 #include "Display.h"		// To allow ImGui to trigger swapchain resize and handle global resolution controls!
 #include "BufferManager.h"	// For debug rendering buffers
 #include "CommandContext.h"	// For transitioning resources
+#include <TemporalEffects.h>
 
 //===============================================================================
 
@@ -81,7 +82,7 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 
 	// Store handles to GBuffers so that we can display them!
 	m_GBuffers[eGBuffers::SCENE_COLOR] = Graphics::g_SceneColorBuffer.GetSRV();
-	m_GBuffers[eGBuffers::SCENE_DEPTH] = Graphics::g_SceneDepthBuffer.GetDepthSRV();
+	m_GBuffers[eGBuffers::SCENE_DEPTH] = Graphics::g_LinearDepth[TemporalEffects::GetFrameIndex()].GetSRV();
 	m_GBuffers[eGBuffers::CAMERA_VELOCITY] = Graphics::g_VelocityBuffer.GetSRV();
 	m_GBuffers[eGBuffers::DECODED_CV] = Graphics::g_DecodedVelocityBuffer.GetSRV();
 	m_GBuffers[eGBuffers::MOTION_VECTORS] = Graphics::g_PerPixelMotionBuffer.GetSRV();
@@ -319,13 +320,10 @@ void GUI::Run(CommandContext& Context)
 					ImGui::Text("GPU handle = %p", newGPUHandle.ptr);
 					DoubleLineBreak();
 					ImGui::Text("Buffer: %s", m_BufferNames[i].c_str());
-					SingleLineBreak();
-
 					// Render our lovely buffer!
 					ImGui::Image((ImTextureID)newGPUHandle.ptr, ImVec2(400, 300));
 
-					// Keep the next set of buffers on the same line
-					DoubleTabSpace();
+					DoubleLineBreak();
 				}
 				ImGui::End();
 			}
