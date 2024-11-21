@@ -36,7 +36,7 @@ namespace DLSS
 	struct ExecutionRequirements
 	{
 		ID3D12GraphicsCommandList* m_pCmdList;
-		NVSDK_NGX_D3D12_DLSS_Eval_Params m_DlSSEvalParams;	// Actual necessary date (e.g. Motion Vectors) are contained in here
+		NVSDK_NGX_D3D12_DLSS_Eval_Params m_DlSSEvalParams;	// Actual necessary data (e.g. Motion Vectors) are contained in here
 	};
 
 	// Query for NGX capabilities - ensuring that DLSS is possible on this device!

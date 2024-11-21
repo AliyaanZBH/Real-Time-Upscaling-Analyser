@@ -700,9 +700,14 @@ void ModelViewer::RenderScene( void )
     MotionBlur::GenerateCameraVelocityBuffer(gfxContext, m_Camera, true);
 
 #if AZB_MOD
+    // [AZB]: Turn the camera velocity into something DLSS can read, and that we can use as a texture!
+    MotionVectors::DecodeMotionVectors(gfxContext);
+    
+    // [AZB]: Render our MVs to a texture and represent them using arrows!
+    MotionVectors::Render(gfxContext);
 
     // [AZB]: Generate true per-pixel motion vectors!
-    MotionVectors::GeneratePerPixelMotionVectors(gfxContext, m_Camera);
+    //MotionVectors::GeneratePerPixelMotionVectors(gfxContext, m_Camera);
 
     // [AZB]: TMP: Particle rendering assumes that the depth buffer and output buffer are the same size. Experimenting with moving it to before DLSS so that the particles can get upscaled too!
     ParticleEffectManager::Render(gfxContext, m_Camera, g_SceneColorBuffer, g_SceneDepthBuffer,  g_LinearDepth[FrameIndex]);

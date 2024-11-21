@@ -235,8 +235,8 @@ void DLSS::Execute(ExecutionRequirements& params)
 		return;
 
 	// TMP: DEBUGGGIN MVS
-	params.m_DlSSEvalParams.InMVScaleX = 50.5f;
-	params.m_DlSSEvalParams.InMVScaleY = 50.5f;
+	//params.m_DlSSEvalParams.InMVScaleX = 50.5f;
+	//params.m_DlSSEvalParams.InMVScaleY = 50.5f;
 
 	NVSDK_NGX_Result ret = NGX_D3D12_EVALUATE_DLSS_EXT(params.m_pCmdList, m_DLSS_FeatureHandle, m_DLSS_Parameters, &params.m_DlSSEvalParams);
 	if (NVSDK_NGX_SUCCEED(ret))

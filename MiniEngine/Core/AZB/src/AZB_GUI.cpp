@@ -83,9 +83,7 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 	// Store handles to GBuffers so that we can display them!
 	m_GBuffers[eGBuffers::SCENE_COLOR] = Graphics::g_SceneColorBuffer.GetSRV();
 	m_GBuffers[eGBuffers::SCENE_DEPTH] = Graphics::g_LinearDepth[TemporalEffects::GetFrameIndex()].GetSRV();
-	m_GBuffers[eGBuffers::CAMERA_VELOCITY] = Graphics::g_VelocityBuffer.GetSRV();
-	m_GBuffers[eGBuffers::DECODED_CV] = Graphics::g_DecodedVelocityBuffer.GetSRV();
-	m_GBuffers[eGBuffers::MOTION_VECTORS] = Graphics::g_PerPixelMotionBuffer.GetSRV();
+	m_GBuffers[eGBuffers::MOTION_VECTORS] = Graphics::g_DecodedVelocityBuffer.GetSRV();
 	m_GBuffers[eGBuffers::VISUAL_MOTION_VECTORS] = Graphics::g_MotionVectorVisualisationBuffer.GetSRV();
 }
 
@@ -277,9 +275,7 @@ void GUI::Run(CommandContext& Context)
 
 				imguiGBufferContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				imguiGBufferContext.TransitionResource(Graphics::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-				imguiGBufferContext.TransitionResource(Graphics::g_VelocityBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				imguiGBufferContext.TransitionResource(Graphics::g_DecodedVelocityBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-				imguiGBufferContext.TransitionResource(Graphics::g_PerPixelMotionBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				imguiGBufferContext.TransitionResource(Graphics::g_MotionVectorVisualisationBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 				//

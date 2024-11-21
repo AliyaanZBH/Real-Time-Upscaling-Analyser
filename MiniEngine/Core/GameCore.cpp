@@ -149,7 +149,7 @@ namespace GameCore
         {
         }
         
-       // MotionVectors::Render();
+        //MotionVectors::Render();
 
         // [AZB]: Also added an option to toggle the post step entirely!
         if (AZB_GUI->m_bEnablePostFX)

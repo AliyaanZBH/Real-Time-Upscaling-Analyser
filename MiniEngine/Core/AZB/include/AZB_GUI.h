@@ -6,6 +6,7 @@
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
+#include "imgui_internal.h" // For ImLerp
 
 #include "implot.h" // For our lovely graphs!
 
@@ -88,8 +89,6 @@ private:
     {
         SCENE_COLOR,
         SCENE_DEPTH,
-        CAMERA_VELOCITY,
-        DECODED_CV,
         MOTION_VECTORS,
         VISUAL_MOTION_VECTORS,
         NUM_BUFFERS
@@ -101,8 +100,6 @@ private:
     {
         "Main Color"            ,
         "Depth"                 ,
-        "Camera Velocity"       ,
-        "Decoded CV"            ,
         "Motion Vectors Raw"    ,
         "MV Visualisation"       
     };

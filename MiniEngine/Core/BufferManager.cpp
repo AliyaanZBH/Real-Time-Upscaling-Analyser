@@ -142,11 +142,13 @@ void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t buffer
         g_SceneNormalBuffer.Create( L"Normals Buffer", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R16G16B16A16_FLOAT, esram );
 
 #if AZB_MOD
-        // [AZB]: DLSS wants per-pixel motion vectors in addition to camera velocity!!
+        // [AZB]: Per-pixel motion vectors in addition to camera velocity!!
         g_PerPixelMotionBuffer.Create( L"Per-Pixel Motion Vectors", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32G32_FLOAT);
+
         // [AZB]: For visual debugging
         g_MotionVectorVisualisationBuffer.Create( L"Motion Vector Texture", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32G32_FLOAT);
         g_MotionVectorRTBuffer.Create( L"Motion Vector Render Target", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
+
         // [AZB]: DLSS wants it's motion vectors in a different format to what MiniEngine originally provides, so create a buffer that will decode the MVs from the camera!
         g_DecodedVelocityBuffer.Create( L"Decoded Camera Motion Vectors", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32G32_FLOAT);
 #endif

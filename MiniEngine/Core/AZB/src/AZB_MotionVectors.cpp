@@ -59,7 +59,7 @@ void MotionVectors::Initialize(void)
     // Set our vertex shader up to render a quad to the screen
     s_AZB_MotionVectorRenderPS.SetVertexShader(g_pScreenQuadCommonVS, sizeof(g_pScreenQuadCommonVS));
     s_AZB_MotionVectorRenderPS.SetPixelShader(g_pAZB_MotionVectorRenderPS, sizeof(g_pAZB_MotionVectorRenderPS));
-    s_AZB_MotionVectorRenderPS.SetRenderTargetFormat(Graphics::g_MotionVectorRTBuffer.GetFormat(), DXGI_FORMAT_UNKNOWN);
+    s_AZB_MotionVectorRenderPS.SetRenderTargetFormat(Graphics::g_MotionVectorVisualisationBuffer.GetFormat(), DXGI_FORMAT_UNKNOWN);
     s_AZB_MotionVectorRenderPS.Finalize();
 
 }
@@ -67,6 +67,42 @@ void MotionVectors::Initialize(void)
 void MotionVectors::Shutdown(void)
 {
     
+}
+
+void MotionVectors::DecodeMotionVectors(CommandContext& BaseContext)
+{
+
+    // Take the finished camera motion vectors and decode them
+    ScopedTimer _prof(L"Decode Camera Velocity Buffer", BaseContext);
+
+    ComputeContext& Context = BaseContext.GetComputeContext();
+
+    // Set common root signature, this has the correct slots for the bindings we need
+    Context.SetRootSignature(Graphics::g_CommonRS);
+
+    // Get the width and height of the main frame
+    uint32_t Width = Graphics::g_SceneColorBuffer.GetWidth();
+    uint32_t Height = Graphics::g_SceneColorBuffer.GetHeight();
+
+    // Set pipeline state to the one needed for my new shader
+    Context.SetPipelineState(s_AZB_DecodeMotionVectorsCS);
+
+    // Transition packed MV buffer so that it can be read by the CS
+    Context.TransitionResource(Graphics::g_VelocityBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    // Transition output buffer so that it can be written to
+    Context.TransitionResource(Graphics::g_DecodedVelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+    // Set descriptors to upload data to the shader
+    Context.SetDynamicDescriptor(1, 0, Graphics::g_VelocityBuffer.GetSRV());
+    Context.SetDynamicDescriptor(2, 0, Graphics::g_DecodedVelocityBuffer.GetUAV());
+
+    // Fire off the compute shader!
+    Context.Dispatch2D(Width, Height);
+
+    // Transition main packed buffer back to UAV
+    Context.TransitionResource(Graphics::g_VelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    // Transition our decoded buffer back to SRV!
+    //Context.TransitionResource(Graphics::g_DecodedVelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 }
 
 void MotionVectors::GeneratePerPixelMotionVectors(CommandContext& BaseContext, const Math::Camera& camera)
@@ -82,28 +118,6 @@ void MotionVectors::GeneratePerPixelMotionVectors(CommandContext& BaseContext, c
    uint32_t Width = Graphics::g_SceneColorBuffer.GetWidth();
    uint32_t Height = Graphics::g_SceneColorBuffer.GetHeight();
 
-    {
-        // Take the finished camera motion vectors and decode them
-        ScopedTimer _prof(L"Decode Camera Velocity Buffer", BaseContext);
-
-        // Set pipeline state to the one needed for my new shader
-        Context.SetPipelineState(s_AZB_DecodeMotionVectorsCS);
-
-        // Transition packed MV buffer so that it can be read by the CS
-        Context.TransitionResource(Graphics::g_VelocityBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-        // Transition output buffer so that it can be written to
-        Context.TransitionResource(Graphics::g_DecodedVelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-
-        // Set descriptors to upload data to the shader
-        Context.SetDynamicDescriptor(1, 0, Graphics::g_VelocityBuffer.GetSRV());
-        Context.SetDynamicDescriptor(2, 0, Graphics::g_DecodedVelocityBuffer.GetUAV());
-
-        // Fire off the compute shader!
-        Context.Dispatch2D(Width, Height);
-
-        // Transition main packed buffer back to UAV
-        Context.TransitionResource(Graphics::g_VelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    }
 
     // Now generate per-pixel motion vectors
     {
@@ -117,24 +131,6 @@ void MotionVectors::GeneratePerPixelMotionVectors(CommandContext& BaseContext, c
         // Method found from another source
         Math::Matrix4 preMult = Math::Invert(camera.GetProjMatrix());
         Math::Matrix4 postMult = camera.GetViewMatrix();
-
-        //float RcpHalfDimX = 2.0f / Width;
-        //float RcpHalfDimY = 2.0f / Height;
-        //float nearClip = camera.GetNearClip();
-        //float RcpZMagic = nearClip / (camera.GetFarClip()  - nearClip);
-        //
-        //Math::Matrix4 preMult = Math::Matrix4(
-        //    Math::Vector4(RcpHalfDimX, 0.0f, 0.0f, 0.0f),
-        //    Math::Vector4(0.0f, -RcpHalfDimY, 0.0f, 0.0f),
-        //    Math::Vector4(0.0f, 0.0f, RcpZMagic, 0.0f),
-        //    Math::Vector4(-1.0f, 1.0f, -RcpZMagic, 1.0f)
-        //);
-        //
-        //Math::Matrix4 postMult = Math::Matrix4(
-        //    Math::Vector4(1.0f / RcpHalfDimX, 0.0f, 0.0f, 0.0f),
-        //    Math::Vector4(0.0f, -1.0f / RcpHalfDimY, 0.0f, 0.0f),
-        //    Math::Vector4(0.0f, 0.0f, 1.0f, 0.0f),
-        //    Math::Vector4(1.0f / RcpHalfDimX, 1.0f / RcpHalfDimY, 0.0f, 1.0f));
 
         // This is the actual value we want to upload, and represents the transformation that took place in the previous frame
         Math::Matrix4 CurToPrevXForm = postMult * camera.GetReprojectionMatrix() * preMult;
@@ -186,36 +182,29 @@ void MotionVectors::GeneratePerPixelMotionVectors(CommandContext& BaseContext, c
     }
 }
 
-void MotionVectors::Render()
+void MotionVectors::Render(CommandContext& BaseContext)
 {
-   GraphicsContext& Context = GraphicsContext::Begin(L"Render Motion Vectors");
+   //GraphicsContext& Context = GraphicsContext::Begin(L"Render Motion Vectors");
+   GraphicsContext& Context = BaseContext.GetGraphicsContext();
    
    Context.SetRootSignature(Graphics::g_CommonRS);
    Context.SetPipelineState(s_AZB_MotionVectorRenderPS);
 
-   // Set up the visualisation buffer as a texture
-   //Context.SetDynamicDescriptor(1, 0, Graphics::g_MotionVectorVisualisationBuffer.GetSRV());
-
    // Pass in MV as texture to sample
-   Context.TransitionResource(Graphics::g_PerPixelMotionBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-   Context.SetDynamicDescriptor(1, 0, Graphics::g_PerPixelMotionBuffer.GetSRV());
+   Context.TransitionResource(Graphics::g_DecodedVelocityBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+   Context.SetDynamicDescriptor(1, 0, Graphics::g_DecodedVelocityBuffer.GetSRV());
 
-   //// Pass in Visualisation as output
-   //Context.TransitionResource(Graphics::g_MotionVectorVisualisationBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-   //Context.SetDynamicDescriptor(1, 0, Graphics::g_MotionVectorVisualisationBuffer.GetUAV());
-
-   
    // Extra step here as sometimes the topology type is different
    Context.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
    
    // Render it to main scene color buffer
-   Context.TransitionResource(Graphics::g_MotionVectorRTBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
-   Context.ClearColor(Graphics::g_MotionVectorRTBuffer);
-   Context.SetRenderTarget(Graphics::g_MotionVectorRTBuffer.GetRTV());
-   Context.SetViewportAndScissor(0, 0, Graphics::g_MotionVectorRTBuffer.GetWidth(), Graphics::g_MotionVectorRTBuffer.GetHeight());
+   Context.TransitionResource(Graphics::g_MotionVectorVisualisationBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+   Context.ClearColor(Graphics::g_MotionVectorVisualisationBuffer);
+   Context.SetRenderTarget(Graphics::g_MotionVectorVisualisationBuffer.GetRTV());
+   Context.SetViewportAndScissor(0, 0, Graphics::g_MotionVectorVisualisationBuffer.GetWidth(), Graphics::g_MotionVectorVisualisationBuffer.GetHeight());
    Context.Draw(3);
    
    // Transition to SRV and copy dest for ImGui to use!
-   Context.TransitionResource(Graphics::g_MotionVectorRTBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-   Context.Finish();
+   Context.TransitionResource(Graphics::g_MotionVectorVisualisationBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+   //Context.Finish();
 }

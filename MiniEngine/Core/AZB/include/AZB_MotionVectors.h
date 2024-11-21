@@ -14,9 +14,12 @@ namespace MotionVectors
 	void Initialize(void);
 	void Shutdown(void);
 
-	// This function actually generates the data!
+	// This function takes the screen-space motion vectors created by MiniEngine and decodes them into a format we can use!
+	void DecodeMotionVectors(CommandContext& BaseContext);
+
+	// This function actually generates world space, per pixel motion vectors!
 	void GeneratePerPixelMotionVectors(CommandContext& BaseContext, const Math::Camera& camera);
 
 	// This function will help visualise motion vectors
-	void Render();
+	void Render(CommandContext& BaseContext);
 }
