@@ -147,8 +147,9 @@ namespace GameCore
         // [AZB]: Check if we want to render MVs
         if (AZB_GUI->m_bEnableMotionVisualisation)
         {
-            //MotionVectors::Render();
         }
+        
+       // MotionVectors::Render();
 
         // [AZB]: Also added an option to toggle the post step entirely!
         if (AZB_GUI->m_bEnablePostFX)

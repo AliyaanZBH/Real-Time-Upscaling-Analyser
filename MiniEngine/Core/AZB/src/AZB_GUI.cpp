@@ -281,8 +281,9 @@ void GUI::Run(CommandContext& Context)
 				GraphicsContext& imguiGBufferContext = Context.GetGraphicsContext();
 
 
-				imguiGBufferContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, true);
-				//imguiGBufferContext.TransitionResource(Graphics::g_MotionVectorRTBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, true);
+				//imguiGBufferContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, true);
+				//imguiGBufferContext.TransitionResource(Graphics::g_MotionVectorRTBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				imguiGBufferContext.TransitionResource(Graphics::g_MotionVectorVisualisationBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 				//
 				// Update ImGui descriptor heap by adding GBuffer texture
@@ -297,7 +298,8 @@ void GUI::Run(CommandContext& Context)
 				newCPUHandle.ptr += descriptorIndex * descriptorSize; // Offset for each descriptor
 
 				// Copy our existing SRV into the new descriptor heap!
-				D3D12_CPU_DESCRIPTOR_HANDLE existingSRVHandle = Graphics::g_SceneColorBuffer.GetSRV();
+				//D3D12_CPU_DESCRIPTOR_HANDLE existingSRVHandle = Graphics::g_MotionVectorRTBuffer.GetSRV();
+				D3D12_CPU_DESCRIPTOR_HANDLE existingSRVHandle = Graphics::g_MotionVectorVisualisationBuffer.GetSRV();
 				m_pD3DDevice->CopyDescriptorsSimple(1, newCPUHandle, existingSRVHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 				// Create a new SRV in this heap using the existing texture SRV

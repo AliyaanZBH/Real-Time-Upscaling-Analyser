@@ -154,31 +154,43 @@ void MotionVectors::GeneratePerPixelMotionVectors(CommandContext& BaseContext, c
 
         Context.Dispatch2D(Width, Height);
 
-        // Transition to visual buffer to SRV so we can use it in ImGui!
+        // Transition visual buffer to SRV so we can use it in ImGui!
+        Context.TransitionResource(Graphics::g_PerPixelMotionBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         Context.TransitionResource(Graphics::g_MotionVectorVisualisationBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
     }
 }
 
 void MotionVectors::Render()
 {
-   //GraphicsContext& Context = GraphicsContext::Begin(L"Render Motion Vectors");
-   //
-   //Context.SetRootSignature(Graphics::g_CommonRS);
-   //Context.SetPipelineState(s_AZB_MotionVectorRenderPS);
-   //// Set up the visualisation buffer as a texture
-   //Context.TransitionResource(Graphics::g_MotionVectorVisualisationBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+   GraphicsContext& Context = GraphicsContext::Begin(L"Render Motion Vectors");
+   
+   Context.SetRootSignature(Graphics::g_CommonRS);
+   Context.SetPipelineState(s_AZB_MotionVectorRenderPS);
+
+   // Set up the visualisation buffer as a texture
    //Context.SetDynamicDescriptor(1, 0, Graphics::g_MotionVectorVisualisationBuffer.GetSRV());
-   //
-   //// Extra step here as sometimes the topology type is different
-   //Context.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-   //
-   //// Render it to main scene color buffer
-   //Context.TransitionResource(Graphics::g_MotionVectorRTBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
-   //Context.SetRenderTarget(Graphics::g_MotionVectorRTBuffer.GetRTV());
-   //Context.SetViewportAndScissor(0, 0, Graphics::g_MotionVectorRTBuffer.GetWidth(), Graphics::g_MotionVectorRTBuffer.GetHeight());
-   //Context.Draw(3);
-   //
-   //// Transition to SRV and copy dest for ImGui to use!
-   //Context.TransitionResource(Graphics::g_MotionVectorRTBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE/* | D3D12_RESOURCE_STATE_COPY_DEST, true*/);
-   //Context.Finish();
+
+   // Pass in MV as texture to sample
+   Context.TransitionResource(Graphics::g_PerPixelMotionBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+   Context.SetDynamicDescriptor(1, 0, Graphics::g_PerPixelMotionBuffer.GetSRV());
+
+   //// Pass in Visualisation as output
+   //Context.TransitionResource(Graphics::g_MotionVectorVisualisationBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+   //Context.SetDynamicDescriptor(1, 0, Graphics::g_MotionVectorVisualisationBuffer.GetUAV());
+
+   
+   // Extra step here as sometimes the topology type is different
+   Context.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+   
+   // Render it to main scene color buffer
+   Context.TransitionResource(Graphics::g_MotionVectorRTBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+   Context.ClearColor(Graphics::g_MotionVectorRTBuffer);
+   Context.SetRenderTarget(Graphics::g_MotionVectorRTBuffer.GetRTV());
+   Context.SetViewportAndScissor(0, 0, Graphics::g_MotionVectorRTBuffer.GetWidth(), Graphics::g_MotionVectorRTBuffer.GetHeight());
+   Context.Draw(3);
+   
+   // Transition to SRV and copy dest for ImGui to use!
+   Context.TransitionResource(Graphics::g_MotionVectorRTBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+   Context.Finish();
 }
