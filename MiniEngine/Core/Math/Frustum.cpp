@@ -61,12 +61,12 @@ void Frustum::ConstructOrthographicFrustum( float Left, float Right, float Top, 
     m_FrustumCorners[ kFarUpperRight  ] = Vector3(Right,  Top,		 -Back);	// Far upper right
 
     // Define the bounding planes
-    m_FrustumPlanes[kNearPlane]		= BoundingPlane(  0.0f,  0.0f, -1.0f, -Front );
-    m_FrustumPlanes[kFarPlane]		= BoundingPlane(  0.0f,  0.0f,  1.0f,   Back );
-    m_FrustumPlanes[kLeftPlane]		= BoundingPlane(  1.0f,  0.0f,  0.0f,  -Left );
-    m_FrustumPlanes[kRightPlane]	= BoundingPlane( -1.0f,  0.0f,  0.0f,  Right );
-    m_FrustumPlanes[kTopPlane]		= BoundingPlane(  0.0f, -1.0f,  0.0f, Bottom );
-    m_FrustumPlanes[kBottomPlane]	= BoundingPlane(  0.0f,  1.0f,  0.0f,   -Top );
+    m_FrustumPlanes[kNearPlane]     = BoundingPlane(  0.0f,  0.0f,  1.0f, -Front );
+    m_FrustumPlanes[kFarPlane]      = BoundingPlane(  0.0f,  0.0f, -1.0f,  Back );
+    m_FrustumPlanes[kLeftPlane]     = BoundingPlane(  1.0f,  0.0f,  0.0f, -Left );
+    m_FrustumPlanes[kRightPlane]    = BoundingPlane( -1.0f,  0.0f,  0.0f,  Right );
+    m_FrustumPlanes[kBottomPlane]   = BoundingPlane(  0.0f,  1.0f,  0.0f, -Bottom );
+    m_FrustumPlanes[kTopPlane]      = BoundingPlane(  0.0f, -1.0f,  0.0f,  Top );
 }
 
 
@@ -81,20 +81,13 @@ Frustum::Frustum( const Matrix4& ProjMat )
     // Identify if the projection is perspective or orthographic by looking at the 4th row.
     if (ProjMatF[3] == 0.0f && ProjMatF[7] == 0.0f && ProjMatF[11] == 0.0f && ProjMatF[15] == 1.0f)
     {
-
-        // [AZB]: Replacing original frustum which breaks shadow mapping
-        //        Credit: https://github.com/microsoft/DirectX-Graphics-Samples/pull/891/commits/bec16cef860fee2a68a07b7c18551b942e1374a4
-
-        // Orthographic Frustum Extraction
-         //  In ModelViewer, we set the shadowcenter to be the origin. Thus the frustum planes are symmetrical x, y and z axis.
-         //  Also, for Top and Bottom, it is the Top that is negative due to: ProjMatF[10] = -2/(far - near), in an orthographic projmat.
-
-        float Left = -RcpXX;
-        float Right = RcpXX;
-        float Top = -RcpYY;
-        float Bottom = RcpYY;
-        float Front = 0.5f * RcpZZ;
-        float Back = 0.5f - RcpZZ;
+        // Orthographic
+        float Left   = (-1.0f - ProjMatF[12]) * RcpXX;
+        float Right  = ( 1.0f - ProjMatF[12]) * RcpXX;
+        float Top    = ( 1.0f - ProjMatF[13]) * RcpYY;
+        float Bottom = (-1.0f - ProjMatF[13]) * RcpYY;
+        float Front  = ( 0.0f - ProjMatF[14]) * RcpZZ;
+        float Back   = ( 1.0f - ProjMatF[14]) * RcpZZ;
 
         // Check for reverse Z here.  The bounding planes need to point into the frustum.
         if (Front < Back)
