@@ -8,14 +8,16 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
 
-#include "implot.h"
+#include "implot.h" // For our lovely graphs!
 
 #include "AZB_Utils.h"
 
+#include <string>   // For GBuffer LUT
+#include <array>  // For GBuffer array
+#include <d3d12.h>  // For GBuffer array
 //===============================================================================
 
 class CommandContext;
-
 // Pallete consts for ease of use, readabilty and editability
 namespace ThemeColours
 {
@@ -78,6 +80,37 @@ private:
     
     // Handle to global device - needed to update descriptor heap!
     ID3D12Device* m_pD3DDevice;
+
+
+    //
+    // GBuffer handling
+    //
+    enum eGBuffers : uint8_t
+    {
+        SCENE_COLOR,
+        SCENE_DEPTH,
+        CAMERA_VELOCITY,
+        DECODED_CV,
+        MOTION_VECTORS,
+        VISUAL_MOTION_VECTORS,
+        NUM_BUFFERS
+    };
+
+    // String look-up table to give names to buffers in ImGui!
+    // IF the above enum changes, you need to change this!
+    std::string m_BufferNames[eGBuffers::NUM_BUFFERS] =
+    {
+        "Main Color"            ,
+        "Depth"                 ,
+        "Camera Velocity"       ,
+        "Decoded CV"            ,
+        "Motion Vectors Raw"    ,
+        "MV Visualisation"       
+    };
+
+    // The actual array of buffer handles
+    std::array<D3D12_CPU_DESCRIPTOR_HANDLE, NUM_BUFFERS> m_GBuffers;
+
 
     //
     // Member variables that allow for safe manipulation of graphics pipeline.

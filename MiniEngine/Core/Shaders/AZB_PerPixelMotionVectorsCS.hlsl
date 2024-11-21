@@ -31,7 +31,7 @@ cbuffer FrameConstants : register(b1)
 // Set root signature for this shader
 [RootSignature(Common_RootSig)]
 // Using 8,8,1 as that is what the cameraVelocityCS uses. Investigate if other values are better!
-[numthreads(32, 32, 1)]
+[numthreads(8, 8, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
     // Get the center of the current pixel
@@ -117,28 +117,28 @@ void main(uint3 DTid : SV_DispatchThreadID)
    //float4 arrowColor = float4(0.0, 0.0, 0.0, 1.0); // Default to black
     
     // Checking for the shaft area (region around the line)
-    //if (abs(dot(currentPixel - float2(0.5, 0.5), arrowBodyDirection)) < shaftThickness)
+    if (abs(dot(currentPixel - float2(0.5, 0.5), arrowBodyDirection)) < shaftThickness)
+    {
+        arrowColor = float4(1.0, 0.0, 0.0, 1.0); // Red shaft
+    }
+    
+    // Checking for the arrowhead area (region forming the tip of the arrow)
+    if (abs(dot(currentPixel - float2(0.5, 0.5), arrowHeadDirection)) < arrowHeadSize)
+    {
+        arrowColor = float4(0.0, 1.0, 0.0, 1.0); // Green arrowhead
+    }
+    
+    // Compare pixel positions relative to the shaft and arrowhead size
+    //if (abs(dot(DTid.xy - float2(0.5, 0.5), perpendicular)) < shaftThickness)
     //{
     //    arrowColor = float4(1.0, 0.0, 0.0, 1.0); // Red shaft
     //}
     //
-    //// Checking for the arrowhead area (region forming the tip of the arrow)
-    //if (abs(dot(currentPixel - float2(0.5, 0.5), arrowHeadDirection)) < arrowHeadSize)
+    //// Check if the pixel is near the arrowhead
+    //if (length(DTid.xy - (DTid.xy + motionVector.xy)) < arrowHeadSize)
     //{
     //    arrowColor = float4(0.0, 1.0, 0.0, 1.0); // Green arrowhead
     //}
-    
-    // Compare pixel positions relative to the shaft and arrowhead size
-    if (abs(dot(DTid.xy - float2(0.5, 0.5), perpendicular)) < shaftThickness)
-    {
-        arrowColor = float4(1.0, 0.0, 0.0, 1.0); // Red shaft
-    }
-
-    // Check if the pixel is near the arrowhead
-    if (length(DTid.xy - (DTid.xy + motionVector.xy)) < arrowHeadSize)
-    {
-        arrowColor = float4(0.0, 1.0, 0.0, 1.0); // Green arrowhead
-    }
     
     OutputVisualiserBuffer[currentPixel] = arrowColor;
 
