@@ -210,49 +210,63 @@ void GUI::Run(CommandContext& Context)
 		if (ImGui::CollapsingHeader("DLSS Settings"))
 		{
 
-			//static bool useDLSS = false;
-			static int dlssMode = 1; // 0: Performance, 1: Balanced, 2: Quality, etc.
-			const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance" };
-
-
-
-			// Main selection for user to play with!
-			if (ImGui::Checkbox("Enable DLSS", &m_bToggleDLSS))
-			{
-				m_bDLSSUpdatePending = true;
-			}
-
-			// Wrap mode selection in disabled blcok - only want to edit this when DLSS is ON
-			if (!m_bToggleDLSS)
-				ImGui::BeginDisabled(true);
-			if (ImGui::BeginCombo("Mode", modes[dlssMode]))
+			// Only show the next section if DLSS is supported!
+			if (DLSS::m_bIsNGXSupported)
 			{
 
-				for (int n = 0; n < std::size(modes); n++)
+
+
+				//static bool useDLSS = false;
+				static int dlssMode = 1; // 0: Performance, 1: Balanced, 2: Quality, etc.
+				const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance" };
+
+
+
+
+				// Main selection for user to play with!
+				if (ImGui::Checkbox("Enable DLSS", &m_bToggleDLSS))
 				{
-					const bool is_selected = (dlssMode == n);
-					if (ImGui::Selectable(modes[n], is_selected))
-					{
-						dlssMode = n;
-						// Update current mode
-						DLSS::m_CurrentQualityMode = n;
-						// Set flags
-						DLSS::m_bNeedsReleasing = true;
-						m_bDLSSUpdatePending = true;
-						m_bUpdateDLSSMode = true;
-					}
-
-					if (is_selected)
-						ImGui::SetItemDefaultFocus();
+					m_bDLSSUpdatePending = true;
 				}
-				ImGui::EndCombo();
+
+				// Wrap mode selection in disabled blcok - only want to edit this when DLSS is ON
+				if (!m_bToggleDLSS)
+					ImGui::BeginDisabled(true);
+				if (ImGui::BeginCombo("Mode", modes[dlssMode]))
+				{
+
+					for (int n = 0; n < std::size(modes); n++)
+					{
+						const bool is_selected = (dlssMode == n);
+						if (ImGui::Selectable(modes[n], is_selected))
+						{
+							dlssMode = n;
+							// Update current mode
+							DLSS::m_CurrentQualityMode = n;
+							// Set flags
+							DLSS::m_bNeedsReleasing = true;
+							m_bDLSSUpdatePending = true;
+							m_bUpdateDLSSMode = true;
+						}
+
+						if (is_selected)
+							ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+
+				}
+
+				if (!m_bToggleDLSS)
+					ImGui::EndDisabled();
 
 			}
-
-			if (!m_bToggleDLSS)
-				ImGui::EndDisabled();
-
-
+			else
+			{
+				// Let user know that DLSS isn't supported
+				const char* centerText = "DLSS is not supported by your hardware! Sorry!";
+				CenterNextTextItem(centerText);
+				ImGui::TextColored({ 1.f,0.f,0.f,1.f }, centerText);
+			}
 			ImGui::Checkbox("Enable PostFX", &m_bEnablePostFX);
 
 		}
@@ -517,6 +531,8 @@ void GUI::MainWindowTitle()
 	//
 	// DEBUG
 	//
+
+#if AZB_DBG
 	
 	// Try and draw some shapes
 	ImDrawList* draw_list = ImGui::GetWindowDrawList();
@@ -594,6 +610,8 @@ void GUI::MainWindowTitle()
 	//
 	// END DEBUG
 	//
+
 	DoubleLineBreak();
 	Separator();
+#endif
 }
