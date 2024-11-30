@@ -189,6 +189,13 @@ private:
 		ImGui::Text(titleText);
 	}
 
+    // Reusable wrapped bullet text! Self-Indents by 1 level, call xxTabSpace() for more levels!
+    const void WrappedBullet(const char* bulletText)
+    {
+        ImGui::Bullet();
+        SingleTabSpace();
+        ImGui::TextWrapped(bulletText);
+    }
 
 
 

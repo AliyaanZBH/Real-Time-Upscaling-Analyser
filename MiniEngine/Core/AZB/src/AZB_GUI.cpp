@@ -98,9 +98,6 @@ void GUI::Run(CommandContext& Context)
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	// The window size will have to adjust based on resolution changes
-	//ImVec2 kMainWindowStartSize = { Graphics::g_DisplayWidth / 4.f, Graphics::g_DisplayHeight / 1.5f };
-
 		// Display Modal if it is the first time!
 	if (m_bShowStartupModal)
 		StartupModal();
@@ -108,8 +105,8 @@ void GUI::Run(CommandContext& Context)
 		// Display the rest of our lovely Window!
 	{
 
-		ImGui::SetNextWindowSize(m_MainWindowSize, ImGuiCond_Appearing);
 		ImGui::SetNextWindowPos(m_MainWindowPos, ImGuiCond_Appearing, kTopLeftPivot);
+		ImGui::SetNextWindowSize(m_MainWindowSize, ImGuiCond_Appearing);
 
 		if (!ImGui::Begin("RTUA"))
 		{
@@ -526,14 +523,13 @@ void GUI::MainWindowTitle()
 
 	ImGui::TextWrapped("From this main window you can:");
 	SingleLineBreak();
-	SingleTabSpace();
-	ImGui::BulletText("View performance metrics and debug data about the current upscaler");
+
+	// Use my wrapper to do a bunch of bullet points with text wrapping! Also self indents by 1 level!
+	WrappedBullet("View performance metrics and debug data about the current upscaler");
 	SingleLineBreak();
-	SingleTabSpace();
-	ImGui::BulletText("Tweak settings relating to the implementation of the current upscaler");
+	WrappedBullet("Tweak settings relating to the implementation of the current upscaler");
 	SingleLineBreak();
-	SingleTabSpace();
-	ImGui::BulletText("Change the currently implemented upscaler or disable it entirely!");
+	WrappedBullet("Change the currently implemented upscaler or disable it entirely!");
 
 
 	Separator();
