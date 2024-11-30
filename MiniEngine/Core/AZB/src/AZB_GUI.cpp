@@ -51,7 +51,7 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 	ASSERT_SUCCEEDED(pDevice->CreateDescriptorHeap(&descriptorHeapDescriptor, IID_PPV_ARGS(&m_pSrvDescriptorHeap)));
 
 	// Set ImGui up with his heap
-	ImGui_ImplDX12_Init(pDevice, numFramesInFlight, DXGI_FORMAT_R8G8B8A8_UNORM, m_pSrvDescriptorHeap,
+	ImGui_ImplDX12_Init(pDevice, numFramesInFlight, renderTargetFormat, m_pSrvDescriptorHeap,
 		m_pSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), m_pSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
 	// Store device for heap allocations!
@@ -386,13 +386,13 @@ void GUI::StartupModal()
 
 void GUI::MainWindowTitle()
 {
-	DoubleLineBreak();
-
-	SectionTitle("Welcome to Real-Time Upscaling Analyser!");
-
-
-	Separator();
-
+	//DoubleLineBreak();
+	//
+	//SectionTitle("Welcome to Real-Time Upscaling Analyser!");
+	//
+	//
+	//Separator();
+	//
 	ImGui::TextWrapped("From this main window you can:");
 	SingleLineBreak();
 
@@ -604,13 +604,14 @@ void GUI::PerformanceMetrics()
 		// Open windows when bool is true!
 		if (showHardwareMetrics)
 		{
-			ImGui::SetNextWindowSize({ m_MainWindowSize.x, m_MainWindowSize.y * 0.75f });
-			if (!ImGui::Begin("Hardware Metrics"))
-			{
-				// Early out if the window is collapsed, as an optimization.
-				ImGui::End();
-				return;
-			}
+			// Re-calculate window sizes for the current resolution!
+			m_MetricWindowSize = { m_MainWindowSize.x, m_MainWindowSize.y * 0.666f };
+			m_HwTimingWindowPos = { m_MainWindowPos.x - m_MainWindowSize.x, m_MainWindowPos.y }; // Set it directly next to the main window at the top
+
+			ImGui::SetNextWindowSize(m_MetricWindowSize, ImGuiCond_Appearing);
+			ImGui::SetNextWindowPos(m_HwTimingWindowPos, ImGuiCond_Appearing);
+			
+			ImGui::Begin("Hardware Metrics", nullptr, ImGuiWindowFlags_NoDocking);
 
 			// Continue with rest of window
 
@@ -640,16 +641,16 @@ void GUI::PerformanceMetrics()
 		ImGui::Checkbox("Frame Rate (FPS)", &showFrameRate);
 		if (showFrameRate)
 		{
+			m_MetricWindowSize = { m_MainWindowSize.x, m_MainWindowSize.y * 0.666f };
+			m_FrameRateWindowPos = { m_MainWindowPos.x - m_MainWindowSize.x, m_MainWindowPos.y + m_MetricWindowSize.y };	// Next to main window start pos, and just below where the hardware timings would have gone
+
+			ImGui::SetNextWindowSize(m_MetricWindowSize, ImGuiCond_Appearing);
+			ImGui::SetNextWindowPos(m_FrameRateWindowPos, ImGuiCond_Appearing);
+
+			ImGui::Begin("Frame Rate", nullptr, ImGuiWindowFlags_NoDocking);
+
 			frameTimes.push_back(EngineProfiling::GetFrameRate());
 			if (frameTimes.size() > 1000) frameTimes.erase(frameTimes.begin());
-
-			ImGui::SetNextWindowSize({ m_MainWindowSize.x, m_MainWindowSize.y * 0.75f });
-			if (!ImGui::Begin("Frame Rate"))
-			{
-				// Early out if the window is collapsed, as an optimization.
-				ImGui::End();
-				return;
-			}
 
 			if (ImPlot::BeginPlot("Frame Rate"))
 			{

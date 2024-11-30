@@ -55,11 +55,8 @@ public:
 	void Terminate();
     
 
-
 	// A handle to render ImGui within MiniEngine
 	ID3D12DescriptorHeap* m_pSrvDescriptorHeap = nullptr;
-    //DescriptorHeap m_pSrvDescriptorHeap;
-
 
 
     // Public flag to enable/disable tonemapping!
@@ -146,6 +143,7 @@ private:
 
     void PerformanceMetrics();
 
+
 	//
 	// Constants to help with the UI
 	//
@@ -154,8 +152,20 @@ private:
     // How big is the window? Normally I'd make this a constant but the resolution will constantly be changing in this app!
     ImVec2 m_MainWindowSize;
 
-    // Place window on right side
+    //
+    // Size of child windows
+    //
+
+    ImVec2 m_MetricWindowSize;
+
+    // Starting position of main window
     ImVec2 m_MainWindowPos;
+    
+    //
+    // Starting position of child windows
+    
+    ImVec2 m_HwTimingWindowPos; // Set it directly next to the main window at the top
+    ImVec2 m_FrameRateWindowPos;
 
 
 	// Common window pivot positions
@@ -255,17 +265,17 @@ private:
         colors[ImGuiCol_SliderGrab] = ImVec4(0.25f, 0.25f, 0.25f, 0.5f);
         colors[ImGuiCol_SliderGrabActive] = ImVec4(1.f, 0.171f, 0.f, 0.9f);
         colors[ImGuiCol_Button] = ThemeColours::m_RtuaBlack;
-        colors[ImGuiCol_ButtonHovered] = ThemeColours::m_DarkerGold;
-        colors[ImGuiCol_ButtonActive] = ThemeColours::m_DarkestGold;
+        colors[ImGuiCol_ButtonHovered] = ThemeColours::m_DarkestGold;
+        colors[ImGuiCol_ButtonActive] = ThemeColours::m_DarkerGold;
         colors[ImGuiCol_Header] = ThemeColours::m_RtuaLightBlack;
-        colors[ImGuiCol_HeaderHovered] = ThemeColours::m_RtuaGold;
-        colors[ImGuiCol_HeaderActive] = ThemeColours::m_DarkerGold;
-        colors[ImGuiCol_Separator] = ThemeColours::m_DarkerGold;
+        colors[ImGuiCol_HeaderHovered] = ThemeColours::m_DarkerGold;
+        colors[ImGuiCol_HeaderActive] = ThemeColours::m_RtuaGold;
+        colors[ImGuiCol_Separator] = ThemeColours::m_RtuaGold;
         colors[ImGuiCol_SeparatorHovered] = ImVec4(1.f, 0.171f, 0.f, 1.f);
         colors[ImGuiCol_SeparatorActive] = ImVec4(1.f, 0.1f, 0.f, 1.f);
         colors[ImGuiCol_ResizeGrip] = ThemeColours::m_DarkerGold;
         colors[ImGuiCol_ResizeGripHovered] = ThemeColours::m_DarkestGold;
-        colors[ImGuiCol_ResizeGripActive] = ThemeColours::m_BasicallyRed;
+        colors[ImGuiCol_ResizeGripActive] = ThemeColours::m_RtuaGold;
         colors[ImGuiCol_Tab] = ImLerp(colors[ImGuiCol_Header], colors[ImGuiCol_TitleBgActive], 0.80f);
         colors[ImGuiCol_TabHovered] = colors[ImGuiCol_HeaderHovered];
         colors[ImGuiCol_TabActive] = ImLerp(colors[ImGuiCol_HeaderActive], colors[ImGuiCol_TitleBgActive], 0.60f);
