@@ -77,6 +77,7 @@
     <ClInclude Include="..\..\ThirdParty\implot\implot_internal.h" />
     <ClInclude Include="AZB\include\AZB_DLSS.h" />
     <ClInclude Include="AZB\include\AZB_GUI.h" />
+    <ClInclude Include="AZB\include\AZB_MotionVectors.h" />
     <ClInclude Include="AZB\include\AZB_Utils.h" />
     <ClInclude Include="BitonicSort.h" />
     <ClInclude Include="BuddyAllocator.h" />
@@ -184,6 +185,9 @@
     <ClCompile Include="AZB\src\AZB_GUI.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="AZB\src\AZB_MotionVectors.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="BitonicSort.cpp" />
     <ClCompile Include="BuddyAllocator.cpp" />
     <ClCompile Include="BufferManager.cpp" />
@@ -255,6 +259,11 @@
     <FxCompile Include="Shaders\ApplyBloom2CS.hlsl" />
     <FxCompile Include="Shaders\ApplyBloomCS.hlsl" />
     <FxCompile Include="Shaders\AverageLumaCS.hlsl" />
+    <FxCompile Include="Shaders\AZB_DecodeMotionVectorsCS.hlsl" />
+    <FxCompile Include="Shaders\AZB_MotionVectorRenderPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\AZB_PerPixelMotionVectorsCS.hlsl" />
     <FxCompile Include="Shaders\BicubicHorizontalUpsamplePS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>

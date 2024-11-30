@@ -214,6 +214,10 @@ void DLSS::Create(CreationRequirements& reqs)
 	if (!m_bIsNGXSupported)
 		return;
 
+	// [AZB]: Set additional feature flags!
+	// [AZB]: Even though we may not render to HDR, our color buffer is infact in HDR format, so set the appropriate flag!
+	reqs.m_DlSSCreateParams.InFeatureCreateFlags = NVSDK_NGX_DLSS_Feature_Flags_DepthInverted | NVSDK_NGX_DLSS_Feature_Flags_AutoExposure | NVSDK_NGX_DLSS_Feature_Flags_MVLowRes/*| NVSDK_NGX_DLSS_Feature_Flags_IsHDR*/;
+
 	NVSDK_NGX_Result ret = NGX_D3D12_CREATE_DLSS_EXT(reqs.m_pCmdList, 1, 1, &m_DLSS_FeatureHandle, m_DLSS_Parameters, &reqs.m_DlSSCreateParams);
 	if (NVSDK_NGX_SUCCEED(ret))
 	{
@@ -229,6 +233,10 @@ void DLSS::Execute(ExecutionRequirements& params)
 	// Early return for non DLSS-Capable hardware
 	if (!m_bIsNGXSupported)
 		return;
+
+	// TMP: DEBUGGGIN MVS
+	//params.m_DlSSEvalParams.InMVScaleX = 50.5f;
+	//params.m_DlSSEvalParams.InMVScaleY = 50.5f;
 
 	NVSDK_NGX_Result ret = NGX_D3D12_EVALUATE_DLSS_EXT(params.m_pCmdList, m_DLSS_FeatureHandle, m_DLSS_Parameters, &params.m_DlSSEvalParams);
 	if (NVSDK_NGX_SUCCEED(ret))
@@ -272,8 +280,8 @@ void DLSS::UpdateDLSS(bool toggle, bool updateMode, Resolution currentResolution
 			NVSDK_NGX_Feature_Create_Params dlssParams = { m_DLSS_Modes[m_CurrentQualityMode].m_RenderWidth, m_DLSS_Modes[m_CurrentQualityMode].m_RenderHeight,
 														   currentResolution.m_Width, currentResolution.m_Height, static_cast<NVSDK_NGX_PerfQuality_Value>(m_CurrentQualityMode) };
 
-			// Even though we may not render to HDR, our color buffer is infact in HDR format, so set the appropriate flag!
-			reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_DepthInverted | NVSDK_NGX_DLSS_Feature_Flags_AutoExposure /*| NVSDK_NGX_DLSS_Feature_Flags_IsHDR*/ };
+			// Let the create function itself handle additional feature flags
+			reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_None };
 			DLSS::Create(reqs);
 
 			// Set flag to update the pipeline so that DLSS can execute next frame at correct resolution! See TemporalEffects.cpp, ResolveImage() to see implementation

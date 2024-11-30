@@ -258,20 +258,8 @@ void Display::SetPipelineResolution(bool bDLSS,uint32_t queriedWidth, uint32_t q
 
 
     // [AZB]: Still update the existing native global as it may be used in other places of the pipeline that DLSS doesn't touch (e.g. post-effects)
-    // [AZB]: If we are working in fullscreen, don't change the native width and height as we want to maintain the size of the swap chain
-    //if (bFullscreen)
-    //{
-        g_NativeWidth = queriedWidth;
-        g_NativeHeight = queriedHeight;
-    //}
-    //if (bDLSS)
-    //{
-    // 
-    // [AZB]: Also update our DLSS globals
-
-    //g_DLSSWidth = queriedWidth;
-    //g_DLSSHeight = queriedHeight;
-    //}
+    g_NativeWidth = queriedWidth;
+    g_NativeHeight = queriedHeight;
 
     g_CommandManager.IdleGPU();
     InitializeRenderingBuffers(queriedWidth, queriedHeight);
@@ -290,31 +278,33 @@ void Display::Resize(uint32_t width, uint32_t height)
 // [AZB]: Create DLSS - repeat steps in Initialise() but also release the old feature and create a new one
 #if AZB_MOD
 
-    // [AZB]: Check it hasn't been released already
-    if (DLSS::m_DLSS_FeatureHandle != nullptr)
-        DLSS::Release();
+    // [AZB]: Only do the next few steps if DLSS is actually supported by the hardware! 
+    if (DLSS::m_bIsNGXSupported)
+    {
+        // [AZB]: Check it hasn't been released already
+        if (DLSS::m_DLSS_FeatureHandle != nullptr)
+            DLSS::Release();
 
-    // [AZB]: Even when DLSS is disabled, query the settings here so that we can safely and corectly enable later!
-    //DLSS::OptimalSettings dlssSettings;
-    //DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
-    DLSS::PreQueryAllSettings(g_DisplayWidth, g_DisplayHeight);
-   
-    // [AZB]: Set the queried results here
-    g_DLSSWidth = DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderWidth;
-    g_DLSSHeight = DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderHeight;
+        // [AZB]: Even when DLSS is disabled, query the settings here so that we can safely and corectly enable later!
+        DLSS::PreQueryAllSettings(g_DisplayWidth, g_DisplayHeight);
 
-    // [AZB]: These steps are similar to those we perform in GraphicsCore.cpp, Initialize()
-    ComputeContext& Context = ComputeContext::Begin(L"DLSS Resize");
-    // [AZB]: Fill in requirements struct ready for the feature creation
-    DLSS::CreationRequirements reqs;
-    reqs.m_pCmdList = Context.GetCommandList();
+        // [AZB]: Set the queried results here
+        g_DLSSWidth = DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderWidth;
+        g_DLSSHeight = DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderHeight;
 
-    NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, static_cast<NVSDK_NGX_PerfQuality_Value>(DLSS::m_CurrentQualityMode) };
-    // [AZB]: Even though we may not render to HDR, our color buffer is infact in HDR format, so set the appropriate flag!
-    reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_None | NVSDK_NGX_DLSS_Feature_Flags_AutoExposure /*| NVSDK_NGX_DLSS_Feature_Flags_IsHDR*/ };
-    DLSS::Create(reqs);
+        // [AZB]: These steps are similar to those we perform in GraphicsCore.cpp, Initialize()
+        ComputeContext& Context = ComputeContext::Begin(L"DLSS Resize");
+        // [AZB]: Fill in requirements struct ready for the feature creation
+        DLSS::CreationRequirements reqs;
+        reqs.m_pCmdList = Context.GetCommandList();
 
-    Context.Finish();
+        NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, static_cast<NVSDK_NGX_PerfQuality_Value>(DLSS::m_CurrentQualityMode) };
+        // [AZB]: Delay the setting of feature flags until we're inside the create function to allow for a unification of flags (previously had to be changed in multiple places)
+        reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_None };
+        DLSS::Create(reqs);
+
+        Context.Finish();
+    }
 
     // [AZB]: Additional flag so that we can toggle DLSS at run-time
     if (DLSS::m_DLSS_Enabled)
@@ -477,14 +467,10 @@ void Display::Initialize(void)
     g_DisplayWidth = g_NativeWidth;
     g_DisplayHeight = g_NativeHeight;
 
-    // [AZB]: Container that will store results of query that will be needed for DLSS feature creation. By default this will check the balanced setting
-    //DLSS::OptimalSettings dlssSettings;
-
-    // [AZB]: Query optimal settings based on current native resolution
-    //DLSS::QueryOptimalSettings(g_DisplayWidth, g_DisplayHeight, dlssSettings);
-
-    // [AZB]: Pre-query all settings for current native resolution
-    DLSS::PreQueryAllSettings(g_DisplayWidth, g_DisplayHeight);
+    // [AZB]: Check for NGX support before executing any DLSS SDK commands
+    if (DLSS::m_bIsNGXSupported)
+     // [AZB]: Pre-query all settings for current native resolution
+     DLSS::PreQueryAllSettings(g_DisplayWidth, g_DisplayHeight);
 
     // [AZB] Set the initial value of DLSS res to the balanced one
     g_DLSSWidth = DLSS::m_DLSS_Modes[1].m_RenderWidth;
