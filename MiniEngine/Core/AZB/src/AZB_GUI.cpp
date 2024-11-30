@@ -173,7 +173,6 @@ void GUI::Run(CommandContext& Context)
 				CenterNextTextItem(centerText);
 				ImGui::TextColored({ 1.f,0.f,0.f,1.f }, centerText);
 			}
-			ImGui::Checkbox("Enable PostFX", &m_bEnablePostFX);
 
 		}
 
@@ -181,7 +180,8 @@ void GUI::Run(CommandContext& Context)
 		if (ImGui::CollapsingHeader("Graphics Settings"))
 		{
 
-		
+			ImGui::Checkbox("Enable PostFX", &m_bEnablePostFX);
+
 
 			static bool showMV = false;
 			ImGui::Checkbox("Show GBuffers", &showMV);
