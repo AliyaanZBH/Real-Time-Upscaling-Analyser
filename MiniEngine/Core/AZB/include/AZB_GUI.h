@@ -144,6 +144,8 @@ private:
 
     void ResolutionSettings();
 
+    void PerformanceMetrics();
+
 	//
 	// Constants to help with the UI
 	//

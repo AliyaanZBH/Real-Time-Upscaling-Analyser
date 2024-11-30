@@ -71,7 +71,7 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 	m_NewHeight = Graphics::g_DisplayHeight;
 
 	// Also set up our window vars!
-	m_MainWindowSize = { Graphics::g_DisplayWidth / 4.f, Graphics::g_DisplayHeight / 2.f };
+	m_MainWindowSize = { Graphics::g_DisplayWidth * 0.25f, Graphics::g_DisplayHeight * 0.5f };
 	m_MainWindowPos = { (Graphics::g_DisplayWidth - m_MainWindowSize.x) - 10.f, 0.f };		// Additional offset as it doesn't sit quite flush without it
 
 	// Store handles to GBuffers so that we can display them!
@@ -243,41 +243,9 @@ void GUI::Run(CommandContext& Context)
 			}
 		}
 
-		if (ImGui::CollapsingHeader("Performance Metrics"))
-		{
-			// Frame data from MiniEngine profiler!
-			static std::vector<float> cpuTimes, gpuTimes, frameTimes;
-
-			// These functions will not exist when the mod is disabled - even though this function is never called when mod is disabled, compiler will fuss.
-#if AZB_MOD
-			cpuTimes.push_back(EngineProfiling::GetCPUTime());		// CPU time per frame
-			gpuTimes.push_back(EngineProfiling::GetGPUTime());		// GPU time per frame
-			frameTimes.push_back(EngineProfiling::GetFrameRate());  // Framerate
-#endif
-
-			// Limit buffer size
-			if (cpuTimes.size() > 1000) cpuTimes.erase(cpuTimes.begin());
-			if (gpuTimes.size() > 1000) gpuTimes.erase(gpuTimes.begin());
-			if (frameTimes.size() > 1000) frameTimes.erase(frameTimes.begin());
-
-			// Plot the data
-			if (ImPlot::BeginPlot("Hardware Timings"))
-			{
-				// Setup axis, x then y. This will be Frame,Ms. Use autofit for now, will mess around with these later
-				ImPlot::SetupAxes("Frame", "Speed(ms)", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
-				ImPlot::PlotLine("CPU Time", cpuTimes.data(), cpuTimes.size());
-				ImPlot::PlotLine("GPU Time", gpuTimes.data(), gpuTimes.size());
-				ImPlot::EndPlot();
-			}
-
-			if (ImPlot::BeginPlot("Frame Rate"))
-			{
-				ImPlot::SetupAxes("Count", "FPS", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
-				ImPlot::PlotLine("Frame Rate", frameTimes.data(), frameTimes.size());
-				ImPlot::EndPlot();
-			}
-		}
-	ImGui::End();
+		PerformanceMetrics();
+		
+		ImGui::End();
 	}
 }
 
@@ -311,7 +279,7 @@ void GUI::UpdateGraphics()
 
 		// Update window size and reset position!!
 		//m_MainWindowSize = { (float)m_NewWidth / 4.f, (float)m_NewHeight / 2.f };
-		m_MainWindowSize.y = (float)m_NewHeight / 2.f;
+		m_MainWindowSize.y = (float)m_NewHeight * 0.5f;
 		m_MainWindowPos.x = ( (float)m_NewWidth - m_MainWindowSize.x ) - 10.f;
 		ImGui::SetWindowSize("RTUA", m_MainWindowSize);
 		ImGui::SetWindowPos("RTUA", m_MainWindowPos);
@@ -614,4 +582,84 @@ void GUI::ResolutionSettings()
 			}
 			}
 		}
+}
+
+void GUI::PerformanceMetrics()
+{
+// Some of these functions will not exist when the mod is disabled - even though this function is never called when mod is disabled, compiler will fuss. 
+// Hence wrapping this whole function in a macro!
+#if AZB_MOD
+	if (ImGui::CollapsingHeader("Performance Metrics"))
+	{
+		// Frame data from MiniEngine profiler!
+		static std::vector<float> cpuTimes, gpuTimes, frameTimes;
+
+		// Checkbox bools
+		static bool showHardwareMetrics = false;
+		static bool showFrameRate = false;
+
+		// Show checkboxes that open windows!
+		ImGui::Checkbox("Hardware Frame Times", &showHardwareMetrics);
+		
+		// Open windows when bool is true!
+		if (showHardwareMetrics)
+		{
+			ImGui::SetNextWindowSize({ m_MainWindowSize.x, m_MainWindowSize.y * 0.75f });
+			if (!ImGui::Begin("Hardware Metrics"))
+			{
+				// Early out if the window is collapsed, as an optimization.
+				ImGui::End();
+				return;
+			}
+
+			// Continue with rest of window
+
+			cpuTimes.push_back(EngineProfiling::GetCPUTime());		// CPU time per frame
+			gpuTimes.push_back(EngineProfiling::GetGPUTime());		// GPU time per frame
+
+			// Limit buffer sizes
+			if (cpuTimes.size() > 1000) cpuTimes.erase(cpuTimes.begin());
+			if (gpuTimes.size() > 1000) gpuTimes.erase(gpuTimes.begin());
+
+			// Plot the data
+			if (ImPlot::BeginPlot("Hardware Timings (MS)"))
+			{
+				// Setup axis, x then y. This will be Frame,Ms. Use autofit for now, will mess around with these later
+				ImPlot::SetupAxes("Frame", "Speed(ms)", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
+				ImPlot::PlotLine("CPU Time", cpuTimes.data(), cpuTimes.size());
+				ImPlot::PlotLine("GPU Time", gpuTimes.data(), gpuTimes.size());
+				ImPlot::EndPlot();
+			}
+
+			ImGui::End();
+
+		}
+
+
+
+		ImGui::Checkbox("Frame Rate (FPS)", &showFrameRate);
+		if (showFrameRate)
+		{
+			frameTimes.push_back(EngineProfiling::GetFrameRate());
+			if (frameTimes.size() > 1000) frameTimes.erase(frameTimes.begin());
+
+			ImGui::SetNextWindowSize({ m_MainWindowSize.x, m_MainWindowSize.y * 0.75f });
+			if (!ImGui::Begin("Frame Rate"))
+			{
+				// Early out if the window is collapsed, as an optimization.
+				ImGui::End();
+				return;
+			}
+
+			if (ImPlot::BeginPlot("Frame Rate"))
+			{
+				ImPlot::SetupAxes("Count", "FPS", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
+				ImPlot::PlotLine("Frame Rate", frameTimes.data(), frameTimes.size());
+				ImPlot::EndPlot();
+			}
+
+			ImGui::End();
+		}
+	}
+#endif
 }
