@@ -98,7 +98,7 @@ private:
     // [AZB]: Create array with number of scenes
     std::array<ModelInstance, kNumScenes> m_Scenes;
     // [AZB]: Index into array, acting as a track on currently active scene to render
-    int activeScene = 0;        // 0 for Bistro, 1 for Sponza
+    int activeScene = 1;        // 0 for Bistro, 1 for Sponza. Bistro has improved significantly but it is still broken!
 #else
     // [AZB]: Original singular instance
     ModelInstance m_ModelInst;
