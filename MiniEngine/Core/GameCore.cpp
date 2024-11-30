@@ -55,7 +55,7 @@
 #include "AZB_DLSS.h"
 #include "AZB_MotionVectors.h"
 
-// [AZB]: Set bool here, ensuring a single declaration and definiton.
+// [AZB]: Set external bool here, ensuring a single declaration and definiton. It can now be used across MiniEngine! (namely within Input.cpp)
 bool g_bMouseExclusive = true;
 
 // [AZB]: Used to track when the window loses focus

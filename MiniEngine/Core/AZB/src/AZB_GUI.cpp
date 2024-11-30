@@ -43,11 +43,6 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 
 	// Begin integrating into mini engine
 
-	//m_RootSignature.Reset(2, 1);
-	//m_RootSignature.InitStaticSampler(0, Graphics::SamplerLinearClampDesc, D3D12_SHADER_VISIBILITY_PIXEL);
-	//m_RootSignature[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL); // SRV table
-	//m_RootSignature.Finalize(L"ImGuiRootSignature");
-
 	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDescriptor = {};
 	descriptorHeapDescriptor.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	descriptorHeapDescriptor.NumDescriptors = eGBuffers::NUM_BUFFERS + 1;						// Increase and reserve spot for more textures! The first spot is used for built-in font hence the + 1
@@ -55,18 +50,13 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 
 	ASSERT_SUCCEEDED(pDevice->CreateDescriptorHeap(&descriptorHeapDescriptor, IID_PPV_ARGS(&m_pSrvDescriptorHeap)));
 
-	//m_pSrvDescriptorHeap.Create(L"ImGui GBuffer Descriptors", D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 128);
-
 	// Set ImGui up with his heap
-	ImGui_ImplDX12_Init(pDevice, numFramesInFlight, renderTargetFormat, m_pSrvDescriptorHeap,
+	ImGui_ImplDX12_Init(pDevice, numFramesInFlight, DXGI_FORMAT_R8G8B8A8_UNORM, m_pSrvDescriptorHeap,
 		m_pSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), m_pSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
 	// Store device for heap allocations!
 	m_pD3DDevice = pDevice;
 	
-	// ImGui_ImplDX12_Init(pDevice, numFramesInFlight, renderTargetFormat, m_pSrvDescriptorHeap.GetHeapPointer(),
-	//	 m_pSrvDescriptorHeap.GetHeapPointer()->GetCPUDescriptorHandleForHeapStart(), m_pSrvDescriptorHeap.GetHeapPointer()->GetGPUDescriptorHandleForHeapStart());
-
 	// Set app to use our custom style!
 	// TODO: Remember that because Dear ImGui is a submodule, I need to fork it and commit stuff there in order for the changes to be reflected in Git!!!!
 	//
@@ -119,93 +109,9 @@ void GUI::Run(CommandContext& Context)
 		MainWindowTitle();
 
 
+		// Display resolution settings next!
+		ResolutionSettings();
 
-		std::string comboValue;
-		// In order to make it clearer to users, create a variable combo label
-		std::string comboLabel;
-
-		if (ImGui::CollapsingHeader("Resolution Settings"))
-		{
-			static int item_current_idx = DLSS::m_NumResolutions - 1;
-
-			// Check window display mode. 
-			// When Fullscreen, our display height will be fixed (naturally), so we want to convey native height to the user
-			// When Windowed, display height has variable, and can even be resized manually.
-			// This nlock takes that into account and ensures that the dropdown is always as helpful as possible
-			if (m_bFullscreen)
-			{
-				comboLabel = "Native Resolution";
-				comboValue = std::to_string(Graphics::g_NativeWidth) + "x" + std::to_string(Graphics::g_NativeHeight);
-				// Also update these - the display could have changed as a result of window resizing!
-				m_NewWidth = Graphics::g_NativeWidth;
-				m_NewHeight = Graphics::g_NativeHeight;
-
-			}
-			else
-			{
-				comboLabel = "Display Resolution";
-				comboValue = std::to_string(m_NewWidth) + "x" + std::to_string(m_NewHeight);
-				// Also update these - the display could have changed as a result of window resizing!
-				m_NewWidth = Graphics::g_DisplayWidth;
-				m_NewHeight = Graphics::g_DisplayHeight;
-
-			}
-
-			const char* combo_preview_value = comboValue.c_str();
-
-			if (ImGui::BeginCombo(comboLabel.c_str(), combo_preview_value))
-			{
-				for (int n = 0; n < DLSS::m_NumResolutions; n++)
-				{
-					const bool is_selected = (item_current_idx == n);
-					if (ImGui::Selectable(DLSS::m_Resolutions[n].first.c_str(), is_selected))
-					{
-						item_current_idx = n;
-						// Set flag to true so that we can update the pipeline next frame! This will result in DLSS needing to be recreated also
-						// This takes place in UpdateGraphics()
-						m_bResolutionChangePending = true;
-						// Also update what the values should be
-						m_NewWidth = DLSS::m_Resolutions[n].second.m_Width;
-						m_NewHeight = DLSS::m_Resolutions[n].second.m_Height;
-					}
-
-					if (is_selected)
-						ImGui::SetItemDefaultFocus();
-				}
-				ImGui::EndCombo();
-			}
-
-
-
-			// wb for Windows Bool - have to use this when querying the swapchain!
-			BOOL wbFullscreen = FALSE;
-			Display::GetSwapchain()->GetFullscreenState(&wbFullscreen, nullptr);
-
-			m_bFullscreen = wbFullscreen;
-
-			// Add a checkbox to control fullscreen
-			if (ImGui::Checkbox("Enable fullscreen mode", &m_bFullscreen))
-			{
-				// This will actually attempt to go fullscreen
-				HRESULT hr = Display::GetSwapchain()->SetFullscreenState(!wbFullscreen, nullptr);
-				if (SUCCEEDED(hr))
-				{
-					DEBUGPRINT("Switched to %s mode", m_bFullscreen ? "Fullscreen" : "Windowed");
-
-					// Update new width and height to fullscreen values if we have entered fullscreen
-					if (m_bFullscreen)
-					{
-						m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
-						m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
-					}
-					m_bResolutionChangePending = true;
-				}
-				else
-				{
-					DEBUGPRINT("\nFailed to toggle fullscreen mode.\n");
-				}
-			}
-		}
 
 		if (ImGui::CollapsingHeader("DLSS Settings"))
 		{
@@ -314,8 +220,6 @@ void GUI::Run(CommandContext& Context)
 					newCPUHandle.ptr += descriptorIndex * descriptorSize; 
 
 					// Copy our existing SRV into the new descriptor heap!
-					//D3D12_CPU_DESCRIPTOR_HANDLE existingSRVHandle = Graphics::g_MotionVectorVisualisationBuffer.GetSRV();
-					//m_pD3DDevice->CopyDescriptorsSimple(1, newCPUHandle, existingSRVHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 					m_pD3DDevice->CopyDescriptorsSimple(1, newCPUHandle, m_GBuffers[i], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 					// ImGui recommends explicitly using the GPU handle to our texture, but MiniEngine doesn't support returning that
@@ -391,8 +295,8 @@ void GUI::UpdateGraphics()
 		}
 
 		if (!m_bFullscreen)
-			// This version scales the window to match the resolution
-			Display::SetWindowedResolution(m_NewWidth, m_NewHeight);
+			// This version scales the window to match the resolution - it also returns the size of the windows titlebar so that ImGui can generate a more user-friendly resolution for the user!
+			m_TitleBarSize = Display::SetWindowedResolution(m_NewWidth, m_NewHeight);
 		else
 		{
 			// This version maintains fullscreen size based on what was queried at app startup and stretches the resolution to the display size
@@ -620,4 +524,94 @@ void GUI::MainWindowTitle()
 	DoubleLineBreak();
 	Separator();
 #endif
+}
+
+void GUI::ResolutionSettings()
+{
+	std::string comboValue;
+	// In order to make it clearer to users, create a variable combo label
+	std::string comboLabel;
+
+	if (ImGui::CollapsingHeader("Resolution Settings"))
+	{
+		static int item_current_idx = DLSS::m_NumResolutions - 1;
+
+		// Check window display mode. 
+		// When Fullscreen, our display height will be fixed (naturally), so we want to convey native height to the user
+		// When Windowed, display height has variable, and can even be resized manually.
+		// This nlock takes that into account and ensures that the dropdown is always as helpful as possible
+		if (m_bFullscreen)
+		{
+			comboLabel = "Native Resolution";
+			comboValue = std::to_string(Graphics::g_NativeWidth) + "x" + std::to_string(Graphics::g_NativeHeight);
+			// Also update these - the display could have changed as a result of window resizing!
+			m_NewWidth = Graphics::g_NativeWidth;
+			m_NewHeight = Graphics::g_NativeHeight;
+
+		}
+		else
+		{
+			comboLabel = "Display Resolution";
+			comboValue = std::to_string(m_NewWidth) + "x" + std::to_string(m_NewHeight);
+			// Also update these - the display could have changed as a result of window resizing! Also account for windows title bars! These will vary based on aspect ratio and scaling
+			m_NewWidth = Graphics::g_DisplayWidth + m_TitleBarSize.m_Width;
+			m_NewHeight = Graphics::g_DisplayHeight + m_TitleBarSize.m_Height;	// Display height also includes Windows Title Bars, so account for this in our GUI!
+
+		}
+
+		const char* combo_preview_value = comboValue.c_str();
+
+		if (ImGui::BeginCombo(comboLabel.c_str(), combo_preview_value))
+		{
+			for (int n = 0; n < DLSS::m_NumResolutions; n++)
+			{
+				const bool is_selected = (item_current_idx == n);
+				if (ImGui::Selectable(DLSS::m_Resolutions[n].first.c_str(), is_selected))
+				{
+					item_current_idx = n;
+					// Set flag to true so that we can update the pipeline next frame! This will result in DLSS needing to be recreated also
+					// This takes place in UpdateGraphics()
+					m_bResolutionChangePending = true;
+					// Also update what the values should be
+					m_NewWidth = DLSS::m_Resolutions[n].second.m_Width;
+					m_NewHeight = DLSS::m_Resolutions[n].second.m_Height;
+				}
+
+				if (is_selected)
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndCombo();
+		}
+
+
+
+		// wb for Windows Bool - have to use this when querying the swapchain!
+		BOOL wbFullscreen = FALSE;
+		Display::GetSwapchain()->GetFullscreenState(&wbFullscreen, nullptr);
+
+		m_bFullscreen = wbFullscreen;
+
+		// Add a checkbox to control fullscreen
+		if (ImGui::Checkbox("Enable fullscreen mode", &m_bFullscreen))
+		{
+			// This will actually attempt to go fullscreen
+			HRESULT hr = Display::GetSwapchain()->SetFullscreenState(!wbFullscreen, nullptr);
+			if (SUCCEEDED(hr))
+			{
+				DEBUGPRINT("Switched to %s mode", m_bFullscreen ? "Fullscreen" : "Windowed");
+
+				// Update new width and height to fullscreen values if we have entered fullscreen
+				if (m_bFullscreen)
+				{
+					m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
+					m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
+				}
+				m_bResolutionChangePending = true;
+				}
+			else
+			{
+				DEBUGPRINT("\nFailed to toggle fullscreen mode.\n");
+			}
+			}
+		}
 }

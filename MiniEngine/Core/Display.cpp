@@ -738,7 +738,8 @@ void Display::Present(void)
 #if AZB_MOD
 
 // [AZB]: This function is essentially a copy of SetDisplayResolution at the top, but with a passed in resolution, and stripping away some of the extra steps it was taken
-void Display::SetWindowedResolution(uint32_t width, uint32_t height)
+// [AZB]: It also returns the size of the new titlebar!
+Resolution Display::SetWindowedResolution(uint32_t width, uint32_t height)
 {
    g_CommandManager.IdleGPU();
 
@@ -746,12 +747,21 @@ void Display::SetWindowedResolution(uint32_t width, uint32_t height)
    if (DLSS::m_DLSS_Enabled)
    {
        DLSS::m_DLSS_Enabled = false;
-
    }
 
-   // [AZB]: The offsets here are necessary to account for the windows title bar
-   //          NB: This function triggers WM_SIZE which in turn calls Display::Resize
-   SetWindowPos(GameCore::g_hWnd, 0, 0, 0, width + kWindowTitleX, height + kWindowTitleY, SWP_NOZORDER| SWP_NOACTIVATE);
+   // [AZB]: This function triggers WM_SIZE which in turn calls Display::Resize
+   SetWindowPos(GameCore::g_hWnd, 0, 0, 0, width, height, SWP_NOZORDER| SWP_NOACTIVATE);
+
+   // [AZB]: After the resize, return the size of the total display ( as g_display width and height end up getting shrunk by the Windows title bar!)
+   //
+   //return { width , height};
+
+   // [AZB]: Unfortunately, this breaks the regular resize method, so instead calculate the size of the title bar and add it on in our GUI class!
+   //        Do this by first getting the size of the client area and then subtract it from the intended resolution!
+   RECT totalClientSize;
+   GetClientRect(GameCore::g_hWnd, &totalClientSize);
+
+   return { width - totalClientSize.right , height - totalClientSize.bottom};
 }
 
 IDXGISwapChain1* Display::GetSwapchain()

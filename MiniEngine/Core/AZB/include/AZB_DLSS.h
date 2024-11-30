@@ -30,7 +30,7 @@ namespace DLSS
 		ID3D12GraphicsCommandList* m_pCmdList;
 		unsigned int m_InCreationNodeMask = 1;					// These only matter for Multi GPU (default 1)
 		unsigned int m_InVisibilityNodeMask = 1;				// These only matter for Multi GPU (default 1)
-		NVSDK_NGX_DLSS_Create_Params m_DlSSCreateParams;
+		NVSDK_NGX_DLSS_Create_Params m_DlSSCreateParams = {};
 	};
 
 	struct ExecutionRequirements

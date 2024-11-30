@@ -79,7 +79,7 @@ private:
     //  
     
     // Handle to global device - needed to update descriptor heap!
-    ID3D12Device* m_pD3DDevice;
+    ID3D12Device* m_pD3DDevice = nullptr;
 
 
     //
@@ -105,7 +105,7 @@ private:
     };
 
     // The actual array of buffer handles
-    std::array<D3D12_CPU_DESCRIPTOR_HANDLE, NUM_BUFFERS> m_GBuffers;
+    std::array<D3D12_CPU_DESCRIPTOR_HANDLE, NUM_BUFFERS> m_GBuffers{};
 
 
     //
@@ -115,6 +115,9 @@ private:
     // Values that represent the new resolution to change to next frame (if the user requests a change!)
     uint32_t m_NewWidth = 0u;
     uint32_t m_NewHeight = 0u;
+
+    // The size of the the title bar in windowed mode - this was originally the total window resolution but this led to memory leaks when resizing!
+    Resolution m_TitleBarSize{};
 
     // Flag to indicate that the resolution should change next frame
     bool m_bResolutionChangePending = false;
@@ -139,6 +142,7 @@ private:
 
 	void MainWindowTitle();
 
+    void ResolutionSettings();
 
 	//
 	// Constants to help with the UI
