@@ -71,7 +71,12 @@ namespace Renderer
     {
     public:
 		enum BatchType { kDefault, kShadows };
+        // [AZB]: Adding a draw pass!
+#if AZB_MOD
+        enum DrawPass { kZPass, kOpaque, kTransparent, kBakedLight, kNumPasses };
+#else
         enum DrawPass { kZPass, kOpaque, kTransparent, kNumPasses };
+#endif
 
 		MeshSorter(BatchType type)
 		{
@@ -111,7 +116,10 @@ namespace Renderer
         void Sort();
 
         void RenderMeshes(DrawPass pass, GraphicsContext& context, GlobalConstants& globals);
-
+#if AZB_MOD
+        // [AZB]: Overloaded version to take the viewProjMat of the sunShadow
+        void RenderMeshes(DrawPass pass, GraphicsContext& context, GlobalConstants& globals, const Math::Matrix4& vpm);
+#endif
     private:
 
         struct SortKey

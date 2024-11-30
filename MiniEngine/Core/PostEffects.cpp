@@ -13,6 +13,19 @@
 
 #include "pch.h"
 
+
+//===============================================================================
+// desc: A collection of functions that encompass the post processing pass! DLSS needs to execute before this, however this some helper functionality we need such as motion vectors!
+// mod: Aliyaan Zulfiqar
+//===============================================================================
+
+/*
+   Change Log:
+   [AZB] 20/11/24: Added initialisation of my motion vector namespace to the init of postEffects
+
+
+*/
+
 #include "PostEffects.h"
 #include "GameCore.h"
 #include "CommandContext.h"
@@ -21,6 +34,9 @@
 #include "Display.h"
 #include "BufferManager.h"
 #include "MotionBlur.h"
+#if AZB_MOD
+#include "AZB_MotionVectors.h"
+#endif
 #include "DepthOfField.h"
 #include "FXAA.h"
 #include "Math/Random.h"
@@ -208,6 +224,9 @@ void PostEffects::Initialize( void )
     FXAA::Initialize();
     MotionBlur::Initialize();
     DepthOfField::Initialize();
+#if AZB_MOD
+    MotionVectors::Initialize();
+#endif
 }
 
 void PostEffects::Shutdown( void )

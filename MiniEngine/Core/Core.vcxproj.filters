@@ -451,6 +451,15 @@
     <FxCompile Include="Shaders\PresentSDRPS.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\AZB_DecodeMotionVectorsCS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\AZB_PerPixelMotionVectorsCS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\AZB_MotionVectorRenderPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BitonicSort.cpp" />
@@ -538,7 +547,10 @@
     <ClCompile Include="..\..\ThirdParty\implot\implot_items.cpp">
       <Filter>AZB_ThirdParty\ImPlot</Filter>
     </ClCompile>
-    <ClCompile Include="AZB_DLSS.cpp">
+    <ClCompile Include="AZB\src\AZB_DLSS.cpp">
+      <Filter>AZB_Source</Filter>
+    </ClCompile>
+    <ClCompile Include="AZB\src\AZB_MotionVectors.cpp">
       <Filter>AZB_Source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -668,7 +680,10 @@
     <ClInclude Include="..\..\ThirdParty\DLSS\include\nvsdk_ngx_vk.h">
       <Filter>AZB_ThirdParty\DLSS</Filter>
     </ClInclude>
-    <ClInclude Include="AZB_DLSS.h">
+    <ClInclude Include="AZB\include\AZB_DLSS.h">
+      <Filter>AZB_Include</Filter>
+    </ClInclude>
+    <ClInclude Include="AZB\include\AZB_MotionVectors.h">
       <Filter>AZB_Include</Filter>
     </ClInclude>
   </ItemGroup>

@@ -26,6 +26,23 @@
 #include <fstream>
 #include <unordered_map>
 
+
+//===============================================================================
+// desc: This is where models are loaded in and textures get converted to DDS. 
+// mod: Aliyaan Zulfiqar
+//===============================================================================
+
+//
+// [AZB]: Custom includes and macro mods
+//
+
+// [AZB]: Container file for code modifications and other helper tools. Contains the global "AZB_MOD" macro.
+#include "AZB_Utils.h"
+
+#if AZB_MOD
+#include "AZB_BistroRenderer.h"
+#endif
+
 using namespace Renderer;
 using namespace Graphics;
 
@@ -263,10 +280,16 @@ std::shared_ptr<Model> Renderer::LoadModel(const std::wstring& filePath, bool fo
         std::string utf8TextureName;
         std::getline(inFile, utf8TextureName, '\0');
         textureNames[i] = Utility::UTF8ToWideString(utf8TextureName);
+        // [AZB]: Store texture names for use in SDR renderer, to help determine which textures are cutouts and transparent.
+#if AZB_MOD
+        Bistro::m_TextureNames.push_back(utf8TextureName);
+#endif
     }
 
+
+
     std::vector<uint8_t> textureOptions(header.numTextures);
-    inFile.read((char*)textureOptions.data(), header.numTextures * sizeof(uint8_t));
+    inFile.read((char*)textureOptions.data(), header.numTextures *sizeof(uint8_t));
 
     LoadMaterials(*model, materialTextures, textureNames, textureOptions, basePath);
 

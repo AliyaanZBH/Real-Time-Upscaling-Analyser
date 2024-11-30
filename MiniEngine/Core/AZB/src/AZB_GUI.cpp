@@ -5,17 +5,14 @@
 #include "AZB_GUI.h"
 #include "AZB_DLSS.h"
 
-#include <d3d12.h>
 #include <Utility.h>
-#include <array>
 
 // For performance metrics
 #include "EngineProfiling.h"
-// To allow ImGui to trigger swapchain resize and handle global resolution controls!
-#include "Display.h"
-
-// TODO: Improve this tmp
-constexpr int kResolutionArraySize = 8;
+#include "Display.h"		// To allow ImGui to trigger swapchain resize and handle global resolution controls!
+#include "BufferManager.h"	// For debug rendering buffers
+#include "CommandContext.h"	// For transitioning resources
+#include <TemporalEffects.h>
 
 //===============================================================================
 
@@ -44,31 +41,53 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 	// MiniEngine uses dynamic heap allocation, sharing this with ImGui will probably cause more headaches than is needed, so create a dedicated heap for ImGui
 	// This will simplify resource management and allow for better scalability as the UI continues to grow in complexity and polish
 
+	// Begin integrating into mini engine
+
+	//m_RootSignature.Reset(2, 1);
+	//m_RootSignature.InitStaticSampler(0, Graphics::SamplerLinearClampDesc, D3D12_SHADER_VISIBILITY_PIXEL);
+	//m_RootSignature[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL); // SRV table
+	//m_RootSignature.Finalize(L"ImGuiRootSignature");
+
 	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDescriptor = {};
 	descriptorHeapDescriptor.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	descriptorHeapDescriptor.NumDescriptors = 1;
+	descriptorHeapDescriptor.NumDescriptors = eGBuffers::NUM_BUFFERS + 1;						// Increase and reserve spot for more textures! The first spot is used for built-in font hence the + 1
 	descriptorHeapDescriptor.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
 	ASSERT_SUCCEEDED(pDevice->CreateDescriptorHeap(&descriptorHeapDescriptor, IID_PPV_ARGS(&m_pSrvDescriptorHeap)));
 
+	//m_pSrvDescriptorHeap.Create(L"ImGui GBuffer Descriptors", D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 128);
+
 	// Set ImGui up with his heap
 	ImGui_ImplDX12_Init(pDevice, numFramesInFlight, renderTargetFormat, m_pSrvDescriptorHeap,
 		m_pSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), m_pSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+
+	// Store device for heap allocations!
+	m_pD3DDevice = pDevice;
+	
+	// ImGui_ImplDX12_Init(pDevice, numFramesInFlight, renderTargetFormat, m_pSrvDescriptorHeap.GetHeapPointer(),
+	//	 m_pSrvDescriptorHeap.GetHeapPointer()->GetCPUDescriptorHandleForHeapStart(), m_pSrvDescriptorHeap.GetHeapPointer()->GetGPUDescriptorHandleForHeapStart());
 
 	// Set app to use our custom style!
 	// TODO: Remember that because Dear ImGui is a submodule, I need to fork it and commit stuff there in order for the changes to be reflected in Git!!!!
 	//
 	//ImGui::RTUAStyle(&ImGui::GetStyle());
 	// 
+	
 	// TMP - added style in header of this file
 	SetStyle();
 
 	// Set newWidth at the start so that it doesn't start at 0 and avoid DLSS crashing!
 	m_NewWidth = Graphics::g_DisplayWidth;
 	m_NewHeight = Graphics::g_DisplayHeight;
+
+	// Store handles to GBuffers so that we can display them!
+	m_GBuffers[eGBuffers::SCENE_COLOR] = Graphics::g_SceneColorBuffer.GetSRV();
+	m_GBuffers[eGBuffers::SCENE_DEPTH] = Graphics::g_LinearDepth[TemporalEffects::GetFrameIndex()].GetSRV();
+	m_GBuffers[eGBuffers::MOTION_VECTORS] = Graphics::g_DecodedVelocityBuffer.GetSRV();
+	m_GBuffers[eGBuffers::VISUAL_MOTION_VECTORS] = Graphics::g_MotionVectorVisualisationBuffer.GetSRV();
 }
 
-void GUI::Run()
+void GUI::Run(CommandContext& Context)
 {
 	// Start ImGui frame
 	ImGui_ImplDX12_NewFrame();
@@ -89,7 +108,7 @@ void GUI::Run()
 		ImGui::SetNextWindowPos(kMainWindowStartPos, ImGuiCond_FirstUseEver, kTopLeftPivot);
 		ImGui::SetNextWindowSize(kMainWindowStartSize, ImGuiCond_FirstUseEver);
 
-		if(!ImGui::Begin("RTUA"))
+		if (!ImGui::Begin("RTUA"))
 		{
 			// Early out if the window is collapsed, as an optimization.
 			ImGui::End();
@@ -191,51 +210,133 @@ void GUI::Run()
 		if (ImGui::CollapsingHeader("DLSS Settings"))
 		{
 
-			//static bool useDLSS = false;
-			static int dlssMode = 1; // 0: Performance, 1: Balanced, 2: Quality, etc.
-			const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance" };
-
-
-
-			// Main selection for user to play with!
-			if (ImGui::Checkbox("Enable DLSS", &m_bToggleDLSS))
-			{
-				m_bDLSSUpdatePending = true;
-			}
-
-			// Wrap mode selection in disabled blcok - only want to edit this when DLSS is ON
-			if (!m_bToggleDLSS)
-				ImGui::BeginDisabled(true);
-			if (ImGui::BeginCombo("Mode", modes[dlssMode]))
+			// Only show the next section if DLSS is supported!
+			if (DLSS::m_bIsNGXSupported)
 			{
 
-				for (int n = 0; n < std::size(modes); n++)
+
+
+				//static bool useDLSS = false;
+				static int dlssMode = 1; // 0: Performance, 1: Balanced, 2: Quality, etc.
+				const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance" };
+
+
+
+
+				// Main selection for user to play with!
+				if (ImGui::Checkbox("Enable DLSS", &m_bToggleDLSS))
 				{
-					const bool is_selected = (dlssMode == n);
-					if (ImGui::Selectable(modes[n], is_selected))
-					{
-						dlssMode = n;
-						// Update current mode
-						DLSS::m_CurrentQualityMode = n;
-						// Set flags
-						DLSS::m_bNeedsReleasing = true;
-						m_bDLSSUpdatePending = true;
-						m_bUpdateDLSSMode = true;
-					}
-
-					if (is_selected)
-						ImGui::SetItemDefaultFocus();
+					m_bDLSSUpdatePending = true;
 				}
-				ImGui::EndCombo();
+
+				// Wrap mode selection in disabled blcok - only want to edit this when DLSS is ON
+				if (!m_bToggleDLSS)
+					ImGui::BeginDisabled(true);
+				if (ImGui::BeginCombo("Mode", modes[dlssMode]))
+				{
+
+					for (int n = 0; n < std::size(modes); n++)
+					{
+						const bool is_selected = (dlssMode == n);
+						if (ImGui::Selectable(modes[n], is_selected))
+						{
+							dlssMode = n;
+							// Update current mode
+							DLSS::m_CurrentQualityMode = n;
+							// Set flags
+							DLSS::m_bNeedsReleasing = true;
+							m_bDLSSUpdatePending = true;
+							m_bUpdateDLSSMode = true;
+						}
+
+						if (is_selected)
+							ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+
+				}
+
+				if (!m_bToggleDLSS)
+					ImGui::EndDisabled();
 
 			}
-
-			if (!m_bToggleDLSS)
-				ImGui::EndDisabled();
-
-
+			else
+			{
+				// Let user know that DLSS isn't supported
+				const char* centerText = "DLSS is not supported by your hardware! Sorry!";
+				CenterNextTextItem(centerText);
+				ImGui::TextColored({ 1.f,0.f,0.f,1.f }, centerText);
+			}
 			ImGui::Checkbox("Enable PostFX", &m_bEnablePostFX);
 
+		}
+
+
+		if (ImGui::CollapsingHeader("Graphics Settings"))
+		{
+
+		
+
+			static bool showMV = false;
+			ImGui::Checkbox("Show GBuffers", &showMV);
+
+			if (showMV)
+			{
+				//g_PerPixelMotionBuffer
+								
+				GraphicsContext& imguiGBufferContext = Context.GetGraphicsContext();
+
+
+				imguiGBufferContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				imguiGBufferContext.TransitionResource(Graphics::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				imguiGBufferContext.TransitionResource(Graphics::g_DecodedVelocityBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				imguiGBufferContext.TransitionResource(Graphics::g_MotionVectorVisualisationBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+				//
+				// Update ImGui descriptor heap by adding GBuffer texture
+				//
+				
+				// Open in new window
+				ImGui::Begin("GBuffer Rendering Test",0, ImGuiWindowFlags_AlwaysAutoResize);
+
+				for (UINT i = 0; i < eGBuffers::NUM_BUFFERS; ++i)
+				{
+					// Get handle to the start of this heap
+					D3D12_CPU_DESCRIPTOR_HANDLE newCPUHandle = m_pSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+
+					// Calculate the size of each descriptor
+					UINT descriptorSize = m_pD3DDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+					// Font is loaded in at slot 0, so we want to load our textures starting from slot 1
+					int descriptorIndex = 1 + i;
+
+					// Use this offfset for each descriptor
+					newCPUHandle.ptr += descriptorIndex * descriptorSize; 
+
+					// Copy our existing SRV into the new descriptor heap!
+					//D3D12_CPU_DESCRIPTOR_HANDLE existingSRVHandle = Graphics::g_MotionVectorVisualisationBuffer.GetSRV();
+					//m_pD3DDevice->CopyDescriptorsSimple(1, newCPUHandle, existingSRVHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+					m_pD3DDevice->CopyDescriptorsSimple(1, newCPUHandle, m_GBuffers[i], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+					// ImGui recommends explicitly using the GPU handle to our texture, but MiniEngine doesn't support returning that
+					// However, in copying the Descriptor to the correct slot on the CPU side, the GPU should now also be at that same index, and we simply need to update
+					//		the ptr from the start of the new heap!
+
+					// Repeat for GPU handle
+					D3D12_GPU_DESCRIPTOR_HANDLE newGPUHandle = m_pSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+					newGPUHandle.ptr += (descriptorIndex * descriptorSize);
+
+					ImGui::Text("CPU handle = %p", newCPUHandle.ptr);
+					ImGui::Text("GPU handle = %p", newGPUHandle.ptr);
+					DoubleLineBreak();
+					ImGui::Text("Buffer: %s", m_BufferNames[i].c_str());
+					// Render our lovely buffer!
+					ImGui::Image((ImTextureID)newGPUHandle.ptr, ImVec2(400, 300));
+
+					DoubleLineBreak();
+				}
+				ImGui::End();
+			}
 		}
 
 		if (ImGui::CollapsingHeader("Performance Metrics"))
@@ -430,6 +531,8 @@ void GUI::MainWindowTitle()
 	//
 	// DEBUG
 	//
+
+#if AZB_DBG
 	
 	// Try and draw some shapes
 	ImDrawList* draw_list = ImGui::GetWindowDrawList();
@@ -507,6 +610,8 @@ void GUI::MainWindowTitle()
 	//
 	// END DEBUG
 	//
+
 	DoubleLineBreak();
 	Separator();
+#endif
 }

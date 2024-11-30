@@ -43,7 +43,7 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\ThirdParty\DLSS\include;..\Core\AZB\include;..\Model;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\ThirdParty\DLSS\include;..\Core\AZB\include;..\Model;..\Model\AZB\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link Condition="'$(Configuration)'=='Debug'">
       <AdditionalOptions>/nodefaultlib:MSVCRT %(AdditionalOptions)</AdditionalOptions>

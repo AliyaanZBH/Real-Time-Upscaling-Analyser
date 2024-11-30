@@ -55,6 +55,7 @@ bool ConvertToDDS( const std::wstring& filePath, uint32_t Flags )
     bool bUseBestBC =		GetFlag(kQualityBC);
     bool bFlipImage =       GetFlag(kFlipVertical);
 
+    // [AZB]: Why not??
     // Can't be both
     ASSERT(!bInterpretAsSRGB || !bContainsNormals);
     ASSERT(!bPreserveAlpha || !bContainsNormals);

@@ -187,12 +187,16 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
         dlssContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
         dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
         dlssContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
-        dlssContext.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
+        dlssContext.TransitionResource(g_DecodedVelocityBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
+        //dlssContext.TransitionResource(g_PerPixelMotionBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
 
         // [AZB]: Input color buffer and output buffer for the fully processed frame.
         execParams.Feature = NVSDK_NGX_D3D12_Feature_Eval_Params{ g_SceneColorBuffer.GetResource(), g_DLSSOutputBuffer.GetResource() };
         execParams.pInDepth = g_SceneDepthBuffer.GetResource();
-        execParams.pInMotionVectors = g_VelocityBuffer.GetResource();
+        // [AZB]: Use hand-made per-pixel motion vectors
+        //execParams.pInMotionVectors = g_PerPixelMotionBuffer.GetResource();
+        // [AZB]: Use our hand-decoded camera motion vectors!
+        execParams.pInMotionVectors = g_DecodedVelocityBuffer.GetResource();
         execParams.InJitterOffsetX = s_JitterX;
         execParams.InJitterOffsetY = s_JitterY;
         execParams.InRenderSubrectDimensions = NVSDK_NGX_Dimensions{ DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderWidth, DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderHeight };
@@ -200,45 +204,44 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
         // [AZB]: Finalise reqs struct with these params
         reqs.m_DlSSEvalParams = execParams;
 
-
         DLSS::Execute(reqs);
 
         // [AZB]: Transition resources back to what they used to be so the rest of the pipeline can execute smoothly!
         dlssContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
         dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_COMMON, true);
         dlssContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ, true);
-        dlssContext.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
+        //dlssContext.TransitionResource(g_PerPixelMotionBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
+        dlssContext.TransitionResource(g_DecodedVelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
 
         // [AZB]: DLSS Messes with the command list, so flush it and reset it back to avoid errors!
-
        dlssContext.Flush();
     }
     else
     {
         // [AZB]: TODO: Turn these repeated code blocks into functions or macros!
         // [AZB]: Revert back to TAA
-        //ScopedTimer _prof(L"Temporal Resolve", BaseContext);
+        ScopedTimer _prof(L"Temporal Resolve", BaseContext);
 
-        //ComputeContext& Context = BaseContext.GetComputeContext();
+        ComputeContext& Context = BaseContext.GetComputeContext();
 
-        //static bool s_EnableTAA = false;
-        //static bool s_EnableCBR = false;
+        static bool s_EnableTAA = false;
+        static bool s_EnableCBR = false;
 
-        //if (EnableTAA != s_EnableTAA || EnableCBR && !s_EnableCBR || TriggerReset)
-        //{
-        //    ClearHistory(Context);
-        //    s_EnableTAA = EnableTAA;
-        //    s_EnableCBR = EnableCBR;
-        //    TriggerReset = false;
-        //}
+        if (EnableTAA != s_EnableTAA || EnableCBR && !s_EnableCBR || TriggerReset)
+        {
+            ClearHistory(Context);
+            s_EnableTAA = EnableTAA;
+            s_EnableCBR = EnableCBR;
+            TriggerReset = false;
+        }
 
-        //uint32_t Src = s_FrameIndexMod2;
-        //uint32_t Dst = Src ^ 1;
+        uint32_t Src = s_FrameIndexMod2;
+        uint32_t Dst = Src ^ 1;
 
-        //{
-        //    ApplyTemporalAA(Context);
-        //    SharpenImage(Context, g_TemporalColor[Dst]);
-        //}
+        {
+            ApplyTemporalAA(Context);
+            SharpenImage(Context, g_TemporalColor[Dst]);
+        }
     }
 
 
@@ -268,6 +271,13 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
 
 #endif
 }
+
+#if AZB_MOD
+uint32_t TemporalEffects::GetFrameIndex(void)
+{
+    return s_FrameIndex;
+}
+#endif
 
 void TemporalEffects::ApplyTemporalAA(ComputeContext& Context)
 {

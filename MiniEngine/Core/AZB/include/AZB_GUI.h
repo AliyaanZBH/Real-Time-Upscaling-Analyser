@@ -4,18 +4,20 @@
 // auth: Aliyaan Zulfiqar
 //===============================================================================
 #include "imgui.h"
-#include "imgui_internal.h" // For ImLerp
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
+#include "imgui_internal.h" // For ImLerp
 
-#include "implot.h"
+#include "implot.h" // For our lovely graphs!
 
 #include "AZB_Utils.h"
 
+#include <string>   // For GBuffer LUT
+#include <array>  // For GBuffer array
+#include <d3d12.h>  // For GBuffer array
 //===============================================================================
 
-
-
+class CommandContext;
 // Pallete consts for ease of use, readabilty and editability
 namespace ThemeColours
 {
@@ -43,7 +45,7 @@ public:
 	void Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const DXGI_FORMAT& renderTargetFormat);
 
 	// Run ImGui render loop!
-	void Run();
+	void Run(CommandContext& ImGuiContext);
 
     // Our GUI can control resolution and other pipeline state at runtime, however we don't want to be messing about with this while frames are in flight!
     // This function will be called at the start of the update loop of the next frame, submitting any changes we made on the previous one.
@@ -51,19 +53,60 @@ public:
 
 	// Shutdown ImGui safely
 	void Terminate();
+    
+
 
 	// A handle to render ImGui within MiniEngine
 	ID3D12DescriptorHeap* m_pSrvDescriptorHeap = nullptr;
+    //DescriptorHeap m_pSrvDescriptorHeap;
 
 
 
     // Public flag to enable/disable tonemapping!
-    bool m_bEnablePostFX = true;
+    bool m_bEnablePostFX = true; 
+    
+    // Public flag to enable/disable Motion Vector visualisation!
+    bool m_bEnableMotionVisualisation = true;
 
     // Flag to show startup modal
     bool m_bShowStartupModal = true;
 
 private:
+
+
+    //
+    //  MiniEngine Integration
+    //  
+    
+    // Handle to global device - needed to update descriptor heap!
+    ID3D12Device* m_pD3DDevice;
+
+
+    //
+    // GBuffer handling
+    //
+    enum eGBuffers : uint8_t
+    {
+        SCENE_COLOR,
+        SCENE_DEPTH,
+        MOTION_VECTORS,
+        VISUAL_MOTION_VECTORS,
+        NUM_BUFFERS
+    };
+
+    // String look-up table to give names to buffers in ImGui!
+    // IF the above enum changes, you need to change this!
+    std::string m_BufferNames[eGBuffers::NUM_BUFFERS] =
+    {
+        "Main Color"            ,
+        "Depth"                 ,
+        "Motion Vectors Raw"    ,
+        "MV Visualisation"       
+    };
+
+    // The actual array of buffer handles
+    std::array<D3D12_CPU_DESCRIPTOR_HANDLE, NUM_BUFFERS> m_GBuffers;
+
 
     //
     // Member variables that allow for safe manipulation of graphics pipeline.
@@ -102,7 +145,8 @@ private:
 	//
 
 	// Situate window on the left side, just underneath the existing profiling
-	const ImVec2 kMainWindowStartPos = { 0.f, 75.f };
+	//const ImVec2 kMainWindowStartPos = { 0.f, 75.f };
+	const ImVec2 kMainWindowStartPos = { 1200.f, 75.f };
 
 	// How big is the window at program start?
 	const ImVec2 kMainWindowStartSize = { 680.f, 850.f };
