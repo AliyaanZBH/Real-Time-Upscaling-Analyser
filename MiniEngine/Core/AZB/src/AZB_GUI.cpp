@@ -80,6 +80,10 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 	m_NewWidth = Graphics::g_DisplayWidth;
 	m_NewHeight = Graphics::g_DisplayHeight;
 
+	// Also set up our window vars!
+	m_MainWindowSize = { Graphics::g_DisplayWidth / 4.f, Graphics::g_DisplayHeight / 2.f };
+	m_MainWindowPos = { (Graphics::g_DisplayWidth - m_MainWindowSize.x) - 10.f, 0.f };		// Additional offset as it doesn't sit quite flush without it
+
 	// Store handles to GBuffers so that we can display them!
 	m_GBuffers[eGBuffers::SCENE_COLOR] = Graphics::g_SceneColorBuffer.GetSRV();
 	m_GBuffers[eGBuffers::SCENE_DEPTH] = Graphics::g_LinearDepth[TemporalEffects::GetFrameIndex()].GetSRV();
@@ -104,9 +108,8 @@ void GUI::Run(CommandContext& Context)
 		// Display the rest of our lovely Window!
 	{
 
-
-		ImGui::SetNextWindowPos(kMainWindowStartPos, ImGuiCond_FirstUseEver, kTopLeftPivot);
-		ImGui::SetNextWindowSize(kMainWindowStartSize, ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(m_MainWindowSize, ImGuiCond_Appearing);
+		ImGui::SetNextWindowPos(m_MainWindowPos, ImGuiCond_Appearing, kTopLeftPivot);
 
 		if (!ImGui::Begin("RTUA"))
 		{
@@ -404,6 +407,13 @@ void GUI::UpdateGraphics()
 		m_bResolutionChangePending = false;
 		// Also let DLSS know that the resolution has changed!
 		DLSS::m_bNeedsReleasing = true;
+
+		// Update window size and reset position!!
+		//m_MainWindowSize = { (float)m_NewWidth / 4.f, (float)m_NewHeight / 2.f };
+		m_MainWindowSize.y = (float)m_NewHeight / 2.f;
+		m_MainWindowPos.x = ( (float)m_NewWidth - m_MainWindowSize.x ) - 10.f;
+		ImGui::SetWindowSize("RTUA", m_MainWindowSize);
+		ImGui::SetWindowPos("RTUA", m_MainWindowPos);
 	}
 
 	if (m_bDLSSUpdatePending)

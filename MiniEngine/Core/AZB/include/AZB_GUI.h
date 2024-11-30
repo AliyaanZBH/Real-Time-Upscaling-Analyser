@@ -144,12 +144,13 @@ private:
 	// Constants to help with the UI
 	//
 
-	// Situate window on the left side, just underneath the existing profiling
-	//const ImVec2 kMainWindowStartPos = { 0.f, 75.f };
-	const ImVec2 kMainWindowStartPos = { 1200.f, 75.f };
 
-	// How big is the window at program start?
-	const ImVec2 kMainWindowStartSize = { 680.f, 850.f };
+    // How big is the window? Normally I'd make this a constant but the resolution will constantly be changing in this app!
+    ImVec2 m_MainWindowSize;
+
+    // Place window on right side
+    ImVec2 m_MainWindowPos;
+
 
 	// Common window pivot positions
 	const ImVec2 kTopLeftPivot = { 0.f, 0.f };
