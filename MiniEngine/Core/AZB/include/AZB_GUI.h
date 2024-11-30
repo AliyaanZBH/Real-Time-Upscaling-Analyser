@@ -141,6 +141,11 @@ private:
 
     void ResolutionSettings();
 
+    void DLSSSettings();
+
+    // Send context through to this function in order to display GBuffers!
+    void GraphicsSettings(CommandContext& Context);
+
     void PerformanceMetrics();
 
 
