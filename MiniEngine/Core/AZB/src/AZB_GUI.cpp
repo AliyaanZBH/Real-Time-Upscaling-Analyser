@@ -137,13 +137,22 @@ void GUI::UpdateGraphics()
 		}
 
 		if (!m_bFullscreen)
+		{
 			// This version scales the window to match the resolution - it also returns the size of the windows titlebar so that ImGui can generate a more user-friendly resolution for the user!
 			m_TitleBarSize = Display::SetWindowedResolution(m_NewWidth, m_NewHeight);
+
+			// Update window size and reset position as it may not fit into the new window size
+			m_MainWindowSize.y = (float)m_NewHeight * 0.5f;
+			m_MainWindowPos.x = ((float)m_NewWidth - m_MainWindowSize.x) - 10.f;
+			ImGui::SetWindowSize("RTUA", m_MainWindowSize);
+			ImGui::SetWindowPos("RTUA", m_MainWindowPos);
+		}
 		else
 		{
 			// This version maintains fullscreen size based on what was queried at app startup and stretches the resolution to the display size
 			// We still need to update the pipeline to render at the lower resolution
 			Display::SetPipelineResolution(false, m_NewWidth, m_NewHeight);
+			// No need to move ImGui here
 		}
 
 		// Reset flag for next time
@@ -151,11 +160,7 @@ void GUI::UpdateGraphics()
 		// Also let DLSS know that the resolution has changed!
 		DLSS::m_bNeedsReleasing = true;
 
-		// Update window size and reset position!!
-		m_MainWindowSize.y = (float)m_NewHeight * 0.5f;
-		m_MainWindowPos.x = ( (float)m_NewWidth - m_MainWindowSize.x ) - 10.f;
-		ImGui::SetWindowSize("RTUA", m_MainWindowSize);
-		ImGui::SetWindowPos("RTUA", m_MainWindowPos);
+		
 	}
 
 	if (m_bDLSSUpdatePending)
@@ -441,20 +446,47 @@ void GUI::ResolutionSettings()
 			{
 				DEBUGPRINT("Switched to %s mode", m_bFullscreen ? "Fullscreen" : "Windowed");
 
+				// Update flag that signals the pipeline to update
+				m_bResolutionChangePending = true;
+
+				// Update new width and height to fullscreen values if we have entered fullscreen
+				//if (m_bFullscreen)
+				//{
+				//	// We may already be at max resolution while windowed, check first and only update if not
+				//	if (m_NewWidth != DLSS::m_MaxNativeResolution.m_Width && m_NewHeight != DLSS::m_MaxNativeResolution.m_Height)
+				//	{
+				//		m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
+				//		m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
+				//
+				//		// Also move GUI window to the new top corner!
+				//		m_MainWindowPos.x = ((float)m_NewWidth - m_MainWindowSize.x) - 5.f;
+				//		ImGui::SetWindowPos("RTUA", m_MainWindowPos);
+				//	}
+				//	else
+				//		// If we are already at this size, so is the pipeline, so skip resizing of buffers!
+				//		m_bResolutionChangePending = false;
+				//}
+				
 				// Update new width and height to fullscreen values if we have entered fullscreen
 				if (m_bFullscreen)
 				{
 					m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
 					m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
+
+					// Also move ImGui window to the new top corner!
+					m_MainWindowPos.x = ((float)m_NewWidth - m_MainWindowSize.x) - 5.f;
+					ImGui::SetWindowPos("RTUA", m_MainWindowPos);
 				}
+
 				m_bResolutionChangePending = true;
-				}
+
+			}
 			else
 			{
 				DEBUGPRINT("\nFailed to toggle fullscreen mode.\n");
 			}
-			}
 		}
+	}
 }
 
 void GUI::DLSSSettings()
@@ -617,7 +649,7 @@ void GUI::PerformanceMetrics()
 			ImGui::SetNextWindowSize(m_MetricWindowSize, ImGuiCond_Appearing);
 			ImGui::SetNextWindowPos(m_HwTimingWindowPos, ImGuiCond_Appearing);
 			
-			ImGui::Begin("Hardware Metrics", nullptr, ImGuiWindowFlags_NoDocking);
+			ImGui::Begin("Hardware Metrics");
 
 			// Continue with rest of window
 
@@ -653,7 +685,7 @@ void GUI::PerformanceMetrics()
 			ImGui::SetNextWindowSize(m_MetricWindowSize, ImGuiCond_Appearing);
 			ImGui::SetNextWindowPos(m_FrameRateWindowPos, ImGuiCond_Appearing);
 
-			ImGui::Begin("Frame Rate", nullptr, ImGuiWindowFlags_NoDocking);
+			ImGui::Begin("Frame Rate");
 
 			frameTimes.push_back(EngineProfiling::GetFrameRate());
 			if (frameTimes.size() > 1000) frameTimes.erase(frameTimes.begin());
