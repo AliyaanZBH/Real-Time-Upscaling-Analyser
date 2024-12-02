@@ -33,6 +33,18 @@
 #include "CompiledShaders/ScreenQuadCommonVS.h"
 #include "CompiledShaders/DownsampleDepthPS.h"
 
+//===============================================================================
+// desc: This is where samplers get initialised and created. Update mips here!
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
+#include "AZB_Utils.h"
+
+#if AZB_MOD
+#include "AZB_DLSS.h"
+#include <cmath>  // For log2f
+#endif
+
 namespace Graphics
 {
     SamplerDesc SamplerLinearWrapDesc;
@@ -114,10 +126,29 @@ namespace BitonicSort
 
 void Graphics::InitializeCommonState(void)
 {
+
+#if AZB_MOD
+
+    // [AZB]: Use the formula of the DLSS programming guide for the Texture LOD Bias...
+    float lodBias = 0.f;
+    float texLodXDimension = DLSS::m_MaxNativeResolution.m_Width;
+
+    lodBias = std::log2f(texLodXDimension / DLSS::m_MaxNativeResolution.m_Width) - 3.0f;
+    // [AZB]: ... perhaps leave the opportunity to override it in the UI...
+
+    // [AZB]: Set mip bias for all samplers before they get created
+    SamplerLinearWrapDesc.MipLODBias = lodBias;
+    SamplerLinearClampDesc.MipLODBias = lodBias;
+    SamplerLinearBorderDesc.MipLODBias = lodBias;
+    SamplerPointClampDesc.MipLODBias = lodBias;
+    SamplerPointBorderDesc.MipLODBias = lodBias;
+    SamplerAnisoWrapDesc.MipLODBias = lodBias;
+#endif
+
     SamplerLinearWrapDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
     SamplerLinearWrap = SamplerLinearWrapDesc.CreateDescriptor();
 
-    SamplerAnisoWrapDesc.MaxAnisotropy = 4;
+    SamplerAnisoWrapDesc.MaxAnisotropy = 16;
     SamplerAnisoWrap = SamplerAnisoWrapDesc.CreateDescriptor();
 
     SamplerShadowDesc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
