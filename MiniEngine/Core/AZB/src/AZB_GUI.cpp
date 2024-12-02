@@ -141,19 +141,28 @@ void GUI::UpdateGraphics()
 			// Update new width and height to fullscreen values if we have entered fullscreen
 			if (m_bFullscreen)
 			{
+				// Set to max by default
 				m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
 				m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
-
-				// Also move ImGui window to the new top corner!
-				m_MainWindowPos.x = ((float)m_NewWidth - m_MainWindowSize.x) - 5.f;
-				ImGui::SetWindowPos("RTUA", m_MainWindowPos);
 			}
+			else
+			{
+				// When returning to windowed, set it to default smaller window size of 720p!
+				m_NewWidth = 1280u;
+				m_NewHeight = 720u;
+			}
+
+			// Set pipeline update flag
 			m_bResolutionChangePending = true;
+			// Also move GUI window to the new top corner!
+			m_MainWindowPos.x = ((float)m_NewWidth - m_MainWindowSize.x) - 5.f;
+			ImGui::SetWindowPos("RTUA", m_MainWindowPos);
 		}
 		else
 		{
 			DEBUGPRINT("\nFailed to toggle fullscreen mode.\n");
 		}
+
 		// Reset flag
 		m_bDisplayModeChangePending = false;
 	}
@@ -185,7 +194,8 @@ void GUI::UpdateGraphics()
 			// This version maintains fullscreen size based on what was queried at app startup and stretches the resolution to the display size
 			// We still need to update the pipeline to render at the lower resolution
 			Display::SetPipelineResolution(false, m_NewWidth, m_NewHeight);
-			// No need to move ImGui here
+
+			// Clean up swapchain when this happens!
 		}
 
 		// Reset flag for next time
