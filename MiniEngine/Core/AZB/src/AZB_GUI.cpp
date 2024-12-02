@@ -125,7 +125,40 @@ void GUI::Run(CommandContext& Context)
 
 void GUI::UpdateGraphics()
 {
-	// See if resolution has been changed
+	// Check if display mode has changed
+	if (m_bDisplayModeChangePending)
+	{
+		// wb for Windows Bool - have to use this when querying the swapchain!
+		BOOL wbFullscreen = FALSE;
+		Display::GetSwapchain()->GetFullscreenState(&wbFullscreen, nullptr);
+
+		// This will actually attempt to set fullscreen state
+		HRESULT hr = Display::GetSwapchain()->SetFullscreenState(!wbFullscreen, nullptr);
+		if (SUCCEEDED(hr))
+		{
+			DEBUGPRINT("Switched to %s mode", m_bFullscreen ? "Fullscreen" : "Windowed");
+
+			// Update new width and height to fullscreen values if we have entered fullscreen
+			if (m_bFullscreen)
+			{
+				m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
+				m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
+
+				// Also move ImGui window to the new top corner!
+				m_MainWindowPos.x = ((float)m_NewWidth - m_MainWindowSize.x) - 5.f;
+				ImGui::SetWindowPos("RTUA", m_MainWindowPos);
+			}
+			m_bResolutionChangePending = true;
+		}
+		else
+		{
+			DEBUGPRINT("\nFailed to toggle fullscreen mode.\n");
+		}
+		// Reset flag
+		m_bDisplayModeChangePending = false;
+	}
+
+	// See if resolution has been changed for any given display mode
 	if (m_bResolutionChangePending)
 	{
 		// Regardless of specific change, DLSS will need to be recreated, and it cannot handle being on while a resize occurs!
@@ -159,10 +192,9 @@ void GUI::UpdateGraphics()
 		m_bResolutionChangePending = false;
 		// Also let DLSS know that the resolution has changed!
 		DLSS::m_bNeedsReleasing = true;
-
-		
 	}
 
+	// Check if anything needs to change with DLSS
 	if (m_bDLSSUpdatePending)
 	{
 		// If we're fullscreen, we need to reset back to full res
@@ -385,7 +417,7 @@ void GUI::ResolutionSettings()
 		// Check window display mode. 
 		// When Fullscreen, our display height will be fixed (naturally), so we want to convey native height to the user
 		// When Windowed, display height has variable, and can even be resized manually.
-		// This nlock takes that into account and ensures that the dropdown is always as helpful as possible
+		// This block takes that into account and ensures that the dropdown is always as helpful as possible
 		if (m_bFullscreen)
 		{
 			comboLabel = "Native Resolution";
@@ -440,51 +472,54 @@ void GUI::ResolutionSettings()
 		// Add a checkbox to control fullscreen
 		if (ImGui::Checkbox("Enable fullscreen mode", &m_bFullscreen))
 		{
+			// Flip flag to signal a display mode change at the start of next frame.
+			m_bDisplayModeChangePending = true;
+
 			// This will actually attempt to go fullscreen
-			HRESULT hr = Display::GetSwapchain()->SetFullscreenState(!wbFullscreen, nullptr);
-			if (SUCCEEDED(hr))
-			{
-				DEBUGPRINT("Switched to %s mode", m_bFullscreen ? "Fullscreen" : "Windowed");
-
-				// Update flag that signals the pipeline to update
-				m_bResolutionChangePending = true;
-
-				// Update new width and height to fullscreen values if we have entered fullscreen
-				//if (m_bFullscreen)
-				//{
-				//	// We may already be at max resolution while windowed, check first and only update if not
-				//	if (m_NewWidth != DLSS::m_MaxNativeResolution.m_Width && m_NewHeight != DLSS::m_MaxNativeResolution.m_Height)
-				//	{
-				//		m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
-				//		m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
-				//
-				//		// Also move GUI window to the new top corner!
-				//		m_MainWindowPos.x = ((float)m_NewWidth - m_MainWindowSize.x) - 5.f;
-				//		ImGui::SetWindowPos("RTUA", m_MainWindowPos);
-				//	}
-				//	else
-				//		// If we are already at this size, so is the pipeline, so skip resizing of buffers!
-				//		m_bResolutionChangePending = false;
-				//}
-				
-				// Update new width and height to fullscreen values if we have entered fullscreen
-				if (m_bFullscreen)
-				{
-					m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
-					m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
-
-					// Also move ImGui window to the new top corner!
-					m_MainWindowPos.x = ((float)m_NewWidth - m_MainWindowSize.x) - 5.f;
-					ImGui::SetWindowPos("RTUA", m_MainWindowPos);
-				}
-
-				m_bResolutionChangePending = true;
-
-			}
-			else
-			{
-				DEBUGPRINT("\nFailed to toggle fullscreen mode.\n");
-			}
+			//HRESULT hr = Display::GetSwapchain()->SetFullscreenState(!wbFullscreen, nullptr);
+			//if (SUCCEEDED(hr))
+			//{
+			//	DEBUGPRINT("Switched to %s mode", m_bFullscreen ? "Fullscreen" : "Windowed");
+			//
+			//	// Update flag that signals the pipeline to update
+			//	m_bResolutionChangePending = true;
+			//
+			//	// Update new width and height to fullscreen values if we have entered fullscreen
+			//	//if (m_bFullscreen)
+			//	//{
+			//	//	// We may already be at max resolution while windowed, check first and only update if not
+			//	//	if (m_NewWidth != DLSS::m_MaxNativeResolution.m_Width && m_NewHeight != DLSS::m_MaxNativeResolution.m_Height)
+			//	//	{
+			//	//		m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
+			//	//		m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
+			//	//
+			//	//		// Also move GUI window to the new top corner!
+			//	//		m_MainWindowPos.x = ((float)m_NewWidth - m_MainWindowSize.x) - 5.f;
+			//	//		ImGui::SetWindowPos("RTUA", m_MainWindowPos);
+			//	//	}
+			//	//	else
+			//	//		// If we are already at this size, so is the pipeline, so skip resizing of buffers!
+			//	//		m_bResolutionChangePending = false;
+			//	//}
+			//	
+			//	// Update new width and height to fullscreen values if we have entered fullscreen
+			//	if (m_bFullscreen)
+			//	{
+			//		m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
+			//		m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
+			//
+			//		// Also move ImGui window to the new top corner!
+			//		m_MainWindowPos.x = ((float)m_NewWidth - m_MainWindowSize.x) - 5.f;
+			//		ImGui::SetWindowPos("RTUA", m_MainWindowPos);
+			//	}
+			//
+			//	m_bResolutionChangePending = true;
+			//
+			//}
+			//else
+			//{
+			//	DEBUGPRINT("\nFailed to toggle fullscreen mode.\n");
+			//}
 		}
 	}
 }

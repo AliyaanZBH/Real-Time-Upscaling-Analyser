@@ -118,7 +118,9 @@ private:
 
     // Flag to indicate that the resolution should change next frame
     bool m_bResolutionChangePending = false;
-    // Flag to control fullscreen/windowed behaviour
+    // Flag to indicate that display mode should change next frame
+    bool m_bDisplayModeChangePending = false;
+    // Flag to track display mode and adjust behaviour accordingly
     bool m_bFullscreen = false;
 
     // Flag to indicate when a change has been made to DLSS
