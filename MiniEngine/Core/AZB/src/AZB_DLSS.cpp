@@ -98,6 +98,8 @@ void DLSS::Init(ID3D12Device* device)
 
 	// Important step! Fill in our member parameters so that we can refer back to them and use them throughout the lifetime of the app
 	NVSDK_NGX_Result Result = NVSDK_NGX_D3D12_GetCapabilityParameters(&m_DLSS_Parameters);
+	if (NVSDK_NGX_FAILED(Result))
+		Utility::Print("\nNVIDIA DLSS capabilities could not be queried\n\n");
 
 	// Secondary hardware query
 	NVSDK_NGX_Result ResultDlssSupported = m_DLSS_Parameters->Get(NVSDK_NGX_Parameter_SuperSampling_Available, &DLSS_Supported);

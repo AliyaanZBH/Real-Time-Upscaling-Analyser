@@ -21,10 +21,29 @@ class RootSignature;
 class ComputePSO;
 class GraphicsPSO;
 
+//===============================================================================
+// desc: This is where samplers get initialised and created. Update mips here!
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
+#include "AZB_Utils.h"
+
+
 namespace Graphics
 {
     void InitializeCommonState(void);
     void DestroyCommonState(void);
+
+#if AZB_MOD
+    // [AZB]: This function will re-initalise samplers and root signature so that textures are fed to DLSS with the correct Mip bias
+    //          See DLSS docs 3.5 for more info!
+    void ReInitializeCommonState(Resolution inputResolutionDLSS, float overrideLodBias = 0.f);
+
+    // [AZB]: Also create extern variable to pass to our GUI
+    extern float m_DefaultLodBias;
+    // [AZB]: Helper flag to make LOD changes smoothly
+    extern bool m_bOverrideLodBias;
+#endif
 
     extern SamplerDesc SamplerLinearWrapDesc;
     extern SamplerDesc SamplerAnisoWrapDesc;

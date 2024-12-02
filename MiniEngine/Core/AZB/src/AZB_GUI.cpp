@@ -125,7 +125,22 @@ void GUI::Run(CommandContext& Context)
 
 void GUI::UpdateGraphics()
 {
-	// Check if display mode has changed
+	// Check if the common graphics state (samplers etc.) needs updating first
+	if (m_bCommonStateChangePending)
+	{
+		if (m_bOverrideLodBias)
+		{
+			Graphics::ReInitializeCommonState(DLSS::m_MaxNativeResolution, m_ForcedLodBias);
+		}
+		else
+		{
+			Graphics::ReInitializeCommonState(DLSS::m_MaxNativeResolution, -1.f);
+		}
+		// Reset flag
+		m_bCommonStateChangePending = false;
+	}
+
+	// Check if display mode has changed next
 	if (m_bDisplayModeChangePending)
 	{
 		// wb for Windows Bool - have to use this when querying the swapchain!
@@ -601,6 +616,18 @@ void GUI::GraphicsSettings(CommandContext& Context)
 {
 	if (ImGui::CollapsingHeader("Graphics Settings"))
 	{
+		//if (ImGui::Checkbox("Override LODBias", &m_bOverrideLodBias))
+		//	m_bCommonStateChangePending = true;
+		//
+		//if (m_bOverrideLodBias)
+		//{
+		//	if(ImGui::DragFloat("LODBias (-4.0 ~ 0.0)", &m_ForcedLodBias, 0.01f, -4.0f, 0.0f))
+		//		m_bCommonStateChangePending = true;
+		//}
+		//else
+		{
+			ImGui::Text("Default LODBias : %.2f", Graphics::m_DefaultLodBias);
+		}
 
 		ImGui::Checkbox("Enable PostFX", &m_bEnablePostFX);
 

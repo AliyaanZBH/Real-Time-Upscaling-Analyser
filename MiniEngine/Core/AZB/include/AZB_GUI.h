@@ -120,6 +120,14 @@ private:
     bool m_bResolutionChangePending = false;
     // Flag to indicate that display mode should change next frame
     bool m_bDisplayModeChangePending = false;
+   
+    // Flag to indicate that common graphics state needs re-initalising next frame e.g. due to a change in mip bias for texture sampling
+    bool m_bCommonStateChangePending = false;
+    // Flag that tracks the checkbox which controls LOD bias
+    bool m_bOverrideLodBias = false;
+    // Actual value that can be controlled by the user to determine a custom LOD bias
+    float m_ForcedLodBias = 0.f;
+
     // Flag to track display mode and adjust behaviour accordingly
     bool m_bFullscreen = false;
 

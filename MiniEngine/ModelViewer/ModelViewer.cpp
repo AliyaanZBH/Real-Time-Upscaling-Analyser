@@ -66,7 +66,7 @@
 #include "TextureConvert.h"     // For converting HDRI PNGs to DDS
 #endif
 
-//#define LEGACY_RENDERER
+#define LEGACY_RENDERER
 
 using namespace GameCore;
 using namespace Math;
@@ -351,7 +351,7 @@ void ModelViewer::Startup( void )
     // [AZB]: Get sponza started up
     Sponza::Startup(m_Camera);
     // [AZB]: Now spin up bistro
-    Bistro::Startup(m_Camera, m_Scenes[0]);
+    //Bistro::Startup(m_Camera, m_Scenes[0]);
 #else
 
     // [AZB]: If we're not legacy rendering, load sponza from glTF
@@ -444,8 +444,7 @@ void ModelViewer::Update( float deltaT )
 #if AZB_MOD
 #ifndef LEGACY_RENDERER
     // [AZB]: Only update models when they're being used, which is when legacy rendering is disabled!
-    m_Scenes[0].Update(gfxContext, deltaT);
-    m_Scenes[1].Update(gfxContext, deltaT);
+    m_Scenes[activeScene].Update(gfxContext, deltaT);
 #endif
 #else
     // [AZB]: Always update model
