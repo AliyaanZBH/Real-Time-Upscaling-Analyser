@@ -53,6 +53,10 @@ D3D12_CPU_DESCRIPTOR_HANDLE GetSampler(uint32_t addressModes)
     SamplerDesc samplerDesc;
     samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE(addressModes & 0x3);
     samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE(addressModes >> 2);
+
+    //[AZB]: Experimenting with setting mip bias here
+    //samplerDesc.MipLODBias = -1.f;
+
     return samplerDesc.CreateDescriptor();
 }
 

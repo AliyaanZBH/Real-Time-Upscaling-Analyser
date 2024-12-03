@@ -35,7 +35,7 @@ namespace Graphics
     void DestroyCommonState(void);
 
 #if AZB_MOD
-    // [AZB]: This function will re-initalise samplers and root signature so that textures are fed to DLSS with the correct Mip bias
+    // [AZB]: This function will re-initalise samplers so that textures are fed to DLSS with the correct Mip bias
     //          See DLSS docs 3.5 for more info!
     void ReInitializeCommonState(Resolution inputResolutionDLSS, float overrideLodBias = 0.f);
 

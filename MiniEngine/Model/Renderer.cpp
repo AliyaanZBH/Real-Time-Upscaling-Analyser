@@ -48,6 +48,18 @@ using namespace Math;
 using namespace Graphics;
 using namespace Renderer;
 
+
+
+//===============================================================================
+// desc: This is where samplers get initialised and created when using the new glTF renderer. Update mips here!
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
+#if AZB_MOD
+#include "AZB_DLSS.h"
+#include <cmath>  // For log2f
+#endif
+
 namespace Renderer
 {
     BoolVar SeparateZPass("Renderer/Separate Z Pass", true);
@@ -468,6 +480,39 @@ void Renderer::DrawSkybox( GraphicsContext& gfxContext, const Camera& Camera, co
     gfxContext.SetDescriptorTable(kCommonSRVs, m_CommonTextures);
     gfxContext.Draw(3);
 }
+
+#if AZB_MOD
+void Renderer::ReinitialiseSamplers(Resolution inputResolutionDLSS, float overrideLodBias)
+{
+    float lodBias = 0.f;
+
+    // [AZB]: Use the input resolution of DLSS
+    float texLodXDimension = inputResolutionDLSS.m_Width;
+
+    // [AZB]: Use the formula of the DLSS programming guide for the LOD Bias...
+    lodBias = std::log2f(texLodXDimension / DLSS::m_MaxNativeResolution.m_Width) - 1.0f;
+
+    // [AZB]: ... but leave the opportunity to override it in the UI...
+    if (overrideLodBias < 0.0f)
+    {
+        lodBias = overrideLodBias;
+    }
+
+    // [AZB]: Set mip bias for all samplers before they get created
+    SamplerDesc DefaultSamplerDesc;
+    DefaultSamplerDesc.MaxAnisotropy = 16;
+    DefaultSamplerDesc.MipLODBias = lodBias;
+
+    SamplerDesc CubeMapSamplerDesc = DefaultSamplerDesc;
+
+    // Recreate the samplers with this new bias!
+    // 
+
+    m_RootSig.InitStaticSampler(10, DefaultSamplerDesc, D3D12_SHADER_VISIBILITY_PIXEL);
+    m_RootSig.InitStaticSampler(12, CubeMapSamplerDesc, D3D12_SHADER_VISIBILITY_PIXEL);
+
+}
+#endif
 
 void MeshSorter::AddMesh( const Mesh& mesh, float distance,
     D3D12_GPU_VIRTUAL_ADDRESS meshCBV,
