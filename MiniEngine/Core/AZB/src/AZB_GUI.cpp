@@ -455,6 +455,8 @@ void GUI::ResolutionSettings()
 	// In order to make it clearer to users, create a variable combo label
 	std::string comboLabel;
 
+
+#if AZB_DBG
 	if (ImGui::CollapsingHeader("Resolution Settings"))
 	{
 		static int item_current_idx = DLSS::m_NumResolutions - 1;
@@ -521,6 +523,7 @@ void GUI::ResolutionSettings()
 			m_bDisplayModeChangePending = true;
 		}
 	}
+#endif
 }
 
 void GUI::DLSSSettings()
