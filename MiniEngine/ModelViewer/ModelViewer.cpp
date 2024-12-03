@@ -66,7 +66,7 @@
 #include "TextureConvert.h"     // For converting HDRI PNGs to DDS
 #endif
 
-//#define LEGACY_RENDERER
+#define LEGACY_RENDERER
 
 using namespace GameCore;
 using namespace Math;

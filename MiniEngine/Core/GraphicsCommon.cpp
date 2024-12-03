@@ -364,18 +364,29 @@ void Graphics::ReInitializeCommonState(Resolution inputResolutionDLSS, float ove
     lodBias = std::log2f(texLodXDimension / DLSS::m_MaxNativeResolution.m_Width) - 1.0f;
     
     // [AZB]: ... but leave the opportunity to override it in the UI...
-    if (overrideLodBias < 0.0f)
+    if (overrideLodBias != 0.0f)
     {
         lodBias = overrideLodBias;
     }
 
     // [AZB]: Set mip bias for all samplers before they get created
     SamplerLinearWrapDesc.MipLODBias = lodBias;
+    SamplerLinearWrapDesc.MinLOD = lodBias - 1.f;
+
     SamplerLinearClampDesc.MipLODBias = lodBias;
+    SamplerLinearClampDesc.MinLOD = lodBias - 1.f
+        ;
     SamplerLinearBorderDesc.MipLODBias = lodBias;
+    SamplerLinearBorderDesc.MinLOD = lodBias - 1.f;
+
     SamplerPointClampDesc.MipLODBias = lodBias;
+    SamplerPointClampDesc.MinLOD = lodBias - 1.f;
+
     SamplerPointBorderDesc.MipLODBias = lodBias;
+    SamplerPointBorderDesc.MinLOD = lodBias - 1.f;
+
     SamplerAnisoWrapDesc.MipLODBias = lodBias;
+    SamplerAnisoWrapDesc.MinLOD = lodBias - 1.f;
 
 
     // Recreate the samplers with this new bias!
@@ -389,6 +400,17 @@ void Graphics::ReInitializeCommonState(Resolution inputResolutionDLSS, float ove
     SamplerPointClamp = SamplerPointClampDesc.CreateDescriptor();
     SamplerLinearBorder = SamplerLinearBorderDesc.CreateDescriptor();
     SamplerPointBorder = SamplerPointBorderDesc.CreateDescriptor();
+
+    // Recreate Root Signature
+    g_CommonRS.Reset(4, 3);
+    g_CommonRS[0].InitAsConstants(0, 4);
+    g_CommonRS[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 10);
+    g_CommonRS[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 10);
+    g_CommonRS[3].InitAsConstantBuffer(1);
+    g_CommonRS.InitStaticSampler(0, SamplerLinearClampDesc);
+    g_CommonRS.InitStaticSampler(1, SamplerPointBorderDesc);
+    g_CommonRS.InitStaticSampler(2, SamplerLinearBorderDesc);
+    g_CommonRS.Finalize(L"GraphicsCommonRS");
     
     //m_bOverrideLodBias = true;
     //InitializeCommonState();

@@ -132,21 +132,28 @@ void GUI::UpdateGraphics()
 		if (m_bOverrideLodBias)
 		{
 			if (DLSS::m_bDLSS_Enabled)
-				//Graphics::ReInitializeCommonState(DLSS::m_CurrentInternalResolution, m_ForcedLodBias);
+			{
+				Graphics::ReInitializeCommonState(DLSS::m_CurrentInternalResolution, m_ForcedLodBias);
 				Renderer::ReinitialiseSamplers(DLSS::m_CurrentInternalResolution, m_ForcedLodBias);
+			}
 			else
-				//Graphics::ReInitializeCommonState(DLSS::m_CurrentNativeResolution, m_ForcedLodBias);
+			{
+				Graphics::ReInitializeCommonState(DLSS::m_CurrentNativeResolution, m_ForcedLodBias);
 				Renderer::ReinitialiseSamplers(DLSS::m_CurrentNativeResolution, m_ForcedLodBias);
+			}
 		}
 		else
 		{
 			if (DLSS::m_bDLSS_Enabled)
-				//Graphics::ReInitializeCommonState(DLSS::m_CurrentInternalResolution, Graphics::m_DefaultLodBias);
+			{
+				Graphics::ReInitializeCommonState(DLSS::m_CurrentInternalResolution, Graphics::m_DefaultLodBias);
 				Renderer::ReinitialiseSamplers(DLSS::m_CurrentInternalResolution, Graphics::m_DefaultLodBias);
+			}
 			else
-				//Graphics::ReInitializeCommonState(DLSS::m_CurrentNativeResolution, Graphics::m_DefaultLodBias);
+			{
+				Graphics::ReInitializeCommonState(DLSS::m_CurrentNativeResolution, Graphics::m_DefaultLodBias);
 				Renderer::ReinitialiseSamplers(DLSS::m_CurrentNativeResolution, Graphics::m_DefaultLodBias);
-
+			}
 		}
 
 		// Reset flag
@@ -588,7 +595,7 @@ void GUI::GraphicsSettings(CommandContext& Context)
 		
 		if (m_bOverrideLodBias)
 		{
-			if(ImGui::DragFloat("LODBias (-4.0 ~ 0.0)", &m_ForcedLodBias, 0.01f, -4.0f, 0.0f))
+			if(ImGui::DragFloat("LODBias (-4.0 ~ 2.0)", &m_ForcedLodBias, 0.01f, -4.0f, 2.0f))
 				m_bCommonStateChangePending = true;
 		}
 		else

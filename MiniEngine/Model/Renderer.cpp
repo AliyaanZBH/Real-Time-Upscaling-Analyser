@@ -493,7 +493,7 @@ void Renderer::ReinitialiseSamplers(Resolution inputResolutionDLSS, float overri
     lodBias = std::log2f(texLodXDimension / DLSS::m_MaxNativeResolution.m_Width) - 1.0f;
 
     // [AZB]: ... but leave the opportunity to override it in the UI...
-    if (overrideLodBias < 0.0f)
+    if (overrideLodBias != 0.0f)
     {
         lodBias = overrideLodBias;
     }
@@ -501,12 +501,17 @@ void Renderer::ReinitialiseSamplers(Resolution inputResolutionDLSS, float overri
     // [AZB]: Set mip bias for all samplers before they get created
     SamplerDesc DefaultSamplerDesc;
     DefaultSamplerDesc.MaxAnisotropy = 16;
+
+
+
     DefaultSamplerDesc.MipLODBias = lodBias;
+    DefaultSamplerDesc.MinLOD = lodBias - 1.f;
 
     SamplerDesc CubeMapSamplerDesc = DefaultSamplerDesc;
 
     // Recreate the samplers with this new bias!
     // 
+
     m_RootSig.Reset(kNumRootBindings, 3);
     m_RootSig.InitStaticSampler(10, DefaultSamplerDesc, D3D12_SHADER_VISIBILITY_PIXEL);
     m_RootSig.InitStaticSampler(11, SamplerShadowDesc, D3D12_SHADER_VISIBILITY_PIXEL);
