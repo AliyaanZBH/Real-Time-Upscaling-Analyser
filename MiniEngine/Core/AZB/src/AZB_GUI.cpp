@@ -663,78 +663,75 @@ void GUI::PerformanceMetrics()
 // Some of these functions will not exist when the mod is disabled - even though this function is never called when mod is disabled, compiler will fuss. 
 // Hence wrapping this whole function in a macro!
 #if AZB_MOD
+	// While the header is open
 	if (ImGui::CollapsingHeader("Performance Metrics"))
 	{
-		// Frame data from MiniEngine profiler!
-		static std::vector<float> cpuTimes, gpuTimes, frameTimes;
-
-		// Checkbox bools
-		static bool showHardwareMetrics = false;
-		static bool showFrameRate = false;
-
 		// Show checkboxes that open windows!
-		ImGui::Checkbox("Hardware Frame Times", &showHardwareMetrics);
+		ImGui::Checkbox("Hardware Frame Times", &m_ShowHardwareMetrics);
+		ImGui::Checkbox("Frame Rate (FPS)", &m_ShowFrameRate);
+	}
+
+	// Open windows when bools are true! 
+	if (m_ShowHardwareMetrics)
+	{
+		// Re-calculate window sizes for the current resolution!
+		m_MetricWindowSize = { m_MainWindowSize.x, m_MainWindowSize.y * 0.666f };
+		m_HwTimingWindowPos = { m_MainWindowPos.x - m_MainWindowSize.x, m_MainWindowPos.y }; // Set it directly next to the main window at the top
+
+		ImGui::SetNextWindowSize(m_MetricWindowSize, ImGuiCond_Appearing);
+		ImGui::SetNextWindowPos(m_HwTimingWindowPos, ImGuiCond_Appearing);
+
+		ImGui::Begin("Hardware Metrics");
+
+		// Continue with rest of window
 		
-		// Open windows when bool is true!
-		if (showHardwareMetrics)
+		// Frame data from MiniEngine profiler!
+		static std::vector<float> cpuTimes, gpuTimes;
+
+		cpuTimes.push_back(EngineProfiling::GetCPUTime());		// CPU time per frame
+		gpuTimes.push_back(EngineProfiling::GetGPUTime());		// GPU time per frame
+
+		// Limit buffer sizes
+		if (cpuTimes.size() > 1000) cpuTimes.erase(cpuTimes.begin());
+		if (gpuTimes.size() > 1000) gpuTimes.erase(gpuTimes.begin());
+
+		// Plot the data
+		if (ImPlot::BeginPlot("Hardware Timings (MS)"))
 		{
-			// Re-calculate window sizes for the current resolution!
-			m_MetricWindowSize = { m_MainWindowSize.x, m_MainWindowSize.y * 0.666f };
-			m_HwTimingWindowPos = { m_MainWindowPos.x - m_MainWindowSize.x, m_MainWindowPos.y }; // Set it directly next to the main window at the top
-
-			ImGui::SetNextWindowSize(m_MetricWindowSize, ImGuiCond_Appearing);
-			ImGui::SetNextWindowPos(m_HwTimingWindowPos, ImGuiCond_Appearing);
-			
-			ImGui::Begin("Hardware Metrics");
-
-			// Continue with rest of window
-
-			cpuTimes.push_back(EngineProfiling::GetCPUTime());		// CPU time per frame
-			gpuTimes.push_back(EngineProfiling::GetGPUTime());		// GPU time per frame
-
-			// Limit buffer sizes
-			if (cpuTimes.size() > 1000) cpuTimes.erase(cpuTimes.begin());
-			if (gpuTimes.size() > 1000) gpuTimes.erase(gpuTimes.begin());
-
-			// Plot the data
-			if (ImPlot::BeginPlot("Hardware Timings (MS)"))
-			{
-				// Setup axis, x then y. This will be Frame,Ms. Use autofit for now, will mess around with these later
-				ImPlot::SetupAxes("Frame", "Speed(ms)", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
-				ImPlot::PlotLine("CPU Time", cpuTimes.data(), cpuTimes.size());
-				ImPlot::PlotLine("GPU Time", gpuTimes.data(), gpuTimes.size());
-				ImPlot::EndPlot();
-			}
-
-			ImGui::End();
-
+			// Setup axis, x then y. This will be Frame,Ms. Use autofit for now, will mess around with these later
+			ImPlot::SetupAxes("Frame", "Speed(ms)", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
+			ImPlot::PlotLine("CPU Time", cpuTimes.data(), cpuTimes.size());
+			ImPlot::PlotLine("GPU Time", gpuTimes.data(), gpuTimes.size());
+			ImPlot::EndPlot();
 		}
 
+		ImGui::End();
+	}
 
+	// Repeat for FPS!
+	if (m_ShowFrameRate)
+	{
+		m_MetricWindowSize = { m_MainWindowSize.x, m_MainWindowSize.y * 0.666f };
+		m_FrameRateWindowPos = { m_MainWindowPos.x - m_MainWindowSize.x, m_MainWindowPos.y + m_MetricWindowSize.y };	// Next to main window start pos, and just below where the hardware timings would have gone
 
-		ImGui::Checkbox("Frame Rate (FPS)", &showFrameRate);
-		if (showFrameRate)
+		ImGui::SetNextWindowSize(m_MetricWindowSize, ImGuiCond_Appearing);
+		ImGui::SetNextWindowPos(m_FrameRateWindowPos, ImGuiCond_Appearing);
+
+		ImGui::Begin("Frame Rate");
+
+		static std::vector<float> frameTimes;
+
+		frameTimes.push_back(EngineProfiling::GetFrameRate());
+		if (frameTimes.size() > 1000) frameTimes.erase(frameTimes.begin());
+
+		if (ImPlot::BeginPlot("Frame Rate"))
 		{
-			m_MetricWindowSize = { m_MainWindowSize.x, m_MainWindowSize.y * 0.666f };
-			m_FrameRateWindowPos = { m_MainWindowPos.x - m_MainWindowSize.x, m_MainWindowPos.y + m_MetricWindowSize.y };	// Next to main window start pos, and just below where the hardware timings would have gone
-
-			ImGui::SetNextWindowSize(m_MetricWindowSize, ImGuiCond_Appearing);
-			ImGui::SetNextWindowPos(m_FrameRateWindowPos, ImGuiCond_Appearing);
-
-			ImGui::Begin("Frame Rate");
-
-			frameTimes.push_back(EngineProfiling::GetFrameRate());
-			if (frameTimes.size() > 1000) frameTimes.erase(frameTimes.begin());
-
-			if (ImPlot::BeginPlot("Frame Rate"))
-			{
-				ImPlot::SetupAxes("Count", "FPS", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
-				ImPlot::PlotLine("Frame Rate", frameTimes.data(), frameTimes.size());
-				ImPlot::EndPlot();
-			}
-
-			ImGui::End();
+			ImPlot::SetupAxes("Count", "FPS", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
+			ImPlot::PlotLine("Frame Rate", frameTimes.data(), frameTimes.size());
+			ImPlot::EndPlot();
 		}
+
+		ImGui::End();
 	}
 #endif
 }

@@ -139,6 +139,12 @@ private:
     bool m_bUpdateDLSSMode = false;
 
 
+    // Checkbox that controls whether to show metrics window
+    bool m_ShowHardwareMetrics = false;
+    bool m_ShowFrameRate = false;
+
+
+
 
 	//
 	//	Functions to break up smaller sections of the UI
