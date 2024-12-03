@@ -130,11 +130,11 @@ void GUI::UpdateGraphics()
 	{
 		if (m_bOverrideLodBias)
 		{
-			Graphics::ReInitializeCommonState(DLSS::m_MaxNativeResolution, m_ForcedLodBias);
+			Graphics::ReInitializeCommonState(DLSS::m_CurrentNativeResolution, m_ForcedLodBias);
 		}
 		else
 		{
-			Graphics::ReInitializeCommonState(DLSS::m_MaxNativeResolution, -1.f);
+			Graphics::ReInitializeCommonState(DLSS::m_MaxNativeResolution, Graphics::m_DefaultLodBias);
 		}
 		// Reset flag
 		m_bCommonStateChangePending = false;
@@ -499,52 +499,6 @@ void GUI::ResolutionSettings()
 		{
 			// Flip flag to signal a display mode change at the start of next frame.
 			m_bDisplayModeChangePending = true;
-
-			// This will actually attempt to go fullscreen
-			//HRESULT hr = Display::GetSwapchain()->SetFullscreenState(!wbFullscreen, nullptr);
-			//if (SUCCEEDED(hr))
-			//{
-			//	DEBUGPRINT("Switched to %s mode", m_bFullscreen ? "Fullscreen" : "Windowed");
-			//
-			//	// Update flag that signals the pipeline to update
-			//	m_bResolutionChangePending = true;
-			//
-			//	// Update new width and height to fullscreen values if we have entered fullscreen
-			//	//if (m_bFullscreen)
-			//	//{
-			//	//	// We may already be at max resolution while windowed, check first and only update if not
-			//	//	if (m_NewWidth != DLSS::m_MaxNativeResolution.m_Width && m_NewHeight != DLSS::m_MaxNativeResolution.m_Height)
-			//	//	{
-			//	//		m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
-			//	//		m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
-			//	//
-			//	//		// Also move GUI window to the new top corner!
-			//	//		m_MainWindowPos.x = ((float)m_NewWidth - m_MainWindowSize.x) - 5.f;
-			//	//		ImGui::SetWindowPos("RTUA", m_MainWindowPos);
-			//	//	}
-			//	//	else
-			//	//		// If we are already at this size, so is the pipeline, so skip resizing of buffers!
-			//	//		m_bResolutionChangePending = false;
-			//	//}
-			//	
-			//	// Update new width and height to fullscreen values if we have entered fullscreen
-			//	if (m_bFullscreen)
-			//	{
-			//		m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
-			//		m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
-			//
-			//		// Also move ImGui window to the new top corner!
-			//		m_MainWindowPos.x = ((float)m_NewWidth - m_MainWindowSize.x) - 5.f;
-			//		ImGui::SetWindowPos("RTUA", m_MainWindowPos);
-			//	}
-			//
-			//	m_bResolutionChangePending = true;
-			//
-			//}
-			//else
-			//{
-			//	DEBUGPRINT("\nFailed to toggle fullscreen mode.\n");
-			//}
 		}
 	}
 }
@@ -616,15 +570,15 @@ void GUI::GraphicsSettings(CommandContext& Context)
 {
 	if (ImGui::CollapsingHeader("Graphics Settings"))
 	{
-		//if (ImGui::Checkbox("Override LODBias", &m_bOverrideLodBias))
-		//	m_bCommonStateChangePending = true;
-		//
-		//if (m_bOverrideLodBias)
-		//{
-		//	if(ImGui::DragFloat("LODBias (-4.0 ~ 0.0)", &m_ForcedLodBias, 0.01f, -4.0f, 0.0f))
-		//		m_bCommonStateChangePending = true;
-		//}
-		//else
+		if (ImGui::Checkbox("Override LODBias", &m_bOverrideLodBias))
+			m_bCommonStateChangePending = true;
+		
+		if (m_bOverrideLodBias)
+		{
+			if(ImGui::DragFloat("LODBias (-4.0 ~ 0.0)", &m_ForcedLodBias, 0.01f, -4.0f, 0.0f))
+				m_bCommonStateChangePending = true;
+		}
+		else
 		{
 			ImGui::Text("Default LODBias : %.2f", Graphics::m_DefaultLodBias);
 		}
@@ -637,10 +591,7 @@ void GUI::GraphicsSettings(CommandContext& Context)
 
 		if (showMV)
 		{
-			//g_PerPixelMotionBuffer
-
 			GraphicsContext& imguiGBufferContext = Context.GetGraphicsContext();
-
 
 			imguiGBufferContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 			imguiGBufferContext.TransitionResource(Graphics::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);

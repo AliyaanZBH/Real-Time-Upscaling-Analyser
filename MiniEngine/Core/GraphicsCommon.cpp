@@ -140,7 +140,7 @@ void Graphics::InitializeCommonState(void)
         float texLodXDimension = DLSS::m_MaxNativeResolution.m_Width;
 
         // [AZB]: Use the formula of the DLSS programming guide for determining the LOD Bias...
-        lodBias = std::log2f(texLodXDimension / DLSS::m_MaxNativeResolution.m_Width) - 1.0f;
+        lodBias = std::log2f(texLodXDimension / DLSS::m_MaxNativeResolution.m_Width) - 2.0f;
 
         // [AZB]: Set mip bias for all samplers before they get created
         SamplerLinearWrapDesc.MipLODBias = lodBias;
@@ -362,6 +362,7 @@ void Graphics::ReInitializeCommonState(Resolution inputResolutionDLSS, float ove
 
     // [AZB]: Use the formula of the DLSS programming guide for the LOD Bias...
     lodBias = std::log2f(texLodXDimension / DLSS::m_MaxNativeResolution.m_Width) - 1.0f;
+    
     // [AZB]: ... but leave the opportunity to override it in the UI...
     if (overrideLodBias < 0.0f)
     {
@@ -378,7 +379,18 @@ void Graphics::ReInitializeCommonState(Resolution inputResolutionDLSS, float ove
 
 
     // Recreate the samplers with this new bias!
-    m_bOverrideLodBias = true;
-    InitializeCommonState();
+    // 
+    
+    SamplerLinearWrap = SamplerLinearWrapDesc.CreateDescriptor();
+    SamplerAnisoWrap = SamplerAnisoWrapDesc.CreateDescriptor();
+    SamplerShadow = SamplerShadowDesc.CreateDescriptor();
+    SamplerLinearClamp = SamplerLinearClampDesc.CreateDescriptor();
+    SamplerVolumeWrap = SamplerVolumeWrapDesc.CreateDescriptor();
+    SamplerPointClamp = SamplerPointClampDesc.CreateDescriptor();
+    SamplerLinearBorder = SamplerLinearBorderDesc.CreateDescriptor();
+    SamplerPointBorder = SamplerPointBorderDesc.CreateDescriptor();
+    
+    //m_bOverrideLodBias = true;
+    //InitializeCommonState();
 }
 #endif
