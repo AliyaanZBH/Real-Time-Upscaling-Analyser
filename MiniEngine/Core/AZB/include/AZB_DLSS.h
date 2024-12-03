@@ -96,6 +96,8 @@ namespace DLSS
 	extern Resolution m_MaxNativeResolution;
 	// Track the current native resolution
 	extern Resolution m_CurrentNativeResolution;
+	// Track the current internal rendering resolution
+	extern Resolution m_CurrentInternalResolution;
 
 	// Track which DLSS mode is currently selectd
 	extern uint8_t m_CurrentQualityMode;
@@ -107,7 +109,7 @@ namespace DLSS
 	extern bool m_bIsNGXSupported;
 
 	// Flag to allow for runtime toggling of DLSS
-	extern bool m_DLSS_Enabled;
+	extern bool m_bDLSS_Enabled;
 
 	// Flag to track when native resolution has changed and DLSS needs re-creating
 	extern bool m_bNeedsReleasing;

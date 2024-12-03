@@ -155,7 +155,7 @@ namespace GameCore
         if (AZB_GUI->m_bEnablePostFX)
         {
 
-            if(DLSS::m_DLSS_Enabled)
+            if(DLSS::m_bDLSS_Enabled)
                 // [AZB]: Overloaded function that acts on a chosen buffer
                 PostEffects::Render(g_DLSSOutputBuffer);
             else

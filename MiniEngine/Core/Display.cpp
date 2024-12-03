@@ -307,7 +307,7 @@ void Display::Resize(uint32_t width, uint32_t height)
     }
 
     // [AZB]: Additional flag so that we can toggle DLSS at run-time
-    if (DLSS::m_DLSS_Enabled)
+    if (DLSS::m_bDLSS_Enabled)
     {
         // [AZB]: Resize internal buffers to use the lower resolution that DLSS will upscale from
         SetPipelineResolution(true, g_DLSSWidth, g_DLSSHeight);
@@ -579,7 +579,7 @@ void Graphics::PreparePresentSDR(void)
 
 #if AZB_MOD
     //[AZB]: Additional check as DLSS may be toggled off
-    if (DLSS::m_DLSS_Enabled)
+    if (DLSS::m_bDLSS_Enabled)
     {
         // [AZB]: Our color buffer is was downscaled and used as an input for DLSS, so instead read from the DLSS output!
         Context.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
@@ -603,7 +603,7 @@ void Graphics::PreparePresentSDR(void)
 
 #if AZB_MOD
     // [AZB]: When DLSS is enabled, you no longer need to upscale the scene buffer! This is because we will be rendering using the DLSS output buffer which has already been upscaled
-    bool NeedsScaling = !DLSS::m_DLSS_Enabled && (g_NativeWidth != g_DisplayWidth || g_NativeHeight != g_DisplayHeight);
+    bool NeedsScaling = !DLSS::m_bDLSS_Enabled && (g_NativeWidth != g_DisplayWidth || g_NativeHeight != g_DisplayHeight);
 #else
     bool NeedsScaling = g_NativeWidth != g_DisplayWidth || g_NativeHeight != g_DisplayHeight;
 #endif
@@ -722,7 +722,7 @@ void Display::Present(void)
     
 #if AZB_MOD
    // [AZB]: Resize according to DLSS
-   //if (DLSS::m_DLSS_Enabled)
+   //if (DLSS::m_bDLSS_Enabled)
    //     SetPipelineResolution(true, g_DisplayWidth, g_DisplayHeight);
    // else
    //    SetPipelineResolution(false, g_DisplayWidth, g_DisplayHeight);
@@ -744,9 +744,9 @@ Resolution Display::SetWindowedResolution(uint32_t width, uint32_t height)
    g_CommandManager.IdleGPU();
 
    // [AZB]: If DLSS is active, the resize here will break. So, we need to check for this, then release DLSS and recreate it!
-   if (DLSS::m_DLSS_Enabled)
+   if (DLSS::m_bDLSS_Enabled)
    {
-       DLSS::m_DLSS_Enabled = false;
+       DLSS::m_bDLSS_Enabled = false;
    }
 
    // [AZB]: This function triggers WM_SIZE which in turn calls Display::Resize

@@ -130,11 +130,18 @@ void GUI::UpdateGraphics()
 	{
 		if (m_bOverrideLodBias)
 		{
-			Graphics::ReInitializeCommonState(DLSS::m_CurrentNativeResolution, m_ForcedLodBias);
+			if (DLSS::m_bDLSS_Enabled)
+				Graphics::ReInitializeCommonState(DLSS::m_CurrentInternalResolution, m_ForcedLodBias);
+			else
+				Graphics::ReInitializeCommonState(DLSS::m_CurrentNativeResolution, m_ForcedLodBias);
 		}
 		else
 		{
-			Graphics::ReInitializeCommonState(DLSS::m_MaxNativeResolution, Graphics::m_DefaultLodBias);
+			if (DLSS::m_bDLSS_Enabled)
+				Graphics::ReInitializeCommonState(DLSS::m_CurrentInternalResolution, Graphics::m_DefaultLodBias);
+			else
+				Graphics::ReInitializeCommonState(DLSS::m_CurrentNativeResolution, Graphics::m_DefaultLodBias);
+
 		}
 		// Reset flag
 		m_bCommonStateChangePending = false;
@@ -187,7 +194,7 @@ void GUI::UpdateGraphics()
 	{
 		// Regardless of specific change, DLSS will need to be recreated, and it cannot handle being on while a resize occurs!
 		// Before it can be recreated, disable the flag to ensure it doesn't try to run while out of date!
-		if (DLSS::m_DLSS_Enabled)
+		if (DLSS::m_bDLSS_Enabled)
 		{
 			m_bToggleDLSS = false;
 			m_bDLSSUpdatePending = true;

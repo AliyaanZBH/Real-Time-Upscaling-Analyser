@@ -163,7 +163,7 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
 
 #if AZB_MOD
     // [AZB]: Execute DLSS instead of TAA
-    if (DLSS::m_DLSS_Enabled)
+    if (DLSS::m_bDLSS_Enabled)
     {
         ScopedTimer _prof(L"DLSS Temporal Resolve", BaseContext);
 
