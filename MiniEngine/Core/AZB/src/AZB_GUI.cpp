@@ -12,6 +12,7 @@
 #include "Display.h"		// To allow ImGui to trigger swapchain resize and handle global resolution controls!
 #include "BufferManager.h"	// For debug rendering buffers
 #include "CommandContext.h"	// For transitioning resources
+#include "Renderer.h"
 #include <TemporalEffects.h>
 
 //===============================================================================
@@ -131,18 +132,23 @@ void GUI::UpdateGraphics()
 		if (m_bOverrideLodBias)
 		{
 			if (DLSS::m_bDLSS_Enabled)
-				Graphics::ReInitializeCommonState(DLSS::m_CurrentInternalResolution, m_ForcedLodBias);
+				//Graphics::ReInitializeCommonState(DLSS::m_CurrentInternalResolution, m_ForcedLodBias);
+				Renderer::ReinitialiseSamplers(DLSS::m_CurrentInternalResolution, m_ForcedLodBias);
 			else
-				Graphics::ReInitializeCommonState(DLSS::m_CurrentNativeResolution, m_ForcedLodBias);
+				//Graphics::ReInitializeCommonState(DLSS::m_CurrentNativeResolution, m_ForcedLodBias);
+				Renderer::ReinitialiseSamplers(DLSS::m_CurrentNativeResolution, m_ForcedLodBias);
 		}
 		else
 		{
 			if (DLSS::m_bDLSS_Enabled)
-				Graphics::ReInitializeCommonState(DLSS::m_CurrentInternalResolution, Graphics::m_DefaultLodBias);
+				//Graphics::ReInitializeCommonState(DLSS::m_CurrentInternalResolution, Graphics::m_DefaultLodBias);
+				Renderer::ReinitialiseSamplers(DLSS::m_CurrentInternalResolution, Graphics::m_DefaultLodBias);
 			else
-				Graphics::ReInitializeCommonState(DLSS::m_CurrentNativeResolution, Graphics::m_DefaultLodBias);
+				//Graphics::ReInitializeCommonState(DLSS::m_CurrentNativeResolution, Graphics::m_DefaultLodBias);
+				Renderer::ReinitialiseSamplers(DLSS::m_CurrentNativeResolution, Graphics::m_DefaultLodBias);
 
 		}
+
 		// Reset flag
 		m_bCommonStateChangePending = false;
 	}
