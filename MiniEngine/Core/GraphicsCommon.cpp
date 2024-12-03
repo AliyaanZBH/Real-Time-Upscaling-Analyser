@@ -374,8 +374,8 @@ void Graphics::ReInitializeCommonState(Resolution inputResolutionDLSS, float ove
     SamplerLinearWrapDesc.MinLOD = lodBias - 1.f;
 
     SamplerLinearClampDesc.MipLODBias = lodBias;
-    SamplerLinearClampDesc.MinLOD = lodBias - 1.f
-        ;
+    SamplerLinearClampDesc.MinLOD = lodBias - 1.f;
+
     SamplerLinearBorderDesc.MipLODBias = lodBias;
     SamplerLinearBorderDesc.MinLOD = lodBias - 1.f;
 
