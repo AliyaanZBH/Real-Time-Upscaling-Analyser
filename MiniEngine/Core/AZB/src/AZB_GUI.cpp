@@ -80,6 +80,23 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 	m_GBuffers[eGBuffers::SCENE_DEPTH] = Graphics::g_LinearDepth[TemporalEffects::GetFrameIndex()].GetSRV();
 	m_GBuffers[eGBuffers::MOTION_VECTORS] = Graphics::g_DecodedVelocityBuffer.GetSRV();
 	m_GBuffers[eGBuffers::VISUAL_MOTION_VECTORS] = Graphics::g_MotionVectorVisualisationBuffer.GetSRV();
+
+
+	// Set swapchain to start in fullscreen!
+		
+	// wb for Windows Bool - have to use this when querying the swapchain!
+	BOOL wbFullscreen = FALSE;
+	Display::GetSwapchain()->GetFullscreenState(&wbFullscreen, nullptr);
+
+	m_bFullscreen = wbFullscreen;
+	HRESULT hr = Display::GetSwapchain()->SetFullscreenState(!wbFullscreen, nullptr);
+	if (SUCCEEDED(hr))
+	{
+		Display::GetSwapchain()->GetFullscreenState(&wbFullscreen, nullptr);
+
+		m_bFullscreen = wbFullscreen;
+		DEBUGPRINT("Switched to %s mode", m_bFullscreen ? "Fullscreen" : "Windowed");
+	}
 }
 
 void GUI::Run(CommandContext& Context)
@@ -451,9 +468,33 @@ void GUI::MainWindowTitle()
 
 void GUI::ResolutionSettings()
 {
-	std::string comboValue;
-	// In order to make it clearer to users, create a variable combo label
-	std::string comboLabel;
+	// In order to make it clearer to users, create labels
+	const char* labelText;
+	std::string labelValue;
+
+
+	labelText = "Display Resolution: ";
+	CenterNextTextItem(labelText);
+	ImGui::Text(labelText);
+	labelValue = std::to_string(DLSS::m_MaxNativeResolution.m_Width) + "x" + std::to_string(DLSS::m_MaxNativeResolution.m_Height);
+	labelText = labelValue.c_str();
+	CenterNextTextItem(labelText);
+	ImGui::Text(labelText);
+	
+	SingleLineBreak();
+	
+	labelText = "Native Resolution: ";
+	CenterNextTextItem(labelText);
+	ImGui::Text(labelText);
+	labelValue = std::to_string(Graphics::g_NativeWidth) + "x" + std::to_string(Graphics::g_NativeHeight);
+	labelText = labelValue.c_str();
+	CenterNextTextItem(labelText);
+	ImGui::Text(labelText);
+
+	Separator();
+
+	m_NewWidth = Graphics::g_NativeWidth;
+	m_NewHeight = Graphics::g_NativeHeight;
 
 
 #if AZB_DBG
