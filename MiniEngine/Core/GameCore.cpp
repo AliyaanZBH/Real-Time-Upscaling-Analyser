@@ -88,6 +88,9 @@ namespace GameCore
         EngineTuning::Initialize();
 
         game.Startup();
+
+        // [AZB]: Once the game has started up, retrieve the loaded model as a pointer for our GUI to manipulate!
+        AZB_GUI->m_pScene = game.GetScene();
     }
 
 

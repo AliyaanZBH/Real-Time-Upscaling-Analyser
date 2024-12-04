@@ -66,7 +66,7 @@
 #include "TextureConvert.h"     // For converting HDRI PNGs to DDS
 #endif
 
-//#define LEGACY_RENDERER
+#define LEGACY_RENDERER
 
 using namespace GameCore;
 using namespace Math;
@@ -87,6 +87,11 @@ public:
     virtual void Update( float deltaT ) override;
     virtual void RenderScene( void ) override;
 
+#if AZB_MOD
+
+    // [AZB]: New function that returns the currently loaded scene - needed to get a pointer to our GUI which then passes it off to the renderer to allow for sampler updating!
+    virtual const Model* GetScene() override { return m_Scenes[activeScene].GetModel().get(); }
+#endif
 private:
     Camera m_Camera;
     unique_ptr<CameraController> m_CameraController;
@@ -146,7 +151,7 @@ void ChangeIBLBias(EngineVar::ActionType)
 #include <direct.h> // for _getcwd() to check data root path
 
 //[AZB]: Test for particles in sponza glTF
-//#include <ParticleEffects.h>
+#include <ParticleEffects.h>
 
 #if AZB_MOD
 // [AZB]: Modified method that detects PNGs and HDRs and converts to DDS!
@@ -258,6 +263,8 @@ void LoadIBLTextures()
     // [AZB} Set Stonewall as starting env since it seems to be the only one that lets the scene look right!
     int setIdx = 8;
     Renderer::SetIBLTextures(g_IBLTextures[setIdx].first, g_IBLTextures[setIdx].second);
+
+    
 }
 
 #else
@@ -365,7 +372,7 @@ void ModelViewer::Startup( void )
     m_Camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kYUnitVector));
 
     // [AZB]: TMP TEST, do particles look alright on sponza glTF?
-    //ParticleEffects::InitFromJSON(L"Sponza/particles.json");
+    ParticleEffects::InitFromJSON(L"Sponza/particles.json");
 #endif
 
     // [AZB]: Set near/far planes and start our FPS camera!

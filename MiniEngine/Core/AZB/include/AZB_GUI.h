@@ -18,6 +18,8 @@
 //===============================================================================
 
 class CommandContext;
+class Model;
+
 // Pallete consts for ease of use, readabilty and editability
 namespace ThemeColours
 {
@@ -58,6 +60,8 @@ public:
 	// A handle to render ImGui within MiniEngine
 	ID3D12DescriptorHeap* m_pSrvDescriptorHeap = nullptr;
 
+    // Public pointer to the scene we will be investigating!
+    const Model* m_pScene = nullptr;
 
     // Public flag to enable/disable tonemapping!
     bool m_bEnablePostFX = true; 

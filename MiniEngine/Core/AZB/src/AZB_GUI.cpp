@@ -15,6 +15,7 @@
 #include <TemporalEffects.h>	// For jitter
 #include "Renderer.h"			
 #include "SamplerManager.h"	// For mipBias overriding and control!
+#include <ModelLoader.h>
 
 //===============================================================================
 
@@ -153,13 +154,17 @@ void GUI::UpdateGraphics()
 			{
 				//Graphics::ReInitializeCommonState(DLSS::m_CurrentInternalResolution, m_ForcedLodBias);
 				//Renderer::ReinitialiseSamplers(DLSS::m_CurrentInternalResolution, m_ForcedLodBias);
-				SamplerManager::ReinitialiseSamplerCache(DLSS::m_CurrentInternalResolution, true, m_ForcedLodBias);
+				//SamplerManager::ReinitialiseSamplerCache(DLSS::m_CurrentInternalResolution, true, m_ForcedLodBias);
+				Renderer::UpdateSamplers(m_pScene, DLSS::m_CurrentInternalResolution, true, m_ForcedLodBias);
 			}
 			else
 			{
 				//Graphics::ReInitializeCommonState(DLSS::m_CurrentNativeResolution, m_ForcedLodBias);
 				//Renderer::ReinitialiseSamplers(DLSS::m_CurrentNativeResolution, m_ForcedLodBias);
-				SamplerManager::ReinitialiseSamplerCache(DLSS::m_CurrentNativeResolution, true, m_ForcedLodBias);
+				//SamplerManager::ReinitialiseSamplerCache(DLSS::m_CurrentNativeResolution, true, m_ForcedLodBias);
+				Renderer::UpdateSamplers(m_pScene, DLSS::m_CurrentNativeResolution, true, m_ForcedLodBias);
+
+
 			}
 		}
 		else
@@ -168,14 +173,16 @@ void GUI::UpdateGraphics()
 			{
 				//Graphics::ReInitializeCommonState(DLSS::m_CurrentInternalResolution, Graphics::m_DefaultLodBias);
 				//Renderer::ReinitialiseSamplers(DLSS::m_CurrentInternalResolution, Graphics::m_DefaultLodBias);
-				SamplerManager::ReinitialiseSamplerCache(DLSS::m_CurrentInternalResolution);
+				//SamplerManager::ReinitialiseSamplerCache(DLSS::m_CurrentInternalResolution);
+				Renderer::UpdateSamplers(m_pScene, DLSS::m_CurrentInternalResolution);
 
 			}
 			else
 			{
 				//Graphics::ReInitializeCommonState(DLSS::m_CurrentNativeResolution, Graphics::m_DefaultLodBias);
 				//Renderer::ReinitialiseSamplers(DLSS::m_CurrentNativeResolution, Graphics::m_DefaultLodBias);
-				SamplerManager::ReinitialiseSamplerCache(DLSS::m_CurrentNativeResolution);
+				//SamplerManager::ReinitialiseSamplerCache(DLSS::m_CurrentNativeResolution);
+				Renderer::UpdateSamplers(m_pScene, DLSS::m_CurrentNativeResolution);
 
 			}
 		}
