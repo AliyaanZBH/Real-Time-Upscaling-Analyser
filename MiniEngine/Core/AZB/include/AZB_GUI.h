@@ -143,7 +143,10 @@ private:
         "DLSS "
     };
 
+    // Tracker for rendering mode
     eRenderingMode m_CurrentRenderingMode = eRenderingMode::NATIVE;
+    // Track last mode so that we can reset any state
+    eRenderingMode m_PreviousRenderingMode = eRenderingMode::NATIVE;
 
     // Flag to indicate that the resolution should change next frame
     bool m_bResolutionChangePending = false;

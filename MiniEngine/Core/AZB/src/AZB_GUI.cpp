@@ -603,36 +603,84 @@ void GUI::RenderModeSelection()
 			if (ImGui::Selectable(m_RenderModeNames[n].c_str(), is_selected))
 			{
 				mode_current_idx = n;
-				// Update rendering mode
+				// Update rendering modes
+				m_PreviousRenderingMode = m_CurrentRenderingMode;
 				m_CurrentRenderingMode = (eRenderingMode)n;
+
+
+				// Now execute appropriate behaviour based on rendering mode, but only if it's changed!
+				if (m_CurrentRenderingMode != m_PreviousRenderingMode)
+				{
+
+					switch (m_CurrentRenderingMode)
+					{
+						case eRenderingMode::NATIVE:
+						{
+							// Check if we were using DLSS previously - we need to reset the pipeline and toggle it off
+							if (m_PreviousRenderingMode == eRenderingMode::DLSS)
+							{
+								// Set flags appropriately
+								m_bToggleDLSS = false;
+								m_bDLSSUpdatePending = true;
+							}
+
+							// Check if the resolution is at native, if it's been changed from another mode, reset it!
+							if (Graphics::g_NativeWidth != DLSS::m_MaxNativeResolution.m_Width && Graphics::g_NativeHeight != DLSS::m_MaxNativeResolution.m_Height)
+							{
+								m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
+								m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
+								// Set flag to true so that we can update the pipeline next frame! This will result in DLSS needing to be recreated also
+								// This takes place in UpdateGraphics()
+								m_bResolutionChangePending = true;
+							}
+							break;
+						}
+
+						case eRenderingMode::BILINEAR_UPSCALE:
+						{
+
+							// Reset DLSS just like we did with Native
+							if (m_PreviousRenderingMode == eRenderingMode::DLSS)
+							{
+								m_bToggleDLSS = false;
+								m_bDLSSUpdatePending = true;
+							}
+							break;
+						}
+
+						case eRenderingMode::DLSS:
+						{
+							// Only do the next section if DLSS is supported!
+							if (DLSS::m_bIsNGXSupported)
+							{
+								// Removed checkbox and added an automatic toggle when this mode is selected!
+								m_bToggleDLSS = true;
+								m_bDLSSUpdatePending = true;
+
+							}
+							break;
+						}
+					}
+				}
 			}
 
 			if (is_selected)
 				ImGui::SetItemDefaultFocus();
 		}
+
 		ImGui::EndCombo();
+
 	}
 
-	// Now execute appropriate behaviour based on rendering mode
+	// After the state changes are done, check what mode we are in and add those extra options in, if they're needed!
 	switch (m_CurrentRenderingMode)
 	{
 		case eRenderingMode::NATIVE:
 		{
-			// Check if the resolution is at native, if it's been changed from another mode, reset it!
-			if (Graphics::g_NativeWidth != DLSS::m_MaxNativeResolution.m_Width && Graphics::g_NativeHeight != DLSS::m_MaxNativeResolution.m_Height)
-			{
-				m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
-				m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
-				// Set flag to true so that we can update the pipeline next frame! This will result in DLSS needing to be recreated also
-				// This takes place in UpdateGraphics()
-				m_bResolutionChangePending = true;
-			}
 			break;
 		}
-
 		case eRenderingMode::BILINEAR_UPSCALE:
 		{
-
 			// Choose internal resolution for bilinear upscaling
 			std::string comboValue = std::to_string(Graphics::g_NativeWidth) + "x" + std::to_string(Graphics::g_NativeHeight);
 			const char* res_combo_preview_value = comboValue.c_str();
@@ -659,6 +707,46 @@ void GUI::RenderModeSelection()
 			}
 			break;
 		}
+		case eRenderingMode::DLSS:
+		{
+			// Only show the next section if DLSS is supported!
+			if (DLSS::m_bIsNGXSupported)
+			{
+				static int dlssMode = 1; // 0: Performance, 1: Balanced, 2: Quality, etc.
+				const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance" };
+
+				if (ImGui::BeginCombo("Mode", modes[dlssMode]))
+				{
+					for (int n = 0; n < std::size(modes); n++)
+					{
+						const bool is_selected = (dlssMode == n);
+						if (ImGui::Selectable(modes[n], is_selected))
+						{
+							dlssMode = n;
+							// Update current mode
+							DLSS::m_CurrentQualityMode = n;
+							// Set flags
+							DLSS::m_bNeedsReleasing = true;
+							m_bDLSSUpdatePending = true;
+							m_bUpdateDLSSMode = true;
+						}
+
+						if (is_selected)
+							ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+			}
+			else
+			{
+				// Let user know that DLSS isn't supported
+				const char* centerText = "DLSS is not supported by your hardware! Sorry!";
+				CenterNextTextItem(centerText);
+				ImGui::TextColored({ 1.f,0.f,0.f,1.f }, centerText);
+			}
+			
+			break;
+		}
 	}
 
 	SingleLineBreak();
@@ -670,57 +758,7 @@ void GUI::DLSSSettings()
 {
 	if (ImGui::CollapsingHeader("DLSS Settings"))
 	{
-		// Only show the next section if DLSS is supported!
-		if (DLSS::m_bIsNGXSupported)
-		{
-
-			static int dlssMode = 1; // 0: Performance, 1: Balanced, 2: Quality, etc.
-			const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance" };
-
-			// Main selection for user to play with!
-			if (ImGui::Checkbox("Enable DLSS", &m_bToggleDLSS))
-			{
-				m_bDLSSUpdatePending = true;
-			}
-
-			// Wrap mode selection in disabled blcok - only want to edit this when DLSS is ON
-			if (!m_bToggleDLSS)
-				ImGui::BeginDisabled(true);
-			if (ImGui::BeginCombo("Mode", modes[dlssMode]))
-			{
-
-				for (int n = 0; n < std::size(modes); n++)
-				{
-					const bool is_selected = (dlssMode == n);
-					if (ImGui::Selectable(modes[n], is_selected))
-					{
-						dlssMode = n;
-						// Update current mode
-						DLSS::m_CurrentQualityMode = n;
-						// Set flags
-						DLSS::m_bNeedsReleasing = true;
-						m_bDLSSUpdatePending = true;
-						m_bUpdateDLSSMode = true;
-					}
-
-					if (is_selected)
-						ImGui::SetItemDefaultFocus();
-				}
-				ImGui::EndCombo();
-
-			}
-
-			if (!m_bToggleDLSS)
-				ImGui::EndDisabled();
-
-		}
-		else
-		{
-			// Let user know that DLSS isn't supported
-			const char* centerText = "DLSS is not supported by your hardware! Sorry!";
-			CenterNextTextItem(centerText);
-			ImGui::TextColored({ 1.f,0.f,0.f,1.f }, centerText);
-		}
+		
 
 	}
 
