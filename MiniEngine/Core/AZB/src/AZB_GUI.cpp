@@ -296,6 +296,10 @@ void GUI::UpdateGraphics()
 		}
 		m_bDLSSUpdatePending = false;
 		m_bUpdateDLSSMode = false;
+
+		// Enable this new flag to update mips next frame!
+		m_bCommonStateChangePending = true;
+
 	}
 }
 
@@ -591,9 +595,6 @@ void GUI::DLSSSettings()
 
 			static int dlssMode = 1; // 0: Performance, 1: Balanced, 2: Quality, etc.
 			const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance" };
-
-
-
 
 			// Main selection for user to play with!
 			if (ImGui::Checkbox("Enable DLSS", &m_bToggleDLSS))
