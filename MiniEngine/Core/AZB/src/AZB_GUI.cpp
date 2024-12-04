@@ -320,7 +320,11 @@ void GUI::StartupModal()
 	ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 	ImGui::SetNextWindowSize(m_MainWindowSize, ImGuiCond_Appearing);
 	ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, kCenterPivot);
-	ImGui::BeginPopupModal("Welcome!", NULL, ImGuiWindowFlags_NoMove);
+
+	// Allow window to resize, but only vertically. Restrict horizontal size to a fixed width
+	ImGui::SetNextWindowSizeConstraints(ImVec2(m_MainWindowSize.x, 0), ImVec2(m_MainWindowSize.x, FLT_MAX));
+
+	ImGui::BeginPopupModal("Welcome!", NULL, ImGuiWindowFlags_NoMove | ImGuiChildFlags_AlwaysAutoResize);
 	{
 		DoubleLineBreak();
 
@@ -346,9 +350,9 @@ void GUI::StartupModal()
 				HighlightTextItem("Press Enter to interact with elements!");
 
 				DoubleLineBreak();
-				ImGui::TextWrapped("If this is your first time, please start the tutorial to see other controls and learn how the GUI functions");
+				ImGui::TextWrapped("If this is your first time, please start the tutorial to see other controls and learn how the GUI functions.");
 				SingleLineBreak();
-				ImGui::TextWrapped("If you already know what you're doing, feel free to skip the tutorial and get started");
+				ImGui::TextWrapped("If you already know what you're doing, feel free to skip the tutorial and get started.");
 				
 				DoubleLineBreak();
 	
@@ -407,7 +411,6 @@ void GUI::StartupModal()
 					--page;
 				}
 
-				
 				btnText = "Next";
 				RightAlignSameLine(btnText);
 				MakeNextItemFitText(btnText);
