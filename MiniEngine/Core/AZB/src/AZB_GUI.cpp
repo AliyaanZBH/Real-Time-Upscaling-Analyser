@@ -382,6 +382,8 @@ void GUI::StartupModal()
 					ImGui::CloseCurrentPopup();
 				}
 
+				SingleLineBreak();
+
 				break;
 			}
 
@@ -421,7 +423,7 @@ void GUI::StartupModal()
 					// Advance to final page
 					++page;
 				}
-				
+
 				break;
 			}
 			// Final page

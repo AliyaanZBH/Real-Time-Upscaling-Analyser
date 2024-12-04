@@ -348,7 +348,7 @@ private:
         colors[ImGuiCol_ButtonHovered] = ThemeColours::m_DarkestGold;
         colors[ImGuiCol_ButtonActive] = ThemeColours::m_RtuaGold;
         colors[ImGuiCol_Header] = ThemeColours::m_RtuaLightBlack;
-        colors[ImGuiCol_HeaderHovered] = ThemeColours::m_DarkerGold;
+        colors[ImGuiCol_HeaderHovered] = ThemeColours::m_DarkestGold;
         colors[ImGuiCol_HeaderActive] = ThemeColours::m_RtuaGold;
         colors[ImGuiCol_Separator] = ThemeColours::m_RtuaGold;
         colors[ImGuiCol_SeparatorHovered] = ImVec4(1.f, 0.171f, 0.f, 1.f);
