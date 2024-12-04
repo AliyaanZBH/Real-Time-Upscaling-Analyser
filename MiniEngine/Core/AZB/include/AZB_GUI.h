@@ -259,8 +259,14 @@ private:
 		DoubleLineBreak();
 	}
 
-	// Text alignment
+    //
+	// Text item alignment (works for buttons too! basically, anything that uses text!)
+    //
 	const void CenterNextTextItem(const char* text) { ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize(text).x) / 2.f); }
+	const void RightAlignNextTextItem(const char* text) { ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize(text).x)); }
+    // Used for aligning a button onto the right side of the window
+    const void RightAlignSameLine(const char* text) { ImGui::SameLine(ImGui::GetWindowWidth() - (ImGui::CalcTextSize(text).x + ImGui::GetTextLineHeightWithSpacing())); }
+
 
 	// Common function to make an ImGui item that contains text fit that text
 	const void MakeNextItemFitText(const char* text) { ImGui::PushItemWidth(ImGui::CalcTextSize(text).x + ImGui::GetTextLineHeightWithSpacing()); }
@@ -282,9 +288,10 @@ private:
     }
 
     // Reusable function to highlight items!
-    const void HighlightTextItem(const char* itemText)
+    const void HighlightTextItem(const char* itemText, bool center = true, float spacing = 7.5f, float thickness = 3.f)
     {
-        CenterNextTextItem(itemText);
+        if (center)
+            CenterNextTextItem(itemText);
         ImGui::Text(itemText);
 
         // Calculate position to draw rect of last item
@@ -292,12 +299,11 @@ private:
         ImVec2 firstItemPosMax = ImGui::GetItemRectMax();
 
         // Add an offset to create some space around the item we are highlighting
-        float offset = 5.f;
-        ImVec2 firstRectPosMin = ImVec2(firstItemPosMin.x - offset, firstItemPosMin.y - offset);
-        ImVec2 firstRectPosMax = ImVec2(firstItemPosMax.x + offset, firstItemPosMax.y + offset);
+        ImVec2 firstRectPosMin = ImVec2(firstItemPosMin.x - spacing, firstItemPosMin.y - spacing);
+        ImVec2 firstRectPosMax = ImVec2(firstItemPosMax.x + spacing, firstItemPosMax.y + spacing);
 
         // Submit the highlight rectangle to ImGui's draw list!
-        ImGui::GetWindowDrawList()->AddRect(firstRectPosMin, firstRectPosMax, ImColor(ThemeColours::m_HighlightColour), 0, ImDrawFlags_None, 3.f);
+        ImGui::GetWindowDrawList()->AddRect(firstRectPosMin, firstRectPosMax, ImColor(ThemeColours::m_HighlightColour), 0, ImDrawFlags_None, thickness);
     }
 
     // Slightly more advanced function that can highlight variable items!
@@ -325,10 +331,10 @@ private:
         colors[ImGuiCol_Border] = ThemeColours::m_PureBlack;
         colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
         colors[ImGuiCol_FrameBg] = ThemeColours::m_GunmetalGrey;
-        colors[ImGuiCol_FrameBgHovered] = ThemeColours::m_RtuaGold;
-        colors[ImGuiCol_FrameBgActive] = ThemeColours::m_DarkerGold;
-        colors[ImGuiCol_TitleBg] = ThemeColours::m_RtuaGold;
-        colors[ImGuiCol_TitleBgActive] = ThemeColours::m_DarkerGold;
+        colors[ImGuiCol_FrameBgHovered] = ThemeColours::m_DarkerGold;
+        colors[ImGuiCol_FrameBgActive] = ThemeColours::m_RtuaGold;
+        colors[ImGuiCol_TitleBg] = ThemeColours::m_DarkerGold;
+        colors[ImGuiCol_TitleBgActive] = ThemeColours::m_RtuaGold;
         colors[ImGuiCol_TitleBgCollapsed] = ThemeColours::m_DarkestGold;
         colors[ImGuiCol_MenuBarBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
         colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.53f);
@@ -339,7 +345,7 @@ private:
         colors[ImGuiCol_SliderGrab] = ImVec4(0.25f, 0.25f, 0.25f, 0.5f);
         colors[ImGuiCol_SliderGrabActive] = ImVec4(1.f, 0.171f, 0.f, 0.9f);
         colors[ImGuiCol_Button] = ThemeColours::m_RtuaBlack;
-        colors[ImGuiCol_ButtonHovered] = ThemeColours::m_DarkerGold;
+        colors[ImGuiCol_ButtonHovered] = ThemeColours::m_DarkestGold;
         colors[ImGuiCol_ButtonActive] = ThemeColours::m_RtuaGold;
         colors[ImGuiCol_Header] = ThemeColours::m_RtuaLightBlack;
         colors[ImGuiCol_HeaderHovered] = ThemeColours::m_DarkerGold;
@@ -361,7 +367,7 @@ private:
         colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
         colors[ImGuiCol_TextSelectedBg] = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
         colors[ImGuiCol_DragDropTarget] = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
-        colors[ImGuiCol_NavHighlight] = ImVec4(0.f, 0.2f, 0.8f, 1.f);                   // Gamepad / KBM highlight. Royal blue
+        colors[ImGuiCol_NavHighlight] = ImVec4(0.f, 0.5f, 1.f, 1.f);                   // Gamepad / KBM highlight.
         colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
         colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
         colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);

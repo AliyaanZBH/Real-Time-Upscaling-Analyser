@@ -318,8 +318,9 @@ void GUI::StartupModal()
 	ImGui::OpenPopup("Welcome!");
 	// Always center this window when appearing
 	ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+	ImGui::SetNextWindowSize(m_MainWindowSize, ImGuiCond_Appearing);
 	ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, kCenterPivot);
-	ImGui::BeginPopupModal("Welcome!", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove);
+	ImGui::BeginPopupModal("Welcome!", NULL, ImGuiWindowFlags_NoMove);
 	{
 		DoubleLineBreak();
 
@@ -340,8 +341,9 @@ void GUI::StartupModal()
 				ImGui::TextWrapped("Important information or places of interest within the GUI will be highlighted like so:");
 				DoubleLineBreak();
 
-				// Highlight this baby!
-				HighlightTextItem("Use the arrow keys to navigate the GUI, and hit Enter to interact with elements!");
+				HighlightTextItem("Use the arrow keys to navigate the GUI!");
+				SingleLineBreak();
+				HighlightTextItem("Press Enter to interact with elements!");
 
 				DoubleLineBreak();
 				ImGui::TextWrapped("If this is your first time, please start the tutorial to see other controls and learn how the GUI functions");
@@ -365,7 +367,9 @@ void GUI::StartupModal()
 					++page;
 				}
 
-				btnText = "Begin";
+				SingleLineBreak();
+
+				btnText = "Skip";
 				MakeNextItemFitText(btnText);
 				CenterNextTextItem(btnText);
 				if (ImGui::Button(btnText))
@@ -388,6 +392,7 @@ void GUI::StartupModal()
 				ImGui::TextWrapped("You can also move any GUI windows around wherever you like by dragging with the mouse.");
 				SingleLineBreak();
 				HighlightTextItem("LCTRL+M to toggle input between the GUI and the scene!");
+				SingleLineBreak();
 				ImGui::TextWrapped("Use the command highlighted above to toggle between inputs when necessary.");
 
 				Separator();
@@ -402,11 +407,11 @@ void GUI::StartupModal()
 					--page;
 				}
 
-				DoubleTabSpace();
-				DoubleTabSpace();
-
+				
 				btnText = "Next";
+				RightAlignSameLine(btnText);
 				MakeNextItemFitText(btnText);
+
 
 				if (ImGui::Button(btnText))
 				{
@@ -430,7 +435,8 @@ void GUI::StartupModal()
 				DoubleTabSpace();
 				DoubleTabSpace();
 
-				btnText = "Begin";
+				btnText = "Begin Analysing!";
+				RightAlignSameLine(btnText);
 				MakeNextItemFitText(btnText);
 
 				// Finally allow them to close the popup
