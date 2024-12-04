@@ -127,7 +127,6 @@ void GUI::Run(CommandContext& Context)
 
 		// Display main rendermode area next!
 		RenderModeSelection();
-		
 
 		GraphicsSettings(Context);
 
@@ -313,59 +312,140 @@ void GUI::Terminate()
 
 void GUI::StartupModal()
 {
+	// Counter variable to track "pages"
+	static uint8_t page = 1;
+
 	ImGui::OpenPopup("Welcome!");
 	// Always center this window when appearing
 	ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 	ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, kCenterPivot);
-	ImGui::BeginPopupModal("Welcome!", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+	ImGui::BeginPopupModal("Welcome!", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove);
 	{
 		DoubleLineBreak();
 
-		SectionTitle("Welcome to Real-Time Upscaling Analyser!");
-
-		Separator();
-
-		ImGui::TextWrapped("This is a tool developed as part of a study into upscaling techniques within the field of real-time rendering.");
-		SingleLineBreak();
-		ImGui::TextWrapped("Important information or places of interest within the GUI will be highlighted like so:");
-		DoubleLineBreak();
-
-		// Highlight this baby!
-		ImGui::Text("LCTRL+M to toggle input between the GUI and the scene!");
-
-		// Calculate position to draw rect of last item
-		ImVec2 firstItemPosMin = ImGui::GetItemRectMin();
-		ImVec2 firstItemPosMax = ImGui::GetItemRectMax();
-
-		float offset = 5.f;
-		ImVec2 firstRectPosMin = ImVec2(firstItemPosMin.x - offset, firstItemPosMin.y - offset);
-		ImVec2 firstRectPosMax = ImVec2(firstItemPosMax.x + offset, firstItemPosMax.y + offset);
-
-
-		ImGui::GetWindowDrawList()->AddRect(firstRectPosMin, firstRectPosMax, ImColor(ThemeColours::m_HighlightColour), 0, ImDrawFlags_None, 3.f);
-
-		DoubleLineBreak();
-		ImGui::TextWrapped("Once you are ready to begin, you can use the arrow keys to navigate the GUI, and hit enter to interact with elements.");
-		SingleLineBreak();
-		ImGui::TextWrapped("Occasionally you will need the mouse to interact with certain elements, or to navigate between multiple windows.");
-		ImGui::TextWrapped("Use the command highlighted above to toggle between inputs when necessary.");
-		DoubleLineBreak();
-
-		// Temp var to store the text that will go inside a button
-		const char* btnText = "Start";
-		// This makes it so the next item we define (in this case a button) will have the right size
-		MakeNextItemFitText(btnText);
-		// Center the button within the modal
-		CenterNextTextItem(btnText);
-
-		ImGui::SetItemDefaultFocus();
-
-		if (ImGui::Button(btnText))
+		// Render content in "pages". ImGui doesn't support this natively but we can create this effect pretty easily!
+		switch (page)
 		{
-			m_bShowStartupModal = false;
-			ImGui::CloseCurrentPopup();
+			// First page
+			case 1:
+			{
+
+
+				SectionTitle("Welcome to Real-Time Upscaling Analyser!");
+
+				Separator();
+
+				ImGui::TextWrapped("This is a tool developed as part of a study into upscaling techniques within the field of real-time rendering.");
+				SingleLineBreak();
+				ImGui::TextWrapped("Important information or places of interest within the GUI will be highlighted like so:");
+				DoubleLineBreak();
+
+				// Highlight this baby!
+				HighlightTextItem("Use the arrow keys to navigate the GUI, and hit Enter to interact with elements!");
+
+				DoubleLineBreak();
+				ImGui::TextWrapped("If this is your first time, please start the tutorial to see other controls and learn how the GUI functions");
+				SingleLineBreak();
+				ImGui::TextWrapped("If you already know what you're doing, feel free to skip the tutorial and get started");
+				
+				DoubleLineBreak();
+	
+				// Temp var to store the text that will go inside a button
+				const char* btnText = "Start Tutorial";
+				// This makes it so the next item we define (in this case a button) will have the right size
+				MakeNextItemFitText(btnText);
+				// Center the button within the modal
+				CenterNextTextItem(btnText);
+
+				ImGui::SetItemDefaultFocus();
+
+				// Advance to next page
+				if (ImGui::Button(btnText))
+				{
+					++page;
+				}
+
+				btnText = "Begin";
+				MakeNextItemFitText(btnText);
+				CenterNextTextItem(btnText);
+				if (ImGui::Button(btnText))
+				{
+					m_bShowStartupModal = false;
+					ImGui::CloseCurrentPopup();
+				}
+
+				break;
+			}
+
+			// Second page
+			case 2:
+			{
+
+				SectionTitle("GUI Controls");
+				SingleLineBreak();
+				ImGui::TextWrapped("Occasionally you will need the mouse to interact with certain elements, or to navigate between multiple windows.");
+				SingleLineBreak();
+				ImGui::TextWrapped("You can also move any GUI windows around wherever you like by dragging with the mouse.");
+				SingleLineBreak();
+				HighlightTextItem("LCTRL+M to toggle input between the GUI and the scene!");
+				ImGui::TextWrapped("Use the command highlighted above to toggle between inputs when necessary.");
+
+				Separator();
+
+				const char* btnText = "Previous";
+				MakeNextItemFitText(btnText);
+				ImGui::SetItemDefaultFocus();
+
+				// Return to previous page
+				if (ImGui::Button(btnText))
+				{
+					--page;
+				}
+
+				DoubleTabSpace();
+				DoubleTabSpace();
+
+				btnText = "Next";
+				MakeNextItemFitText(btnText);
+
+				if (ImGui::Button(btnText))
+				{
+					// Advance to final page
+					++page;
+				}
+				
+				break;
+			}
+			// Final page
+			case 3:
+			{
+				const char* btnText = "Previous";
+				MakeNextItemFitText(btnText);
+				ImGui::SetItemDefaultFocus();
+				if (ImGui::Button(btnText))
+				{
+					--page;
+				}
+
+				DoubleTabSpace();
+				DoubleTabSpace();
+
+				btnText = "Begin";
+				MakeNextItemFitText(btnText);
+
+				// Finally allow them to close the popup
+				if (ImGui::Button(btnText))
+				{
+					m_bShowStartupModal = false;
+					ImGui::CloseCurrentPopup();
+				}
+
+				break;
+
+			}
 		}
 
+		
 		ImGui::EndPopup();
 	}
 
@@ -373,13 +453,8 @@ void GUI::StartupModal()
 
 void GUI::MainWindowTitle()
 {
-	//DoubleLineBreak();
-	//
-	//SectionTitle("Welcome to Real-Time Upscaling Analyser!");
-	//
-	//
-	//Separator();
-	//
+	DoubleLineBreak();
+
 	ImGui::TextWrapped("From this main window you can:");
 	SingleLineBreak();
 

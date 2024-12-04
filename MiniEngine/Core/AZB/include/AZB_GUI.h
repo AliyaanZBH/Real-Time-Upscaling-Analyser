@@ -281,7 +281,27 @@ private:
         ImGui::TextWrapped(bulletText);
     }
 
+    // Reusable function to highlight items!
+    const void HighlightTextItem(const char* itemText)
+    {
+        CenterNextTextItem(itemText);
+        ImGui::Text(itemText);
 
+        // Calculate position to draw rect of last item
+        ImVec2 firstItemPosMin = ImGui::GetItemRectMin();
+        ImVec2 firstItemPosMax = ImGui::GetItemRectMax();
+
+        // Add an offset to create some space around the item we are highlighting
+        float offset = 5.f;
+        ImVec2 firstRectPosMin = ImVec2(firstItemPosMin.x - offset, firstItemPosMin.y - offset);
+        ImVec2 firstRectPosMax = ImVec2(firstItemPosMax.x + offset, firstItemPosMax.y + offset);
+
+        // Submit the highlight rectangle to ImGui's draw list!
+        ImGui::GetWindowDrawList()->AddRect(firstRectPosMin, firstRectPosMax, ImColor(ThemeColours::m_HighlightColour), 0, ImDrawFlags_None, 3.f);
+    }
+
+    // Slightly more advanced function that can highlight variable items!
+    const void HighlightItem();
 
 
 
