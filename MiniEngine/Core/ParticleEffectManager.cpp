@@ -719,8 +719,8 @@ void ParticleEffectManager::Render( CommandContext& Context, const Camera& Camer
         CompContext.SetDynamicConstantBufferView(1, sizeof(CBChangesPerView), &s_ChangesPerView);
 
         RenderTiles(CompContext, ColorTarget, LinearDepth);
-
         CompContext.InsertUAVBarrier(ColorTarget);
+
     }
     else
     {

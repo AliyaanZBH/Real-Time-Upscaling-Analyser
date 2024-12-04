@@ -95,10 +95,10 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 	if (SUCCEEDED(hr))
 	{
 		Display::GetSwapchain()->GetFullscreenState(&wbFullscreen, nullptr);
-
 		m_bFullscreen = wbFullscreen;
 		DEBUGPRINT("Switched to %s mode", m_bFullscreen ? "Fullscreen" : "Windowed");
 	}
+
 }
 
 void GUI::Run(CommandContext& Context)
@@ -131,6 +131,8 @@ void GUI::Run(CommandContext& Context)
 
 		// Display resolution settings next!
 		ResolutionSettings();
+
+		RenderModeSelection();
 
 		// Display DLSS options 
 		DLSSSettings();
@@ -288,6 +290,7 @@ void GUI::UpdateGraphics()
 			// Reset flag
 			DLSS::m_bPipelineUpdate = false;
 		}
+
 		// This is set to true when disabling DLSS
 		if (DLSS::m_bPipelineReset)
 		{
@@ -299,7 +302,6 @@ void GUI::UpdateGraphics()
 
 		// Enable this new flag to update mips next frame!
 		m_bCommonStateChangePending = true;
-
 	}
 }
 
@@ -584,6 +586,85 @@ void GUI::ResolutionSettings()
 	}
 #endif
 }
+
+void GUI::RenderModeSelection()
+{
+
+	static int mode_current_idx = 0;
+
+	const char* combo_preview_value = m_RenderModeNames[mode_current_idx].c_str();
+
+	// Create combo to select rendering mode
+	if (ImGui::BeginCombo("Rendering Mode", combo_preview_value))
+	{
+		for (int n = 0; n < eRenderingMode::NUM_RENDER_MODES ; n++)
+		{
+			const bool is_selected = (mode_current_idx == n);
+			if (ImGui::Selectable(m_RenderModeNames[n].c_str(), is_selected))
+			{
+				mode_current_idx = n;
+				// Update rendering mode
+				m_CurrentRenderingMode = (eRenderingMode)n;
+			}
+
+			if (is_selected)
+				ImGui::SetItemDefaultFocus();
+		}
+		ImGui::EndCombo();
+	}
+
+	// Now execute appropriate behaviour based on rendering mode
+	switch (m_CurrentRenderingMode)
+	{
+		case eRenderingMode::NATIVE:
+		{
+			// Check if the resolution is at native, if it's been changed from another mode, reset it!
+			if (Graphics::g_NativeWidth != DLSS::m_MaxNativeResolution.m_Width && Graphics::g_NativeHeight != DLSS::m_MaxNativeResolution.m_Height)
+			{
+				m_NewWidth = DLSS::m_MaxNativeResolution.m_Width;
+				m_NewHeight = DLSS::m_MaxNativeResolution.m_Height;
+				// Set flag to true so that we can update the pipeline next frame! This will result in DLSS needing to be recreated also
+				// This takes place in UpdateGraphics()
+				m_bResolutionChangePending = true;
+			}
+			break;
+		}
+
+		case eRenderingMode::BILINEAR_UPSCALE:
+		{
+
+			// Choose internal resolution for bilinear upscaling
+			std::string comboValue = std::to_string(Graphics::g_NativeWidth) + "x" + std::to_string(Graphics::g_NativeHeight);
+			const char* res_combo_preview_value = comboValue.c_str();
+			static int res_current_idx = DLSS::m_NumResolutions - 1;
+
+			if (ImGui::BeginCombo("Internal Resolution", res_combo_preview_value))
+			{
+				for (int n = 0; n < DLSS::m_NumResolutions; n++)
+				{
+					const bool is_selected = (res_current_idx == n);
+					if (ImGui::Selectable(DLSS::m_Resolutions[n].first.c_str(), is_selected))
+					{
+						res_current_idx = n;
+						m_bResolutionChangePending = true;
+						// Also update what the values should be
+						m_NewWidth = DLSS::m_Resolutions[n].second.m_Width;
+						m_NewHeight = DLSS::m_Resolutions[n].second.m_Height;
+					}
+
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+			break;
+		}
+	}
+
+	SingleLineBreak();
+
+}
+
 
 void GUI::DLSSSettings()
 {

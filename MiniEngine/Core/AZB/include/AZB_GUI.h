@@ -95,6 +95,7 @@ private:
         NUM_BUFFERS
     };
 
+
     // String look-up table to give names to buffers in ImGui!
     // IF the above enum changes, you need to change this!
     std::string m_BufferNames[eGBuffers::NUM_BUFFERS] =
@@ -119,6 +120,30 @@ private:
 
     // The size of the the title bar in windowed mode - this was originally the total window resolution but this led to memory leaks when resizing!
     Resolution m_TitleBarSize{};
+
+
+
+
+    //
+    //  Rendering mode selection helpers
+    //
+
+    enum eRenderingMode : uint8_t
+    {
+        NATIVE,
+        BILINEAR_UPSCALE,
+        DLSS,
+        NUM_RENDER_MODES
+    };
+
+    std::string m_RenderModeNames[eRenderingMode::NUM_RENDER_MODES] =
+    {
+        "Native"            ,
+        "Bilinear Upscale"  ,
+        "DLSS "
+    };
+
+    eRenderingMode m_CurrentRenderingMode = eRenderingMode::NATIVE;
 
     // Flag to indicate that the resolution should change next frame
     bool m_bResolutionChangePending = false;
@@ -150,6 +175,7 @@ private:
 
 
 
+
 	//
 	//	Functions to break up smaller sections of the UI
 	//
@@ -160,6 +186,9 @@ private:
 	void MainWindowTitle();
 
     void ResolutionSettings();
+
+    // Main render mode selection area
+    void RenderModeSelection();
 
     void DLSSSettings();
 
