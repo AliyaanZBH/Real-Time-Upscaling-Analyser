@@ -66,7 +66,7 @@
 #include "TextureConvert.h"     // For converting HDRI PNGs to DDS
 #endif
 
-#define LEGACY_RENDERER
+//#define LEGACY_RENDERER
 
 using namespace GameCore;
 using namespace Math;
@@ -709,7 +709,7 @@ void ModelViewer::RenderScene( void )
     MotionVectors::DecodeMotionVectors(gfxContext);
     
     // [AZB]: Render our MVs to a texture and represent them using arrows!
-    MotionVectors::Render(gfxContext);
+    //MotionVectors::Render(gfxContext);
 
     // [AZB]: Generate true per-pixel motion vectors!
     //MotionVectors::GeneratePerPixelMotionVectors(gfxContext, m_Camera);
