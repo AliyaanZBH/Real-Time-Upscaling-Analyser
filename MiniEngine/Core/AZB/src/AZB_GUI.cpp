@@ -834,8 +834,7 @@ void GUI::RenderModeSelection()
 		}
 	}
 
-	SingleLineBreak();
-
+	Separator();
 }
 
 
@@ -911,7 +910,7 @@ void GUI::GraphicsSettings(CommandContext& Context)
 		
 		if (m_bOverrideLodBias)
 		{
-			if(ImGui::DragFloat("LODBias (-4.0 ~ 2.0)", &m_ForcedLodBias, 0.01f, -4.0f, 2.0f))
+			if(ImGui::DragFloat("LODBias (-4.0 ~ 2.0)", &m_ForcedLodBias, 0.01f, -4.0f, 2.0f, "%.3f", ImGuiSliderFlags_NoInput))
 				m_bCommonStateChangePending = true;
 		}
 		else
