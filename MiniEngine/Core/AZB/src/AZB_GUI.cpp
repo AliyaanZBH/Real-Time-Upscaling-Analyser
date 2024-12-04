@@ -61,21 +61,15 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 	m_pD3DDevice = pDevice;
 	
 	// Set app to use our custom style!
-	// TODO: Remember that because Dear ImGui is a submodule, I need to fork it and commit stuff there in order for the changes to be reflected in Git!!!!
-	//
-	//ImGui::RTUAStyle(&ImGui::GetStyle());
-	// 
-	
-	// TMP - added style in header of this file
 	SetStyle();
 
 	// Set newWidth at the start so that it doesn't start at 0 and avoid DLSS crashing!
-	m_NewWidth = Graphics::g_DisplayWidth;
-	m_NewHeight = Graphics::g_DisplayHeight;
+	m_NewWidth = Graphics::g_NativeWidth;
+	m_NewHeight = Graphics::g_NativeHeight;
 
 	// Also set up our window vars!
-	m_MainWindowSize = { Graphics::g_DisplayWidth * 0.25f, Graphics::g_DisplayHeight * 0.5f };
-	m_MainWindowPos = { (Graphics::g_DisplayWidth - m_MainWindowSize.x) - 10.f, 0.f };		// Additional offset as it doesn't sit quite flush without it
+	m_MainWindowSize = { m_NewWidth * 0.25f, m_NewHeight * 0.5f };
+	m_MainWindowPos = { (m_NewWidth - m_MainWindowSize.x), 0.f };
 
 	// Store handles to GBuffers so that we can display them!
 	m_GBuffers[eGBuffers::SCENE_COLOR] = Graphics::g_SceneColorBuffer.GetSRV();
@@ -128,18 +122,22 @@ void GUI::Run(CommandContext& Context)
 		// Begin with the lovely formatted title section
 		MainWindowTitle();
 
+		// Display Render Resolution information!
+		ResolutionDisplay();
 
-		// Display resolution settings next!
-		ResolutionSettings();
-
+		// Display main rendermode area next!
 		RenderModeSelection();
-
-		// Display DLSS options 
-		DLSSSettings();
+		
 
 		GraphicsSettings(Context);
 
 		PerformanceMetrics();
+
+		// Debug sections with more variables to tweak!
+#if AZB_DBG
+		ResolutionSettings();
+		DLSSSettings();
+#endif
 		
 		ImGui::End();
 	}
@@ -327,9 +325,9 @@ void GUI::StartupModal()
 
 		Separator();
 
-		ImGui::TextWrapped("If this is your first time using the app, or you'd like a refresher, please view the tutorial before using the tool.");
+		ImGui::TextWrapped("This is a tool developed as part of a study into upscaling techniques within the field of real-time rendering.");
 		SingleLineBreak();
-		ImGui::TextWrapped("If you would like to jump straight into the tool, please feel free to do so!");
+		ImGui::TextWrapped("Important information or places of interest within the GUI will be highlighted like so:");
 		DoubleLineBreak();
 
 		// Highlight this baby!
@@ -347,24 +345,21 @@ void GUI::StartupModal()
 		ImGui::GetWindowDrawList()->AddRect(firstRectPosMin, firstRectPosMax, ImColor(ThemeColours::m_HighlightColour), 0, ImDrawFlags_None, 3.f);
 
 		DoubleLineBreak();
+		ImGui::TextWrapped("Once you are ready to begin, you can use the arrow keys to navigate the GUI, and hit enter to interact with elements.");
+		SingleLineBreak();
+		ImGui::TextWrapped("Occasionally you will need the mouse to interact with certain elements, or to navigate between multiple windows.");
+		ImGui::TextWrapped("Use the command highlighted above to toggle between inputs when necessary.");
+		DoubleLineBreak();
 
 		// Temp var to store the text that will go inside a button
-		const char* btnText = "Start Tutorial";
+		const char* btnText = "Start";
 		// This makes it so the next item we define (in this case a button) will have the right size
 		MakeNextItemFitText(btnText);
 		// Center the button within the modal
 		CenterNextTextItem(btnText);
 
-		if (ImGui::Button(btnText))
-			ImGui::CloseCurrentPopup();
-
 		ImGui::SetItemDefaultFocus();
 
-		SingleLineBreak();
-
-		btnText = "Free Roam";
-		MakeNextItemFitText(btnText);
-		CenterNextTextItem(btnText);
 		if (ImGui::Button(btnText))
 		{
 			m_bShowStartupModal = false;
@@ -486,7 +481,7 @@ void GUI::MainWindowTitle()
 #endif
 }
 
-void GUI::ResolutionSettings()
+void GUI::ResolutionDisplay()
 {
 	// In order to make it clearer to users, create labels
 	const char* labelText;
@@ -500,9 +495,9 @@ void GUI::ResolutionSettings()
 	labelText = labelValue.c_str();
 	CenterNextTextItem(labelText);
 	ImGui::Text(labelText);
-	
+
 	SingleLineBreak();
-	
+
 	labelText = "Native Resolution: ";
 	CenterNextTextItem(labelText);
 	ImGui::Text(labelText);
@@ -515,9 +510,14 @@ void GUI::ResolutionSettings()
 
 	m_NewWidth = Graphics::g_NativeWidth;
 	m_NewHeight = Graphics::g_NativeHeight;
+}
 
+void GUI::ResolutionSettings()
+{
+	std::string comboValue;
+	// In order to make it clearer to users and devs, create a variable combo label
+	std::string comboLabel;
 
-#if AZB_DBG
 	if (ImGui::CollapsingHeader("Resolution Settings"))
 	{
 		static int item_current_idx = DLSS::m_NumResolutions - 1;
@@ -584,7 +584,6 @@ void GUI::ResolutionSettings()
 			m_bDisplayModeChangePending = true;
 		}
 	}
-#endif
 }
 
 void GUI::RenderModeSelection()
@@ -758,7 +757,60 @@ void GUI::DLSSSettings()
 {
 	if (ImGui::CollapsingHeader("DLSS Settings"))
 	{
-		
+		// Only show the next section if DLSS is supported!
+		if (DLSS::m_bIsNGXSupported)
+		{
+
+			static int dlssMode = 1; // 0: Performance, 1: Balanced, 2: Quality, etc.
+			const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance" };
+
+
+
+
+			// Main selection for user to play with!
+			if (ImGui::Checkbox("Enable DLSS", &m_bToggleDLSS))
+			{
+				m_bDLSSUpdatePending = true;
+			}
+
+			// Wrap mode selection in disabled blcok - only want to edit this when DLSS is ON
+			if (!m_bToggleDLSS)
+				ImGui::BeginDisabled(true);
+			if (ImGui::BeginCombo("Mode", modes[dlssMode]))
+			{
+
+				for (int n = 0; n < std::size(modes); n++)
+				{
+					const bool is_selected = (dlssMode == n);
+					if (ImGui::Selectable(modes[n], is_selected))
+					{
+						dlssMode = n;
+						// Update current mode
+						DLSS::m_CurrentQualityMode = n;
+						// Set flags
+						DLSS::m_bNeedsReleasing = true;
+						m_bDLSSUpdatePending = true;
+						m_bUpdateDLSSMode = true;
+					}
+
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+
+			}
+
+			if (!m_bToggleDLSS)
+				ImGui::EndDisabled();
+
+		}
+		else
+		{
+			// Let user know that DLSS isn't supported
+			const char* centerText = "DLSS is not supported by your hardware! Sorry!";
+			CenterNextTextItem(centerText);
+			ImGui::TextColored({ 1.f,0.f,0.f,1.f }, centerText);
+		}
 
 	}
 

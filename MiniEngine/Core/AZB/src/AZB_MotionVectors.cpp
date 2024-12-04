@@ -103,6 +103,8 @@ void MotionVectors::DecodeMotionVectors(CommandContext& BaseContext)
     Context.TransitionResource(Graphics::g_VelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     // Transition our decoded buffer back to SRV!
     //Context.TransitionResource(Graphics::g_DecodedVelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+    Context.Flush();
 }
 
 void MotionVectors::GeneratePerPixelMotionVectors(CommandContext& BaseContext, const Math::Camera& camera)

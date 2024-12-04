@@ -23,19 +23,21 @@ class Model;
 // Pallete consts for ease of use, readabilty and editability
 namespace ThemeColours
 {
-    const ImVec4 m_HighlightColour = ImVec4(1.0f, 0.4f, 0.4f, 1.f);
+   // const ImVec4 m_HighlightColour = ImVec4(1.0f, 1.f, 0.4f, 1.f);
     const ImVec4 m_PureBlack = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
     const ImVec4 m_PureWhite = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+    const ImVec4 m_RtuaGold = ImVec4(1.f, 0.8f, 0.f, 1.f);
 
     const ImVec4 m_RtuaBlack = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
     const ImVec4 m_RtuaLightBlack = ImVec4(0.04f, 0.04f, 0.04f, 0.85f);
     const ImVec4 m_PurgatoryGrey = ImVec4(0.25f, 0.25f, 0.25f, 0.5f);
     const ImVec4 m_Charcoal = ImVec4(0.15f, 0.15f, 0.21f, 0.965f);
     const ImVec4 m_GunmetalGrey = ImVec4(0.068f, 0.068f, 0.068f, 0.965f);
-    const ImVec4 m_RtuaGold = ImVec4(1.f, 0.8f, 0.f, 1.f);
-    const ImVec4 m_DarkerGold = ImVec4(1.f, 0.72f, 0.f, 1.f);
-    const ImVec4 m_DarkestGold = ImVec4(1.f, 0.67f, 0.f, 1.f);
+    const ImVec4 m_DarkerGold = ImVec4(0.9f, 0.7f, 0.f, 0.9f);
+    const ImVec4 m_DarkestGold = ImVec4(0.8f, 0.6f, 0.f, 0.8f);;
     const ImVec4 m_BasicallyRed = ImVec4(0.9f, 0.05f, 0.f, 0.9f);
+
+    const ImVec4 m_HighlightColour = m_RtuaGold;
 };
 
 class GUI
@@ -184,15 +186,24 @@ private:
 	//
 
 
+    //
+    //  Main Sections that users will see
+    //
+
     void StartupModal();
 
 	void MainWindowTitle();
 
-    void ResolutionSettings();
+    void ResolutionDisplay();
 
     // Main render mode selection area
     void RenderModeSelection();
 
+    //
+    //   Debug sections for developers!
+    //
+
+    void ResolutionSettings();
     void DLSSSettings();
 
     // Send context through to this function in order to display GBuffers!
@@ -286,20 +297,6 @@ private:
 	{
         ImVec4* colors = ImGui::GetStyle().Colors;
 
-        // Pallete consts for ease of use, readabilty and editability
-       //const ImVec4 pureBlack(0.04f, 0.04f, 0.04f, 1.00f);
-       //const ImVec4 pureWhite(1.00f, 1.00f, 1.00f, 1.00f);
-       //
-       //const ImVec4 rtuaBlack(0.04f, 0.04f, 0.04f, 1.00f);
-       //const ImVec4 rtuaLightBlack(0.04f, 0.04f, 0.04f, 0.85f);
-       //const ImVec4 purgatoryGrey(0.25f, 0.25f, 0.25f, 0.5f);
-       //const ImVec4 charcoal(0.15f, 0.15f, 0.21f, 0.965f);
-       //const ImVec4 gunmetalGrey(0.068f, 0.068f, 0.068f, 0.965f);
-       //const ImVec4 rtuaGold(1.f, 0.8f, 0.f, 1.f);
-       //const ImVec4 darkerGold(1.f, 0.72f, 0.f, 1.f);
-       //const ImVec4 darkestGold(1.f, 0.67f, 0.f, 1.f);
-       //const ImVec4 basicallyRed(0.9f, 0.05f, 0.f, 0.9f);
-
         colors[ImGuiCol_Text] = ThemeColours::m_PureWhite;
         colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
         colors[ImGuiCol_WindowBg] = ThemeColours::m_Charcoal;
@@ -322,7 +319,7 @@ private:
         colors[ImGuiCol_SliderGrab] = ImVec4(0.25f, 0.25f, 0.25f, 0.5f);
         colors[ImGuiCol_SliderGrabActive] = ImVec4(1.f, 0.171f, 0.f, 0.9f);
         colors[ImGuiCol_Button] = ThemeColours::m_RtuaBlack;
-        colors[ImGuiCol_ButtonHovered] = ThemeColours::m_DarkestGold;
+        colors[ImGuiCol_ButtonHovered] = ThemeColours::m_DarkerGold;
         colors[ImGuiCol_ButtonActive] = ThemeColours::m_RtuaGold;
         colors[ImGuiCol_Header] = ThemeColours::m_RtuaLightBlack;
         colors[ImGuiCol_HeaderHovered] = ThemeColours::m_DarkerGold;
@@ -344,7 +341,7 @@ private:
         colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
         colors[ImGuiCol_TextSelectedBg] = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
         colors[ImGuiCol_DragDropTarget] = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
-        colors[ImGuiCol_NavHighlight] = ImVec4(0.98f, 0.26f, 0.36f, 1.00f); //old ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+        colors[ImGuiCol_NavHighlight] = ImVec4(0.f, 0.2f, 0.8f, 1.f);                   // Gamepad / KBM highlight. Royal blue
         colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
         colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
         colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
