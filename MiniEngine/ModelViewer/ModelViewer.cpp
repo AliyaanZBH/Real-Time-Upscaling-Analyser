@@ -365,8 +365,8 @@ void ModelViewer::Startup( void )
     m_Scenes[1] = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
     m_Scenes[1].Resize(100.0f * m_Scenes[1].GetRadius());
 
-    // [AZB]: Set up camera starting position. Use the scene at index 0 (Bistro)for now
-    OrientedBox obb = m_Scenes[0].GetBoundingBox();
+    // [AZB]: Set up camera starting position. Use the active scene
+    OrientedBox obb = m_Scenes[activeScene].GetBoundingBox();
     float modelRadius = Length(obb.GetDimensions()) * 0.5f;
     const Vector3 eye = obb.GetCenter() + Vector3(modelRadius * 0.5f, 0.0f, 0.f);
     m_Camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kYUnitVector));
