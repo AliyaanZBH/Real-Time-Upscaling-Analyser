@@ -273,13 +273,15 @@ private:
     //
 	const void CenterNextTextItem(const char* text) { ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize(text).x) / 2.f); }
 	const void RightAlignNextTextItem(const char* text) { ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize(text).x)); }
+
     // Used for aligning a button onto the right side of the window
     const void RightAlignSameLine(const char* text) { ImGui::SameLine(ImGui::GetWindowWidth() - (ImGui::CalcTextSize(text).x + ImGui::GetTextLineHeightWithSpacing())); }
-
 
 	// Common function to make an ImGui item that contains text fit that text
 	const void MakeNextItemFitText(const char* text) { ImGui::PushItemWidth(ImGui::CalcTextSize(text).x + ImGui::GetTextLineHeightWithSpacing()); }
 
+    // Custom function for combos - they have an additional arrow to account for
+	const void CenterNextCombo(const char* text) { ImGui::SetCursorPosX(((ImGui::GetWindowWidth() - ImGui::CalcTextSize(text).x) / 2.f) - ImGui::GetFrameHeight()) ; }
 
 	// Reusable section title function
 	const void SectionTitle(const char* titleText)

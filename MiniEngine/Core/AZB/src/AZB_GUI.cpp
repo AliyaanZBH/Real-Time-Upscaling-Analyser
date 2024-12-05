@@ -669,10 +669,19 @@ void GUI::RenderModeSelection()
 {
 	static int mode_current_idx = 0;
 
+	const char* combo_label = "Rendering Mode";
 	const char* combo_preview_value = m_RenderModeNames[mode_current_idx].c_str();
 
-	// Create combo to select rendering mode
-	if (ImGui::BeginCombo("Rendering Mode", combo_preview_value))
+
+	// Write custom centered label
+	CenterNextTextItem(combo_label);
+	ImGui::TextColored(ThemeColours::m_RtuaGold, combo_label);
+
+	// Create combo to select rendering mode - Center it as it's the main event!
+	CenterNextCombo(combo_preview_value);
+
+	// Using cool method to remove label from combo!
+	if (ImGui::BeginCombo("##RenderCombo", combo_preview_value, ImGuiComboFlags_WidthFitPreview))
 	{
 		for (int n = 0; n < eRenderingMode::NUM_RENDER_MODES ; n++)
 		{
@@ -760,6 +769,8 @@ void GUI::RenderModeSelection()
 		ImGui::EndCombo();
 
 	}
+
+	SingleLineBreak();
 
 	// After the state changes are done, check what mode we are in and add those extra options in, if they're needed!
 	switch (m_CurrentRenderingMode)
