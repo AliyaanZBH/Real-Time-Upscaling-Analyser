@@ -331,7 +331,7 @@ private:
         colors[ImGuiCol_Border] = ThemeColours::m_PureBlack;
         colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
         colors[ImGuiCol_FrameBg] = ThemeColours::m_GunmetalGrey;
-        colors[ImGuiCol_FrameBgHovered] = ThemeColours::m_DarkerGold;
+        colors[ImGuiCol_FrameBgHovered] = ThemeColours::m_DarkestGold;
         colors[ImGuiCol_FrameBgActive] = ThemeColours::m_RtuaGold;
         colors[ImGuiCol_TitleBg] = ThemeColours::m_DarkerGold;
         colors[ImGuiCol_TitleBgActive] = ThemeColours::m_RtuaGold;
