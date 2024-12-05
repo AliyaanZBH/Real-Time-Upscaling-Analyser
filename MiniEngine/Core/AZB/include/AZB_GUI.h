@@ -203,8 +203,8 @@ private:
     //   Debug sections for developers!
     //
 
-    void ResolutionSettings();
     void DLSSSettings();
+    void ResolutionSettingsDebug();
 
     // Send context through to this function in order to display GBuffers!
     void GraphicsSettings(CommandContext& Context);

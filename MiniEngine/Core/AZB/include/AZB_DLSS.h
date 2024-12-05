@@ -99,6 +99,9 @@ namespace DLSS
 	// Track the current internal rendering resolution
 	extern Resolution m_CurrentInternalResolution;
 
+	// Track the current loD Bias.
+	extern float m_LodBias;
+
 	// Track which DLSS mode is currently selectd
 	extern uint8_t m_CurrentQualityMode;
 
@@ -119,4 +122,5 @@ namespace DLSS
 
 	// Flag to track when the pipeline needs to reset back to native!
 	extern bool m_bPipelineReset;
+
 };

@@ -21,6 +21,8 @@ namespace DLSS
 	Resolution m_CurrentNativeResolution = {};
 	Resolution m_CurrentInternalResolution = {};
 
+	float m_LodBias = 0.f;
+
 	uint8_t m_CurrentQualityMode = 1;
 
 	const wchar_t* m_AppDataPath = L"./../../DLSS_Data/";

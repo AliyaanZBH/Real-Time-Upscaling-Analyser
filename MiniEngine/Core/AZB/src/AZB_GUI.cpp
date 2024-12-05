@@ -129,13 +129,15 @@ void GUI::Run(CommandContext& Context)
 
 		// Display main rendermode area next!
 		RenderModeSelection();
-
+		
+		// This one will sit in the same area as the rendermode selection
 		GraphicsSettings(Context);
+
 		PerformanceMetrics();
 
 		// Debug sections with more variables to tweak!
 #if AZB_DBG
-		ResolutionSettings();
+		ResolutionSettingsDebug();
 		DLSSSettings();
 #endif
 		
@@ -317,6 +319,7 @@ void GUI::Terminate()
 		DEBUGPRINT("Switched to Windowed mode at shutdown!");
 	}
 }
+
 void GUI::StartupModal()
 {
 	// Counter variable to track "pages"
@@ -651,10 +654,12 @@ void GUI::ResolutionDisplay()
 	// Create a button to relaunch tutorial model
 	labelText = "Help";
 	CenterNextTextItem(labelText);
+
 	if (ImGui::Button(labelText))
 	{
 		m_bShowStartupModal = true;
 	}
+
 	ImGui::SameLine();
 	HelpMarker("This will restart the tutorial so you can refresh your knowledge of inputs.");
 
@@ -664,83 +669,8 @@ void GUI::ResolutionDisplay()
 	m_NewHeight = Graphics::g_NativeHeight;
 }
 
-void GUI::ResolutionSettings()
-{
-	std::string comboValue;
-	// In order to make it clearer to users and devs, create a variable combo label
-	std::string comboLabel;
-
-	if (ImGui::CollapsingHeader("Resolution Settings"))
-	{
-		static int item_current_idx = DLSS::m_NumResolutions - 1;
-
-		// Check window display mode. 
-		// When Fullscreen, our display height will be fixed (naturally), so we want to convey native height to the user
-		// When Windowed, display height has variable, and can even be resized manually.
-		// This block takes that into account and ensures that the dropdown is always as helpful as possible
-		if (m_bFullscreen)
-		{
-			comboLabel = "Native Resolution";
-			comboValue = std::to_string(Graphics::g_NativeWidth) + "x" + std::to_string(Graphics::g_NativeHeight);
-			// Also update these - the display could have changed as a result of window resizing!
-			m_NewWidth = Graphics::g_NativeWidth;
-			m_NewHeight = Graphics::g_NativeHeight;
-
-		}
-		else
-		{
-			comboLabel = "Display Resolution";
-			comboValue = std::to_string(m_NewWidth) + "x" + std::to_string(m_NewHeight);
-			// Also update these - the display could have changed as a result of window resizing! Also account for windows title bars! These will vary based on aspect ratio and scaling
-			m_NewWidth = Graphics::g_DisplayWidth + m_TitleBarSize.m_Width;
-			m_NewHeight = Graphics::g_DisplayHeight + m_TitleBarSize.m_Height;	// Display height also includes Windows Title Bars, so account for this in our GUI!
-
-		}
-
-		const char* combo_preview_value = comboValue.c_str();
-
-		if (ImGui::BeginCombo(comboLabel.c_str(), combo_preview_value))
-		{
-			for (int n = 0; n < DLSS::m_NumResolutions; n++)
-			{
-				const bool is_selected = (item_current_idx == n);
-				if (ImGui::Selectable(DLSS::m_Resolutions[n].first.c_str(), is_selected))
-				{
-					item_current_idx = n;
-					// Set flag to true so that we can update the pipeline next frame! This will result in DLSS needing to be recreated also
-					// This takes place in UpdateGraphics()
-					m_bResolutionChangePending = true;
-					// Also update what the values should be
-					m_NewWidth = DLSS::m_Resolutions[n].second.m_Width;
-					m_NewHeight = DLSS::m_Resolutions[n].second.m_Height;
-				}
-
-				if (is_selected)
-					ImGui::SetItemDefaultFocus();
-			}
-			ImGui::EndCombo();
-		}
-
-
-
-		// wb for Windows Bool - have to use this when querying the swapchain!
-		BOOL wbFullscreen = FALSE;
-		Display::GetSwapchain()->GetFullscreenState(&wbFullscreen, nullptr);
-
-		m_bFullscreen = wbFullscreen;
-
-		// Add a checkbox to control fullscreen
-		if (ImGui::Checkbox("Enable fullscreen mode", &m_bFullscreen))
-		{
-			// Flip flag to signal a display mode change at the start of next frame.
-			m_bDisplayModeChangePending = true;
-		}
-	}
-}
-
 void GUI::RenderModeSelection()
 {
-
 	static int mode_current_idx = 0;
 
 	const char* combo_preview_value = m_RenderModeNames[mode_current_idx].c_str();
@@ -899,8 +829,7 @@ void GUI::RenderModeSelection()
 			break;
 		}
 	}
-
-	Separator();
+	SingleLineBreak();
 }
 
 void GUI::DLSSSettings()
@@ -976,9 +905,9 @@ void GUI::GraphicsSettings(CommandContext& Context)
 		if (ImGui::DragFloat("LODBias (-3.0 ~ 1.0)", &m_ForcedLodBias, 0.01f, -3.0f, 1.0f, "%.3f", ImGuiSliderFlags_NoInput))
 			m_bCommonStateChangePending = true;
 	}
-	else
+
 	{
-		ImGui::Text("Default LODBias : %.2f", Graphics::m_DefaultLodBias);
+		ImGui::Text("Default LODBias : %.2f", DLSS::m_LodBias);
 	}
 
 	ImGui::Checkbox("Enable PostFX", &m_bEnablePostFX);
@@ -990,6 +919,81 @@ void GUI::GraphicsSettings(CommandContext& Context)
 
 
 }
+
+void GUI::ResolutionSettingsDebug()
+{
+	std::string comboValue;
+	// In order to make it clearer to users and devs, create a variable combo label
+	std::string comboLabel;
+
+	if (ImGui::CollapsingHeader("Resolution Settings"))
+	{
+		static int item_current_idx = DLSS::m_NumResolutions - 1;
+
+		// Check window display mode. 
+		// When Fullscreen, our display height will be fixed (naturally), so we want to convey native height to the user
+		// When Windowed, display height has variable, and can even be resized manually.
+		// This block takes that into account and ensures that the dropdown is always as helpful as possible
+		if (m_bFullscreen)
+		{
+			comboLabel = "Native Resolution";
+			comboValue = std::to_string(Graphics::g_NativeWidth) + "x" + std::to_string(Graphics::g_NativeHeight);
+			// Also update these - the display could have changed as a result of window resizing!
+			m_NewWidth = Graphics::g_NativeWidth;
+			m_NewHeight = Graphics::g_NativeHeight;
+
+		}
+		else
+		{
+			comboLabel = "Display Resolution";
+			comboValue = std::to_string(m_NewWidth) + "x" + std::to_string(m_NewHeight);
+			// Also update these - the display could have changed as a result of window resizing! Also account for windows title bars! These will vary based on aspect ratio and scaling
+			m_NewWidth = Graphics::g_DisplayWidth + m_TitleBarSize.m_Width;
+			m_NewHeight = Graphics::g_DisplayHeight + m_TitleBarSize.m_Height;	// Display height also includes Windows Title Bars, so account for this in our GUI!
+
+		}
+
+		const char* combo_preview_value = comboValue.c_str();
+
+		if (ImGui::BeginCombo(comboLabel.c_str(), combo_preview_value))
+		{
+			for (int n = 0; n < DLSS::m_NumResolutions; n++)
+			{
+				const bool is_selected = (item_current_idx == n);
+				if (ImGui::Selectable(DLSS::m_Resolutions[n].first.c_str(), is_selected))
+				{
+					item_current_idx = n;
+					// Set flag to true so that we can update the pipeline next frame! This will result in DLSS needing to be recreated also
+					// This takes place in UpdateGraphics()
+					m_bResolutionChangePending = true;
+					// Also update what the values should be
+					m_NewWidth = DLSS::m_Resolutions[n].second.m_Width;
+					m_NewHeight = DLSS::m_Resolutions[n].second.m_Height;
+				}
+
+				if (is_selected)
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndCombo();
+		}
+
+
+
+		// wb for Windows Bool - have to use this when querying the swapchain!
+		BOOL wbFullscreen = FALSE;
+		Display::GetSwapchain()->GetFullscreenState(&wbFullscreen, nullptr);
+
+		m_bFullscreen = wbFullscreen;
+
+		// Add a checkbox to control fullscreen
+		if (ImGui::Checkbox("Enable fullscreen mode", &m_bFullscreen))
+		{
+			// Flip flag to signal a display mode change at the start of next frame.
+			m_bDisplayModeChangePending = true;
+		}
+	}
+}
+
 
 void GUI::GraphicsSettingsDebug(CommandContext& Context)
 {

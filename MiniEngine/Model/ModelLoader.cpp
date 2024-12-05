@@ -361,124 +361,45 @@ void Renderer::UpdateSamplers(const Model* scene, Resolution inputResolution, bo
         lodBias = overrideLodBias;
     }
 
-    // Iterate through all the address modes stored in the g_SamplerPermutations map
+    // [AZB]: Update bias in DLSS namespace
+    DLSS::m_LodBias = lodBias;
+
+    // [AZB]: Iterate through all the address modes stored in the g_SamplerPermutations map
     for (auto& perm : g_SamplerPermutations)
     {
-        // perm.first is the addressMode, we need to fetch the corresponding descriptors
+        // [AZB]: Perm.first is the addressMode, we need to fetch the corresponding descriptors
         uint32_t addressModes = perm.first;
 
-        // Retrieve the original sampler descriptor handle from the heap using the saved table offset
+        // [AZB]: Retrieve the original sampler descriptor handle from the heap using the saved table offset
         DescriptorHandle samplerHandles = Renderer::s_SamplerHeap[perm.second];
 
-        // Create the array of source samplers to be updated
+        // [AZB]: Create the array of source samplers to be updated
         D3D12_CPU_DESCRIPTOR_HANDLE SourceSamplers[kNumTextures];
         uint32_t addressModeCopy = addressModes;
 
-        // Iterate over the textures (e.g. kNumTextures textures) and create new samplers for each
+        // [AZB]: Iterate over the textures (e.g. kNumTextures textures) and create new samplers for each
         for (uint32_t j = 0; j < kNumTextures; ++j)
         {
-            // Create a new sampler descriptor with the updated mipBias
+            // [AZB]: Create a new sampler descriptor with the updated mipBias
             SamplerDesc updatedSamplerDesc = SamplerDesc();
             updatedSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE(addressModeCopy & 0x3);         // U address mode - These all default to wrap according to GetSampler() and LoadMaterials()
             updatedSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE((addressModeCopy >> 2) & 0x3);  // V address mode - These all default to wrap according to GetSampler() and LoadMaterials()
             updatedSamplerDesc.MaxAnisotropy = 16;  // Keep fixed anisotropy
             updatedSamplerDesc.MipLODBias = lodBias;  // Set the mip bias dynamically
 
-            // Create the new sampler handle using the updated descriptor
+            // [AZB]: Create the new sampler handle using the updated descriptor
             SourceSamplers[j] = updatedSamplerDesc.CreateDescriptor();
 
-            // Move to the next address mode component (4 bits for each of U, V, W)
+            // [AZB]: Move to the next address mode component (4 bits for each of U, V, W)
             addressModeCopy >>= 4;
         }
 
-        // Copy the new samplers into the original slot in the heap
+        // [AZB]: Copy the new samplers into the original slot in the heap
         uint32_t DestCount = kNumTextures;
+
         g_Device->CopyDescriptors(1, &samplerHandles, &DestCount,
             DestCount, SourceSamplers, &DestCount,
             D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
     }
-
-
-    // [AZB]: Start with the raw pointer to the beginning of mesh data
-   // uint8_t* meshPtr = scene->m_MeshData.get();
-   
-    // [ AZB]: Iterate through meshes so that we can update sampler table offsets for each mesh
-    //for (uint32_t i = 0; i < scene->m_NumMeshes; ++i)
-    //{
-
-    //    Mesh& mesh = *(Mesh*)meshPtr;
-
-    //    // [AZB]: Get the sampler table offset for this mesh
-    //    uint32_t samplerTableOffset = mesh.samplerTable;
-    //    // [AZB]: Get the handles for this sampler using the descriptor table offset
-    //    DescriptorHandle SamplerHandles = Renderer::s_SamplerHeap[samplerTableOffset];
-
-    //    // [AZB]: Retrieve the address modes using materialCBV
-    //    auto it = m_MaterialAddressModes.find(mesh.materialCBV);
-    //    if (it != m_MaterialAddressModes.end())
-    //    {
-    //        // [AZB]: Packed address modes for textures
-    //        uint32_t addressModes = it->second;
-
-    //     
-    //        uint32_t DestCount = kNumTextures;
-    //        uint32_t SourceCounts[kNumTextures] = { 1, 1, 1, 1, 1 };
-   
-    //        // [AZB]:Create new samplers with updated mip bias
-    //        D3D12_CPU_DESCRIPTOR_HANDLE SourceSamplers[kNumTextures];
-    //        for (uint32_t j = 0; j < kNumTextures; ++j)
-    //        {
-    //            // [AZB]: Extract the current texture's address mode from the packed value
-    //            uint32_t addressMode = addressModes & 0xF; // Extract lower 4 bits
-
-    //            // [AZB]: Use SamplerDesc to create the descriptor for this texture
-    //            SamplerDesc desc;
-    //            //desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE(addressModes & 0x3);
-    //            //desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE((addressModes >> 2) & 0x3);
-    //            //desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE((addressModes >> 4) & 0x3);
-    //            desc.AddressU = static_cast<D3D12_TEXTURE_ADDRESS_MODE>(addressMode);
-    //            desc.AddressV = static_cast<D3D12_TEXTURE_ADDRESS_MODE>(addressMode);
-    //            desc.AddressW = static_cast<D3D12_TEXTURE_ADDRESS_MODE>(addressMode);
-
-    //            desc.MipLODBias = lodBias; // Update mip bias
-
-    //            //SourceSamplers[j] = desc.CreateDescriptor();
-    //             // Write the updated descriptor to the descriptor heap
-    //            desc.CreateDescriptor(SamplerHandles + j); // Offset for each texture
-   
-    //            addressModes >>= 4; // Shift to the next texture's mode
-    //        }
-   
-    //        // Copy descriptors to the sampler heap
-    //         // Copy the new samplers into the descriptor heap
-    //        g_Device->CopyDescriptors(1, &SamplerHandles, &DestCount, DestCount, SourceSamplers, SourceCounts, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-   
-    //        // Update permutation map
-    //        uint32_t SamplerDescriptorTable = Renderer::s_SamplerHeap.GetOffsetOfHandle(SamplerHandles);
-    //        g_SamplerPermutations[addressModes] = SamplerDescriptorTable;
-   
-    //        // Update the mesh's sampler table
-    //        mesh.samplerTable = SamplerDescriptorTable;
-    //    }
-    //    else
-    //    {
-    //        Utility::Printf("Warning: Address modes not found for materialCBV %u. Using default modes\n", mesh.materialCBV);
-    //        SamplerDesc samplerDesc;
-    //        samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-    //        samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    //        samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    //        samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    //        samplerDesc.MipLODBias = lodBias;
-
-    //        for (uint32_t j = 0; j < kNumTextures; ++j)
-    //            samplerDesc.CreateDescriptor(SamplerHandles + j);
-
-    //        // Use existing permutation
-    //        //mesh.samplerTable = iter->second;
-    //    }
-   
-    //    // [AZB]: Advance to the next mesh
-    //    meshPtr += sizeof(Mesh);
-    //}
 }
 #endif
