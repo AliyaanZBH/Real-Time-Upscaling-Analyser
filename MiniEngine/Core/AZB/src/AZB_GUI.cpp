@@ -106,13 +106,15 @@ void GUI::Run(CommandContext& Context)
 	if (m_bShowStartupModal)
 		StartupModal();
 	else
-		// Display the rest of our lovely Window!
+		// Display the our lovely main Window!
 	{
 
 		ImGui::SetNextWindowPos(m_MainWindowPos, ImGuiCond_Appearing, kTopLeftPivot);
 		ImGui::SetNextWindowSize(m_MainWindowSize, ImGuiCond_Appearing);
+		// Allow window to resize, but only vertically. Restrict horizontal size to a fixed width
+		ImGui::SetNextWindowSizeConstraints(ImVec2(m_MainWindowSize.x, 0), ImVec2(m_MainWindowSize.x, FLT_MAX));
 
-		if (!ImGui::Begin("RTUA"))
+		if (!ImGui::Begin("RTUA", NULL, ImGuiWindowFlags_AlwaysAutoResize))
 		{
 			// Early out if the window is collapsed, as an optimization.
 			ImGui::End();
