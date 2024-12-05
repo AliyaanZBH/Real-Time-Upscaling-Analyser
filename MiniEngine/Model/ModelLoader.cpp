@@ -349,10 +349,12 @@ void Renderer::UpdateSamplers(const Model* scene, Resolution inputResolution, bo
     // [AZB]: First, calculate the LOD bias
     float lodBias = 0.f;
 
-    // [AZB]: Use the input resolution of DLSS
+    // [AZB]: Use the input resolution of DLSS or the current native resolution
     float texLodXDimension = inputResolution.m_Width;
 
     // [AZB]: Use the formula of the DLSS programming guide for the LOD Bias...
+
+
     lodBias = std::log2f(texLodXDimension / DLSS::m_MaxNativeResolution.m_Width) - 1.0f;
 
     // [AZB]: ... but leave the opportunity to override it in the UI...

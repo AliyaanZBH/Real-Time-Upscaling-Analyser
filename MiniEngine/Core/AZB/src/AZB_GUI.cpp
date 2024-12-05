@@ -154,38 +154,24 @@ void GUI::UpdateGraphics()
 		{
 			if (DLSS::m_bDLSS_Enabled)
 			{
-				//Graphics::ReInitializeCommonState(DLSS::m_CurrentInternalResolution, m_ForcedLodBias);
-				//Renderer::ReinitialiseSamplers(DLSS::m_CurrentInternalResolution, m_ForcedLodBias);
-				//SamplerManager::ReinitialiseSamplerCache(DLSS::m_CurrentInternalResolution, true, m_ForcedLodBias);
 				Renderer::UpdateSamplers(m_pScene, DLSS::m_CurrentInternalResolution, true, m_ForcedLodBias);
 			}
 			else
 			{
-				//Graphics::ReInitializeCommonState(DLSS::m_CurrentNativeResolution, m_ForcedLodBias);
-				//Renderer::ReinitialiseSamplers(DLSS::m_CurrentNativeResolution, m_ForcedLodBias);
-				//SamplerManager::ReinitialiseSamplerCache(DLSS::m_CurrentNativeResolution, true, m_ForcedLodBias);
 				Renderer::UpdateSamplers(m_pScene, DLSS::m_CurrentNativeResolution, true, m_ForcedLodBias);
-
-
 			}
 		}
 		else
 		{
 			if (DLSS::m_bDLSS_Enabled)
 			{
-				//Graphics::ReInitializeCommonState(DLSS::m_CurrentInternalResolution, Graphics::m_DefaultLodBias);
-				//Renderer::ReinitialiseSamplers(DLSS::m_CurrentInternalResolution, Graphics::m_DefaultLodBias);
-				//SamplerManager::ReinitialiseSamplerCache(DLSS::m_CurrentInternalResolution);
 				Renderer::UpdateSamplers(m_pScene, DLSS::m_CurrentInternalResolution);
-
 			}
 			else
 			{
-				//Graphics::ReInitializeCommonState(DLSS::m_CurrentNativeResolution, Graphics::m_DefaultLodBias);
-				//Renderer::ReinitialiseSamplers(DLSS::m_CurrentNativeResolution, Graphics::m_DefaultLodBias);
-				//SamplerManager::ReinitialiseSamplerCache(DLSS::m_CurrentNativeResolution);
-				Renderer::UpdateSamplers(m_pScene, DLSS::m_CurrentNativeResolution);
-
+				// This will fire off when turning the override off.
+				// Add an extra step when in native rendering mode to reset back to 0, instead of -1
+				Renderer::UpdateSamplers(m_pScene, DLSS::m_CurrentNativeResolution, true, 0.0f);
 			}
 		}
 
