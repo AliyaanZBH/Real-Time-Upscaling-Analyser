@@ -251,6 +251,8 @@ private:
 	const ImVec2 kBottomLeftPivot = { 0.f, 1.f };
 
 	// Common item spacings
+	const void QuarterLineBreak() { ImGui::Dummy(ImVec2(0.0f, 5.0f)); }
+	const void HalfLineBreak() { ImGui::Dummy(ImVec2(0.0f, 10.0f)); }
 	const void SingleLineBreak() { ImGui::Dummy(ImVec2(0.0f, 20.0f)); }
 	const void DoubleLineBreak() { ImGui::Dummy(ImVec2(0.0f, 40.0f)); }
 

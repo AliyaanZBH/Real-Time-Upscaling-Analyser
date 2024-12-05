@@ -669,19 +669,19 @@ void GUI::RenderModeSelection()
 {
 	static int mode_current_idx = 0;
 
-	const char* combo_label = "Rendering Mode";
-	const char* combo_preview_value = m_RenderModeNames[mode_current_idx].c_str();
+	const char* comboLabel = "Rendering Mode";
+	const char* comboPreviewValue = m_RenderModeNames[mode_current_idx].c_str();
 
 
 	// Write custom centered label
-	CenterNextTextItem(combo_label);
-	ImGui::TextColored(ThemeColours::m_RtuaGold, combo_label);
+	CenterNextTextItem(comboLabel);
+	ImGui::TextColored(ThemeColours::m_RtuaGold, comboLabel);
 
 	// Create combo to select rendering mode - Center it as it's the main event!
-	CenterNextCombo(combo_preview_value);
+	CenterNextCombo(comboPreviewValue);
 
 	// Using cool method to remove label from combo!
-	if (ImGui::BeginCombo("##RenderCombo", combo_preview_value, ImGuiComboFlags_WidthFitPreview))
+	if (ImGui::BeginCombo("##RenderCombo", comboPreviewValue, ImGuiComboFlags_WidthFitPreview))
 	{
 		for (int n = 0; n < eRenderingMode::NUM_RENDER_MODES ; n++)
 		{
@@ -770,8 +770,6 @@ void GUI::RenderModeSelection()
 
 	}
 
-	SingleLineBreak();
-
 	// After the state changes are done, check what mode we are in and add those extra options in, if they're needed!
 	switch (m_CurrentRenderingMode)
 	{
@@ -788,7 +786,18 @@ void GUI::RenderModeSelection()
 			//static int res_current_idx = DLSS::m_NumResolutions - 1;
 			static int res_current_idx = 0;
 
-			if (ImGui::BeginCombo("Internal Resolution", res_combo_preview_value))
+
+			// Also center this child combo
+			comboLabel = "Internal Resolution";
+			CenterNextTextItem(comboLabel);
+			ImGui::TextColored(ThemeColours::m_DarkerGold, comboLabel);
+			
+			// Display a helpful tooltip
+			ImGui::SameLine();
+			HelpMarker("This is an input native resolution that will then get upscaled to the final display resolution\n\nWhen this resolution matches the display resolution (displayed above), no scaling will take place.");
+
+			CenterNextCombo(res_combo_preview_value);
+			if (ImGui::BeginCombo("##Internal Resolution Combo", res_combo_preview_value, ImGuiComboFlags_WidthFitPreview))
 			{
 				for (int n = 0; n < DLSS::m_NumResolutions; n++)
 				{
@@ -809,10 +818,9 @@ void GUI::RenderModeSelection()
 				ImGui::EndCombo();
 			}
 
-			ImGui::SameLine(); 
-			HelpMarker("When this resolution matches the native resolution (displayed above), no scaling will take place. Lower the resolution to see the effects of this technique");
 			break;
 		}
+
 		case eRenderingMode::DLSS:
 		{
 			// Only show the next section if DLSS is supported!
@@ -821,7 +829,16 @@ void GUI::RenderModeSelection()
 				static int dlssMode = 1; // 0: Performance, 1: Balanced, 2: Quality, etc.
 				const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance" };
 
-				if (ImGui::BeginCombo("Mode", modes[dlssMode]))
+				// Also center this child combo
+				comboLabel = "Super Resolution Mode";
+				CenterNextTextItem(comboLabel);
+				ImGui::TextColored(ThemeColours::m_DarkerGold, comboLabel);
+
+				ImGui::SameLine();
+				HelpMarker("These modes are the official names given by NVIDIA but they simply represent an input resolution to upscale from, just like Bilinear Upscaling");
+
+				CenterNextCombo(modes[dlssMode]);
+				if (ImGui::BeginCombo("##DLSS Mode", modes[dlssMode], ImGuiComboFlags_WidthFitPreview))
 				{
 					for (int n = 0; n < std::size(modes); n++)
 					{
@@ -837,7 +854,6 @@ void GUI::RenderModeSelection()
 							m_bUpdateDLSSMode = true;
 							// Also reset LOD Bias override
 							m_bOverrideLodBias = false;
-
 						}
 
 						if (is_selected)
@@ -853,7 +869,6 @@ void GUI::RenderModeSelection()
 				CenterNextTextItem(centerText);
 				ImGui::TextColored({ 1.f,0.f,0.f,1.f }, centerText);
 			}
-			
 			break;
 		}
 	}
@@ -861,13 +876,14 @@ void GUI::RenderModeSelection()
 
 void GUI::GraphicsSettings(CommandContext& Context)
 {
+	QuarterLineBreak();
 
+	ImGui::TextColored(ThemeColours::m_RtuaGold, "Graphics Settings");
 	ImGui::Text("Default LODBias : %.2f", m_OriginalLodBias);
 	ImGui::SameLine();
 	HelpMarker("This value affects the resolution at which textures are sampled. DLSS will automatically adjust this value when it is active. ");
-	SingleLineBreak();
+	QuarterLineBreak();
 
-	ImGui::TextColored(ThemeColours::m_RtuaGold, "Graphics Settings");
 	if (ImGui::Checkbox("Override LODBias", &m_bOverrideLodBias))
 		m_bCommonStateChangePending = true;
 
