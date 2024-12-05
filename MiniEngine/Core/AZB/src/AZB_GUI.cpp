@@ -131,9 +131,6 @@ void GUI::Run(CommandContext& Context)
 
 		// Display main rendermode area next!
 		RenderModeSelection();
-
-		SingleLineBreak();
-
 		// This one will sit in the same area as the rendermode selection
 		GraphicsSettings(Context);
 
@@ -691,7 +688,8 @@ void GUI::RenderModeSelection()
 				// Now execute appropriate behaviour based on rendering mode, but only if it's changed!
 				if (m_CurrentRenderingMode != m_PreviousRenderingMode)
 				{
-
+					// Regardless of where we've come from or are going to - reset the LOD override if it's enabled
+					m_bOverrideLodBias = false;
 					switch (m_CurrentRenderingMode)
 					{
 						case eRenderingMode::NATIVE:
@@ -826,6 +824,9 @@ void GUI::RenderModeSelection()
 							DLSS::m_bNeedsReleasing = true;
 							m_bDLSSUpdatePending = true;
 							m_bUpdateDLSSMode = true;
+							// Also reset LOD Bias override
+							m_bOverrideLodBias = false;
+
 						}
 
 						if (is_selected)
@@ -912,17 +913,20 @@ void GUI::DLSSSettings()
 
 void GUI::GraphicsSettings(CommandContext& Context)
 {
+	ImGui::Text("Default LODBias : %.2f", m_OriginalLodBias);
+	SingleLineBreak();
+
 	if (ImGui::Checkbox("Override LODBias", &m_bOverrideLodBias))
 		m_bCommonStateChangePending = true;
 
 	if (m_bOverrideLodBias)
 	{
-		if (ImGui::DragFloat("LODBias (-3.0 ~ 1.0)", &m_ForcedLodBias, 0.01f, -3.0f, 1.0f, "%.3f", ImGuiSliderFlags_NoInput))
+		ImGui::SameLine(); if (ImGui::DragFloat("New LOD Bias", &m_ForcedLodBias, 0.01f, -3.0f, 1.0f, "%.3f", ImGuiSliderFlags_NoInput))
 			m_bCommonStateChangePending = true;
 	}
-
+	else
 	{
-		ImGui::Text("Default LODBias : %.2f", DLSS::m_LodBias);
+		m_OriginalLodBias = DLSS::m_LodBias;
 	}
 
 	ImGui::Checkbox("Enable PostFX", &m_bEnablePostFX);
@@ -930,9 +934,6 @@ void GUI::GraphicsSettings(CommandContext& Context)
 
 	static bool showMV = false;
 	ImGui::Checkbox("Show GBuffers", &showMV);
-
-
-
 }
 
 void GUI::ResolutionSettingsDebug()

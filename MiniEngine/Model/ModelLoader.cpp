@@ -384,7 +384,6 @@ void Renderer::UpdateSamplers(const Model* scene, Resolution inputResolution, bo
             SamplerDesc updatedSamplerDesc = SamplerDesc();
             updatedSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE(addressModeCopy & 0x3);         // U address mode - These all default to wrap according to GetSampler() and LoadMaterials()
             updatedSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE((addressModeCopy >> 2) & 0x3);  // V address mode - These all default to wrap according to GetSampler() and LoadMaterials()
-            updatedSamplerDesc.MaxAnisotropy = 16;  // Keep fixed anisotropy
             updatedSamplerDesc.MipLODBias = lodBias;  // Set the mip bias dynamically
 
             // [AZB]: Create the new sampler handle using the updated descriptor

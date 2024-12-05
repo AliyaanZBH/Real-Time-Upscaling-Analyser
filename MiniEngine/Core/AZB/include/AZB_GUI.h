@@ -164,6 +164,8 @@ private:
     bool m_bOverrideLodBias = false;
     // Actual value that can be controlled by the user to determine a custom LOD bias
     float m_ForcedLodBias = 0.f;
+    // Original LOD bias before overriding
+    float m_OriginalLodBias = 0.f;
 
     // Flag to track display mode and adjust behaviour accordingly
     bool m_bFullscreen = false;
