@@ -309,7 +309,21 @@ private:
     // Slightly more advanced function that can highlight variable items!
     const void HighlightItem();
 
-
+    // Function to create helpful little tooltips
+    const void HelpMarker(const char* desc)
+    {
+        ImGui::TextDisabled("(?)");
+        // Added this to give it a custom color
+        ImGui::PushStyleColor(0, ThemeColours::m_RtuaGold);
+        if (ImGui::BeginItemTooltip())
+        {
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+            ImGui::TextUnformatted(desc);
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+        }
+        ImGui::PopStyleColor();
+    }
 
 
 	//============================================================================

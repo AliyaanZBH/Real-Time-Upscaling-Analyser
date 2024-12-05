@@ -400,7 +400,7 @@ void GUI::StartupModal()
 
 				SectionTitle("GUI Controls");
 				Separator();
-				ImGui::TextWrapped("Occasionally you will need the mouse to interact with certain elements, or to navigate between multiple windows.");
+				ImGui::TextWrapped("Occasionally you will need the mouse to interact with certain elements like tooltips or graphs.");
 				SingleLineBreak();
 				ImGui::TextWrapped("You can also move any GUI windows around wherever you like by dragging with the mouse.");
 				SingleLineBreak();
@@ -443,9 +443,13 @@ void GUI::StartupModal()
 
 				break;
 			}
+
 			// Final page
 			case 3:
 			{
+				SectionTitle("Evaluation Guidance");
+				Separator();
+
 				const char* btnText = "Previous";
 				MakeNextItemFitText(btnText);
 				ImGui::SetItemDefaultFocus();
@@ -454,8 +458,35 @@ void GUI::StartupModal()
 					--page;
 				}
 
-				DoubleTabSpace();
-				DoubleTabSpace();
+				btnText = "Next!";
+				RightAlignSameLine(btnText);
+				MakeNextItemFitText(btnText);
+
+				// Finally allow them to close the popup
+				if (ImGui::Button(btnText))
+				{
+					++page;
+				}
+
+				break;
+			}
+			case 4:
+			{
+
+				SectionTitle("Final Words");
+				Separator();
+
+				ImGui::TextWrapped("If you ever need to read these instructions again, you can find a button to re-open this popup at any time.");
+				SingleLineBreak();
+
+				const char* btnText = "Previous";
+				MakeNextItemFitText(btnText);
+				ImGui::SetItemDefaultFocus();
+				if (ImGui::Button(btnText))
+				{
+					--page;
+				}
+
 
 				btnText = "Begin Analysing!";
 				RightAlignSameLine(btnText);
@@ -591,9 +622,13 @@ void GUI::ResolutionDisplay()
 	std::string labelValue;
 
 
-	labelText = "Display Resolution: ";
+	labelText = "Display Resolution";
 	CenterNextTextItem(labelText);
 	ImGui::Text(labelText);
+
+	ImGui::SameLine();
+	HelpMarker("This is the current display size of the app. This won't change in fullscreen as the window won't change size.");
+
 	labelValue = std::to_string(DLSS::m_MaxNativeResolution.m_Width) + "x" + std::to_string(DLSS::m_MaxNativeResolution.m_Height);
 	labelText = labelValue.c_str();
 	CenterNextTextItem(labelText);
@@ -601,13 +636,16 @@ void GUI::ResolutionDisplay()
 
 	SingleLineBreak();
 
-	labelText = "Native Resolution: ";
+	labelText = "Native Resolution";
 	CenterNextTextItem(labelText);
 	ImGui::Text(labelText);
+	ImGui::SameLine();
+	HelpMarker("This is the current resolution of internal rendering buffers in the app. This will update as you interact with upscaling techniques.");
 	labelValue = std::to_string(Graphics::g_NativeWidth) + "x" + std::to_string(Graphics::g_NativeHeight);
 	labelText = labelValue.c_str();
 	CenterNextTextItem(labelText);
 	ImGui::Text(labelText);
+
 
 	Separator();
 
