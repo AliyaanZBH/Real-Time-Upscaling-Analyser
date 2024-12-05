@@ -129,7 +129,9 @@ void GUI::Run(CommandContext& Context)
 
 		// Display main rendermode area next!
 		RenderModeSelection();
-		
+
+		SingleLineBreak();
+
 		// This one will sit in the same area as the rendermode selection
 		GraphicsSettings(Context);
 
@@ -772,6 +774,8 @@ void GUI::RenderModeSelection()
 				}
 				ImGui::EndCombo();
 			}
+			ImGui::SameLine(); 
+			HelpMarker("When this resolution matches the native resolution (displayed above), no scaling will take place. Lower the resolution to see the effects of this technique");
 			break;
 		}
 		case eRenderingMode::DLSS:
@@ -815,7 +819,6 @@ void GUI::RenderModeSelection()
 			break;
 		}
 	}
-	SingleLineBreak();
 }
 
 void GUI::DLSSSettings()
