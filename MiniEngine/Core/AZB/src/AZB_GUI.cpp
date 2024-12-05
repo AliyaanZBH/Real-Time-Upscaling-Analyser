@@ -399,7 +399,7 @@ void GUI::StartupModal()
 			{
 
 				SectionTitle("GUI Controls");
-				SingleLineBreak();
+				Separator();
 				ImGui::TextWrapped("Occasionally you will need the mouse to interact with certain elements, or to navigate between multiple windows.");
 				SingleLineBreak();
 				ImGui::TextWrapped("You can also move any GUI windows around wherever you like by dragging with the mouse.");
@@ -412,11 +412,13 @@ void GUI::StartupModal()
 				SingleLineBreak();
 				HighlightTextItem("Hold LCTRL and press TAB once to bring up GUI window select.");
 				SingleLineBreak();
+				ImGui::TextWrapped("Make sure you keep LCTRL held to keep this window open. From here, you can:");
+				SingleLineBreak();
 				HighlightTextItem("Press TAB again to cycle between open windows.");
 				SingleLineBreak();
-				HighlightTextItem("Use Arrow Keys while this is open to move selected window position.");
+				HighlightTextItem("Use Arrow Keys while to move selected window position.");
+				DoubleLineBreak();
 
-				Separator();
 
 				const char* btnText = "Previous";
 				MakeNextItemFitText(btnText);
