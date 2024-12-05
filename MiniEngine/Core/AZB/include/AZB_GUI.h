@@ -208,6 +208,7 @@ private:
 
     // Send context through to this function in order to display GBuffers!
     void GraphicsSettings(CommandContext& Context);
+    void GraphicsSettingsDebug(CommandContext& Context);
 
     void PerformanceMetrics();
 
@@ -306,7 +307,7 @@ private:
         ImGui::GetWindowDrawList()->AddRect(firstRectPosMin, firstRectPosMax, ImColor(ThemeColours::m_HighlightColour), 0, ImDrawFlags_None, thickness);
     }
 
-    // Slightly more advanced function that can highlight variable items!
+    // Slightly more advanced function that can highlight variable items! 
     const void HighlightItem();
 
     // Function to create helpful little tooltips

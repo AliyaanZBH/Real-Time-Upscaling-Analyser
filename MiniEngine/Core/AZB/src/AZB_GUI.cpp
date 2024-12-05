@@ -651,7 +651,6 @@ void GUI::ResolutionDisplay()
 	// Create a button to relaunch tutorial model
 	labelText = "Help";
 	CenterNextTextItem(labelText);
-	MakeNextItemFitText(labelText);
 	if (ImGui::Button(labelText))
 	{
 		m_bShowStartupModal = true;
@@ -904,7 +903,6 @@ void GUI::RenderModeSelection()
 	Separator();
 }
 
-
 void GUI::DLSSSettings()
 {
 	if (ImGui::CollapsingHeader("DLSS Settings"))
@@ -970,6 +968,31 @@ void GUI::DLSSSettings()
 
 void GUI::GraphicsSettings(CommandContext& Context)
 {
+	if (ImGui::Checkbox("Override LODBias", &m_bOverrideLodBias))
+		m_bCommonStateChangePending = true;
+
+	if (m_bOverrideLodBias)
+	{
+		if (ImGui::DragFloat("LODBias (-3.0 ~ 1.0)", &m_ForcedLodBias, 0.01f, -3.0f, 1.0f, "%.3f", ImGuiSliderFlags_NoInput))
+			m_bCommonStateChangePending = true;
+	}
+	else
+	{
+		ImGui::Text("Default LODBias : %.2f", Graphics::m_DefaultLodBias);
+	}
+
+	ImGui::Checkbox("Enable PostFX", &m_bEnablePostFX);
+
+
+	static bool showMV = false;
+	ImGui::Checkbox("Show GBuffers", &showMV);
+
+
+
+}
+
+void GUI::GraphicsSettingsDebug(CommandContext& Context)
+{
 	if (ImGui::CollapsingHeader("Graphics Settings"))
 	{
 		if (ImGui::Checkbox("Override LODBias", &m_bOverrideLodBias))
@@ -977,7 +1000,7 @@ void GUI::GraphicsSettings(CommandContext& Context)
 		
 		if (m_bOverrideLodBias)
 		{
-			if(ImGui::DragFloat("LODBias (-4.0 ~ 2.0)", &m_ForcedLodBias, 0.01f, -4.0f, 2.0f, "%.3f", ImGuiSliderFlags_NoInput))
+			if(ImGui::DragFloat("LODBias (-3.0 ~ 1.0)", &m_ForcedLodBias, 0.01f, -3.0f, 1.0f, "%.3f", ImGuiSliderFlags_NoInput))
 				m_bCommonStateChangePending = true;
 		}
 		else
