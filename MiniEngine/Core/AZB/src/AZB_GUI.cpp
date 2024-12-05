@@ -932,9 +932,83 @@ void GUI::GraphicsSettings(CommandContext& Context)
 	ImGui::Checkbox("Enable PostFX", &m_bEnablePostFX);
 
 
-	static bool showMV = false;
-	ImGui::Checkbox("Show GBuffers", &showMV);
+#if AZB_DBG
+	static bool showBuffers = false;
+	ImGui::Checkbox("Show GBuffers", &showBuffers);
+
+	if (showBuffers)
+	{
+		GraphicsContext& imguiGBufferContext = Context.GetGraphicsContext();
+
+		imguiGBufferContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		imguiGBufferContext.TransitionResource(Graphics::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		imguiGBufferContext.TransitionResource(Graphics::g_DecodedVelocityBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		imguiGBufferContext.TransitionResource(Graphics::g_MotionVectorVisualisationBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+		//
+		// Update ImGui descriptor heap by adding GBuffer texture
+		//
+
+		// Open in new window
+		m_BufferWindowSize = { 1024 , 840.f };
+		m_BufferWindowPos = { 0.f, (float)DLSS::m_MaxNativeResolution.m_Height };
+		
+		ImGui::SetNextWindowSizeConstraints(ImVec2(m_BufferWindowSize.x, m_BufferWindowSize.y), ImVec2(m_BufferWindowSize.x * 4, FLT_MAX));
+
+		ImGui::SetNextWindowSize(m_BufferWindowSize, ImGuiCond_Appearing);
+		ImGui::SetNextWindowPos(m_BufferWindowPos, ImGuiCond_Appearing, kBottomLeftPivot);  // Set it at top corner
+
+		ImGui::Begin("GBuffers");
+
+		ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
+		if (ImGui::BeginTabBar("GBuffers", tab_bar_flags))
+		{
+
+			for (UINT i = 0; i < eGBuffers::NUM_BUFFERS; ++i)
+			{
+				// Create a tab for each buffer
+				if (ImGui::BeginTabItem(m_BufferNames[i].c_str()))
+				{
+					// Get handle to the start of this heap
+					D3D12_CPU_DESCRIPTOR_HANDLE newCPUHandle = m_pSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+
+					// Calculate the size of each descriptor
+					UINT descriptorSize = m_pD3DDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+					// Font is loaded in at slot 0, so we want to load our textures starting from slot 1
+					int descriptorIndex = 1 + i;
+
+					// Use this offset for each descriptor
+					newCPUHandle.ptr += descriptorIndex * descriptorSize;
+
+					// Copy our existing SRV into the new descriptor heap!
+					m_pD3DDevice->CopyDescriptorsSimple(1, newCPUHandle, m_GBuffers[i], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+					// ImGui recommends explicitly using the GPU handle to our texture, but MiniEngine doesn't support returning that
+					// However, in copying the Descriptor to the correct slot on the CPU side, the GPU should now also be at that same index, and we simply need to update
+					//		the ptr from the start of the new heap!
+
+					// Repeat for GPU handle
+					D3D12_GPU_DESCRIPTOR_HANDLE newGPUHandle = m_pSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+					newGPUHandle.ptr += (descriptorIndex * descriptorSize);
+
+					// Create a window for each buffer and dock them together
+					//ImGui::SetNextWindowDockID(0, ImGuiCond_Appearing);
+					
+					// Render our lovely buffer!
+					SingleLineBreak();
+					ImGui::Image((ImTextureID)newGPUHandle.ptr, ImVec2(960, 720));
+					ImGui::EndTabItem();
+				}
+			}
+
+			ImGui::EndTabBar();
+			ImGui::End();
+		}
+	}
+#endif
 }
+
 
 void GUI::ResolutionSettingsDebug()
 {

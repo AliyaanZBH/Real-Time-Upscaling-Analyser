@@ -230,6 +230,7 @@ private:
     // Size of child windows
     //
 
+    ImVec2 m_BufferWindowSize;
     ImVec2 m_MetricWindowSize;
 
     // Starting position of main window
@@ -238,14 +239,16 @@ private:
     //
     // Starting position of child windows
     
-    ImVec2 m_HwTimingWindowPos; // Set it directly next to the main window at the top
-    ImVec2 m_FrameRateWindowPos;
+    ImVec2 m_BufferWindowPos;       // Set it at far corner
+    ImVec2 m_HwTimingWindowPos;     // Set it directly next to the main window at the top
+    ImVec2 m_FrameRateWindowPos;    // Set underneath the other one
 
 
 	// Common window pivot positions
 	const ImVec2 kTopLeftPivot = { 0.f, 0.f };
 	const ImVec2 kTopRightPivot = { 1.f, 0.f };
 	const ImVec2 kCenterPivot = { 0.5f, 0.5f };
+	const ImVec2 kBottomLeftPivot = { 0.f, 1.f };
 
 	// Common item spacings
 	const void SingleLineBreak() { ImGui::Dummy(ImVec2(0.0f, 20.0f)); }
@@ -354,7 +357,7 @@ private:
         colors[ImGuiCol_FrameBgHovered] = ThemeColours::m_DarkestGold;
         colors[ImGuiCol_FrameBgActive] = ThemeColours::m_RtuaGold;
         colors[ImGuiCol_TitleBg] = ThemeColours::m_DarkerGold;
-        colors[ImGuiCol_TitleBgActive] = ThemeColours::m_RtuaGold;
+        colors[ImGuiCol_TitleBgActive] = ThemeColours::m_DarkerGold;
         colors[ImGuiCol_TitleBgCollapsed] = ThemeColours::m_DarkestGold;
         colors[ImGuiCol_MenuBarBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
         colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.53f);
