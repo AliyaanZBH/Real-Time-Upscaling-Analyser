@@ -65,6 +65,9 @@ public:
     // Public pointer to the scene we will be investigating!
     const Model* m_pScene = nullptr;
 
+    // Counter variable to track "pages" on the tutorial
+    uint8_t m_Page = 1;
+
     // Public flag to enable/disable tonemapping!
     bool m_bEnablePostFX = true; 
     

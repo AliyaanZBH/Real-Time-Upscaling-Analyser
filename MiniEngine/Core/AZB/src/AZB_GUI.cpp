@@ -321,9 +321,6 @@ void GUI::Terminate()
 
 void GUI::StartupModal()
 {
-	// Counter variable to track "pages"
-	static uint8_t page = 1;
-
 	ImGui::OpenPopup("Welcome!");
 	// Always center this window when appearing
 	ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -338,7 +335,7 @@ void GUI::StartupModal()
 		DoubleLineBreak();
 
 		// Render content in "pages". ImGui doesn't support this natively but we can create this effect pretty easily!
-		switch (page)
+		switch (m_Page)
 		{
 			// First page
 			case 1:
@@ -377,7 +374,7 @@ void GUI::StartupModal()
 				// Advance to next page
 				if (ImGui::Button(btnText))
 				{
-					++page;
+					++m_Page;
 				}
 
 				SingleLineBreak();
@@ -429,7 +426,7 @@ void GUI::StartupModal()
 				// Return to previous page
 				if (ImGui::Button(btnText))
 				{
-					--page;
+					--m_Page;
 				}
 
 				btnText = "Next";
@@ -440,7 +437,7 @@ void GUI::StartupModal()
 				if (ImGui::Button(btnText))
 				{
 					// Advance to final page
-					++page;
+					++m_Page;
 				}
 
 				break;
@@ -457,7 +454,7 @@ void GUI::StartupModal()
 				ImGui::SetItemDefaultFocus();
 				if (ImGui::Button(btnText))
 				{
-					--page;
+					--m_Page;
 				}
 
 				btnText = "Next!";
@@ -467,7 +464,7 @@ void GUI::StartupModal()
 				// Finally allow them to close the popup
 				if (ImGui::Button(btnText))
 				{
-					++page;
+					++m_Page;
 				}
 
 				break;
@@ -486,7 +483,7 @@ void GUI::StartupModal()
 				ImGui::SetItemDefaultFocus();
 				if (ImGui::Button(btnText))
 				{
-					--page;
+					--m_Page;
 				}
 
 
@@ -657,6 +654,8 @@ void GUI::ResolutionDisplay()
 	if (ImGui::Button(labelText))
 	{
 		m_bShowStartupModal = true;
+		// Reset page count so it starts at the beginning
+		m_Page = 1;
 	}
 
 	ImGui::SameLine();
