@@ -517,11 +517,11 @@ void GUI::MainWindowTitle()
 	SingleLineBreak();
 
 	// Use my wrapper to do a bunch of bullet points with text wrapping! Also self indents by 1 level!
-	WrappedBullet("View performance metrics and debug data about the current upscaler");
+	WrappedBullet("Swap between render modes.");
 	SingleLineBreak();
-	WrappedBullet("Tweak settings relating to the implementation of the current upscaler");
+	WrappedBullet("Tweak settings relating to the implementation of the each rendering technique");
 	SingleLineBreak();
-	WrappedBullet("Change the currently implemented upscaler or disable it entirely!");
+	WrappedBullet("View performance metrics for the current rendering mode");
 
 
 	Separator();
