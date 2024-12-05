@@ -916,6 +916,7 @@ void GUI::GraphicsSettings(CommandContext& Context)
 	ImGui::Text("Default LODBias : %.2f", m_OriginalLodBias);
 	SingleLineBreak();
 
+	ImGui::TextColored(ThemeColours::m_RtuaGold, "Graphics Settings");
 	if (ImGui::Checkbox("Override LODBias", &m_bOverrideLodBias))
 		m_bCommonStateChangePending = true;
 
@@ -930,7 +931,7 @@ void GUI::GraphicsSettings(CommandContext& Context)
 	}
 
 	ImGui::Checkbox("Enable PostFX", &m_bEnablePostFX);
-
+	SingleLineBreak();
 
 #if AZB_DBG
 	static bool showBuffers = false;
@@ -1166,16 +1167,11 @@ void GUI::GraphicsSettingsDebug(CommandContext& Context)
 
 void GUI::PerformanceMetrics()
 {
-// Some of these functions will not exist when the mod is disabled - even though this function is never called when mod is disabled, compiler will fuss. 
-// Hence wrapping this whole function in a macro!
-#if AZB_MOD
-	// While the header is open
-	if (ImGui::CollapsingHeader("Performance Metrics"))
-	{
-		// Show checkboxes that open windows!
-		ImGui::Checkbox("Hardware Frame Times", &m_ShowHardwareMetrics);
-		ImGui::Checkbox("Frame Rate (FPS)", &m_ShowFrameRate);
-	}
+	// Show checkboxes that open windows!
+	ImGui::TextColored(ThemeColours::m_RtuaGold, "Peformance Metrics");
+	ImGui::Checkbox("Hardware Frame Times", &m_ShowHardwareMetrics);
+	ImGui::Checkbox("Frame Rate (FPS)", &m_ShowFrameRate);
+	
 
 	// Open windows when bools are true! 
 	if (m_ShowHardwareMetrics)
@@ -1239,7 +1235,6 @@ void GUI::PerformanceMetrics()
 
 		ImGui::End();
 	}
-#endif
 }
 
 #endif
