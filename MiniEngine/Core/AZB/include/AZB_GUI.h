@@ -74,6 +74,11 @@ public:
     // Flag to show startup modal
     bool m_bShowStartupModal = true;
 
+    // Flag to track display mode and adjust behaviour accordingly
+    bool m_bFullscreen = false;
+    // Flag to indicate that display mode should change next frame
+    bool m_bDisplayModeChangePending = false;
+
 private:
 
 
@@ -155,9 +160,7 @@ private:
 
     // Flag to indicate that the resolution should change next frame
     bool m_bResolutionChangePending = false;
-    // Flag to indicate that display mode should change next frame
-    bool m_bDisplayModeChangePending = false;
-   
+    
     // Flag to indicate that common graphics state needs re-initalising next frame e.g. due to a change in mip bias for texture sampling
     bool m_bCommonStateChangePending = false;
     // Flag that tracks the checkbox which controls LOD bias
@@ -167,8 +170,6 @@ private:
     // Original LOD bias before overriding
     float m_OriginalLodBias = 0.f;
 
-    // Flag to track display mode and adjust behaviour accordingly
-    bool m_bFullscreen = false;
 
     // Flag to indicate when a change has been made to DLSS
     bool m_bDLSSUpdatePending = false;

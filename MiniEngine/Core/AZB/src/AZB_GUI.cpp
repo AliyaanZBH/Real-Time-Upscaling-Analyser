@@ -187,8 +187,11 @@ void GUI::UpdateGraphics()
 		BOOL wbFullscreen = FALSE;
 		Display::GetSwapchain()->GetFullscreenState(&wbFullscreen, nullptr);
 
-		// This will actually attempt to set fullscreen state
-		HRESULT hr = Display::GetSwapchain()->SetFullscreenState(!wbFullscreen, nullptr);
+		// This will actually attempt to toggle fullscreen state
+		//HRESULT hr = Display::GetSwapchain()->SetFullscreenState(!wbFullscreen, nullptr);
+
+		// This version sets it explicitly based on controlling the bool externally
+		HRESULT hr = Display::GetSwapchain()->SetFullscreenState(m_bFullscreen, nullptr);
 		if (SUCCEEDED(hr))
 		{
 			DEBUGPRINT("Switched to %s mode", m_bFullscreen ? "Fullscreen" : "Windowed");
