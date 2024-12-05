@@ -150,6 +150,9 @@ private:
     // Track last mode so that we can reset any state
     eRenderingMode m_PreviousRenderingMode = eRenderingMode::NATIVE;
 
+    // Tracker for bilinear upscale input, so it can be saved and returned to when swapping modes
+    Resolution m_BilinearInputRes = { 640, 480 };
+
     // Flag to indicate that the resolution should change next frame
     bool m_bResolutionChangePending = false;
     // Flag to indicate that display mode should change next frame

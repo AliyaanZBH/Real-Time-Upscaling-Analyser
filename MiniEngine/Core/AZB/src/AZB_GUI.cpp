@@ -268,8 +268,17 @@ void GUI::UpdateGraphics()
 		// If we're fullscreen, we need to reset back to full res
 		if (m_bFullscreen)
 		{
-			m_NewWidth = Graphics::g_DisplayWidth;
-			m_NewHeight = Graphics::g_DisplayHeight;
+			// If we're in bilinear, reset to that value instead for comparison
+			if (m_CurrentRenderingMode == eRenderingMode::BILINEAR_UPSCALE)
+			{
+				m_NewWidth = m_BilinearInputRes.m_Width;
+				m_NewHeight = m_BilinearInputRes.m_Height;
+			}
+			else
+			{
+				m_NewWidth = Graphics::g_DisplayWidth;
+				m_NewHeight = Graphics::g_DisplayHeight;
+			}
 		}
 
 		DLSS::UpdateDLSS(m_bToggleDLSS, m_bUpdateDLSSMode, { m_NewWidth, m_NewHeight });
@@ -703,6 +712,8 @@ void GUI::RenderModeSelection()
 								// Set flag to true so that we can update the pipeline next frame! This will result in DLSS needing to be recreated also
 								// This takes place in UpdateGraphics()
 								m_bResolutionChangePending = true;
+								
+
 							}
 							break;
 						}
@@ -714,6 +725,16 @@ void GUI::RenderModeSelection()
 							{
 								m_bToggleDLSS = false;
 								m_bDLSSUpdatePending = true;
+							}
+
+							// Check if the internal resolution is the same as last time, if it's been changed from another mode, reset it!
+							if (Graphics::g_NativeWidth != m_BilinearInputRes.m_Width && Graphics::g_NativeHeight != m_BilinearInputRes.m_Height)
+							{
+								m_NewWidth = m_BilinearInputRes.m_Width;
+								m_NewHeight = m_BilinearInputRes.m_Height;
+								// Set flag to true so that we can update the pipeline next frame! This will result in DLSS needing to be recreated also
+								// This takes place in UpdateGraphics()
+								m_bResolutionChangePending = true;
 							}
 							break;
 						}
@@ -751,10 +772,12 @@ void GUI::RenderModeSelection()
 		}
 		case eRenderingMode::BILINEAR_UPSCALE:
 		{
+
 			// Choose internal resolution for bilinear upscaling
-			std::string comboValue = std::to_string(Graphics::g_NativeWidth) + "x" + std::to_string(Graphics::g_NativeHeight);
+			std::string comboValue = std::to_string(m_BilinearInputRes.m_Width) + "x" + std::to_string(m_BilinearInputRes.m_Height);
 			const char* res_combo_preview_value = comboValue.c_str();
-			static int res_current_idx = DLSS::m_NumResolutions - 1;
+			//static int res_current_idx = DLSS::m_NumResolutions - 1;
+			static int res_current_idx = 0;
 
 			if (ImGui::BeginCombo("Internal Resolution", res_combo_preview_value))
 			{
@@ -768,6 +791,7 @@ void GUI::RenderModeSelection()
 						// Also update what the values should be
 						m_NewWidth = DLSS::m_Resolutions[n].second.m_Width;
 						m_NewHeight = DLSS::m_Resolutions[n].second.m_Height;
+						m_BilinearInputRes = { m_NewWidth, m_NewHeight };
 					}
 
 					if (is_selected)
@@ -775,6 +799,7 @@ void GUI::RenderModeSelection()
 				}
 				ImGui::EndCombo();
 			}
+
 			ImGui::SameLine(); 
 			HelpMarker("When this resolution matches the native resolution (displayed above), no scaling will take place. Lower the resolution to see the effects of this technique");
 			break;
