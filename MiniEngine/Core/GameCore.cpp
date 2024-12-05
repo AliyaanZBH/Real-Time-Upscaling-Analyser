@@ -358,6 +358,8 @@ namespace GameCore
             {
                 // Window has lost focus
                 g_bIsWindowActive = false;
+                // Set it to windowed to avoid any backbuffer issues
+                Display::GetSwapchain()->SetFullscreenState(FALSE, nullptr);
             }
             else
             {

@@ -129,7 +129,6 @@ void GUI::Run(CommandContext& Context)
 		RenderModeSelection();
 
 		GraphicsSettings(Context);
-
 		PerformanceMetrics();
 
 		// Debug sections with more variables to tweak!
@@ -351,9 +350,9 @@ void GUI::StartupModal()
 				ImGui::TextWrapped("Important information or places of interest within the GUI will be highlighted like so:");
 				DoubleLineBreak();
 
-				HighlightTextItem("Use the arrow keys to navigate the GUI!");
+				HighlightTextItem("Use the Arrow Keys to navigate the GUI!");
 				SingleLineBreak();
-				HighlightTextItem("Press Enter to interact with elements!");
+				HighlightTextItem("Press Enter or Spacebar to interact with elements!");
 
 				DoubleLineBreak();
 				ImGui::TextWrapped("If this is your first time, please start the tutorial to see other controls and learn how the GUI functions.");
@@ -403,9 +402,17 @@ void GUI::StartupModal()
 				SingleLineBreak();
 				ImGui::TextWrapped("You can also move any GUI windows around wherever you like by dragging with the mouse.");
 				SingleLineBreak();
-				HighlightTextItem("LCTRL+M to toggle input between the GUI and the scene!");
+				HighlightTextItem("LCTRL+M to toggle mouse input between the GUI and the scene!");
 				SingleLineBreak();
 				ImGui::TextWrapped("Use the command highlighted above to toggle between inputs when necessary.");
+				SingleLineBreak();
+				ImGui::TextWrapped("Note: This can also be achieved entirely from the keyboard without having to switch.");
+				SingleLineBreak();
+				HighlightTextItem("Hold LCTRL and press TAB once to bring up GUI window select.");
+				SingleLineBreak();
+				HighlightTextItem("Press TAB again to cycle between open windows.");
+				SingleLineBreak();
+				HighlightTextItem("Use Arrow Keys while this is open to move selected window position.");
 
 				Separator();
 
