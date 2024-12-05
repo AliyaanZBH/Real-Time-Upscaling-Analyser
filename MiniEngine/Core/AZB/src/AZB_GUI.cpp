@@ -848,72 +848,12 @@ void GUI::RenderModeSelection()
 	}
 }
 
-void GUI::DLSSSettings()
-{
-	if (ImGui::CollapsingHeader("DLSS Settings"))
-	{
-		// Only show the next section if DLSS is supported!
-		if (DLSS::m_bIsNGXSupported)
-		{
-
-			static int dlssMode = 1; // 0: Performance, 1: Balanced, 2: Quality, etc.
-			const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance" };
-
-
-
-
-			// Main selection for user to play with!
-			if (ImGui::Checkbox("Enable DLSS", &m_bToggleDLSS))
-			{
-				m_bDLSSUpdatePending = true;
-			}
-
-			// Wrap mode selection in disabled blcok - only want to edit this when DLSS is ON
-			if (!m_bToggleDLSS)
-				ImGui::BeginDisabled(true);
-			if (ImGui::BeginCombo("Mode", modes[dlssMode]))
-			{
-
-				for (int n = 0; n < std::size(modes); n++)
-				{
-					const bool is_selected = (dlssMode == n);
-					if (ImGui::Selectable(modes[n], is_selected))
-					{
-						dlssMode = n;
-						// Update current mode
-						DLSS::m_CurrentQualityMode = n;
-						// Set flags
-						DLSS::m_bNeedsReleasing = true;
-						m_bDLSSUpdatePending = true;
-						m_bUpdateDLSSMode = true;
-					}
-
-					if (is_selected)
-						ImGui::SetItemDefaultFocus();
-				}
-				ImGui::EndCombo();
-
-			}
-
-			if (!m_bToggleDLSS)
-				ImGui::EndDisabled();
-
-		}
-		else
-		{
-			// Let user know that DLSS isn't supported
-			const char* centerText = "DLSS is not supported by your hardware! Sorry!";
-			CenterNextTextItem(centerText);
-			ImGui::TextColored({ 1.f,0.f,0.f,1.f }, centerText);
-		}
-
-	}
-
-}
-
 void GUI::GraphicsSettings(CommandContext& Context)
 {
+
 	ImGui::Text("Default LODBias : %.2f", m_OriginalLodBias);
+	ImGui::SameLine();
+	HelpMarker("This value affects the resolution at which textures are sampled. DLSS will automatically adjust this value when it is active. ");
 	SingleLineBreak();
 
 	ImGui::TextColored(ThemeColours::m_RtuaGold, "Graphics Settings");
@@ -927,6 +867,8 @@ void GUI::GraphicsSettings(CommandContext& Context)
 	}
 	else
 	{
+		ImGui::SameLine();
+		HelpMarker("Enable this to feed in a custom bias and see the effects it has for yourself.");
 		m_OriginalLodBias = DLSS::m_LodBias;
 	}
 
@@ -1011,6 +953,78 @@ void GUI::GraphicsSettings(CommandContext& Context)
 }
 
 
+void GUI::PerformanceMetrics()
+{
+	// Show checkboxes that open windows!
+	ImGui::TextColored(ThemeColours::m_RtuaGold, "Peformance Metrics");
+	ImGui::Checkbox("Hardware Frame Times", &m_ShowHardwareMetrics);
+	ImGui::Checkbox("Frame Rate (FPS)", &m_ShowFrameRate);
+
+
+	// Open windows when bools are true! 
+	if (m_ShowHardwareMetrics)
+	{
+		// Re-calculate window sizes for the current resolution!
+		m_MetricWindowSize = { m_MainWindowSize.x, m_MainWindowSize.y * 0.666f };
+		m_HwTimingWindowPos = { m_MainWindowPos.x - m_MainWindowSize.x, m_MainWindowPos.y }; // Set it directly next to the main window at the top
+
+		ImGui::SetNextWindowSize(m_MetricWindowSize, ImGuiCond_Appearing);
+		ImGui::SetNextWindowPos(m_HwTimingWindowPos, ImGuiCond_Appearing);
+
+		ImGui::Begin("Hardware Metrics");
+
+		// Continue with rest of window
+
+		// Frame data from MiniEngine profiler!
+		static std::vector<float> cpuTimes, gpuTimes;
+
+		cpuTimes.push_back(EngineProfiling::GetCPUTime());		// CPU time per frame
+		gpuTimes.push_back(EngineProfiling::GetGPUTime());		// GPU time per frame
+
+		// Limit buffer sizes
+		if (cpuTimes.size() > 1000) cpuTimes.erase(cpuTimes.begin());
+		if (gpuTimes.size() > 1000) gpuTimes.erase(gpuTimes.begin());
+
+		// Plot the data
+		if (ImPlot::BeginPlot("Hardware Timings (MS)"))
+		{
+			// Setup axis, x then y. This will be Frame,Ms. Use autofit for now, will mess around with these later
+			ImPlot::SetupAxes("Frame", "Speed(ms)", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
+			ImPlot::PlotLine("CPU Time", cpuTimes.data(), cpuTimes.size());
+			ImPlot::PlotLine("GPU Time", gpuTimes.data(), gpuTimes.size());
+			ImPlot::EndPlot();
+		}
+
+		ImGui::End();
+	}
+
+	// Repeat for FPS!
+	if (m_ShowFrameRate)
+	{
+		m_MetricWindowSize = { m_MainWindowSize.x, m_MainWindowSize.y * 0.666f };
+		m_FrameRateWindowPos = { m_MainWindowPos.x - m_MainWindowSize.x, m_MainWindowPos.y + m_MetricWindowSize.y };	// Next to main window start pos, and just below where the hardware timings would have gone
+
+		ImGui::SetNextWindowSize(m_MetricWindowSize, ImGuiCond_Appearing);
+		ImGui::SetNextWindowPos(m_FrameRateWindowPos, ImGuiCond_Appearing);
+
+		ImGui::Begin("Frame Rate");
+
+		static std::vector<float> frameTimes;
+
+		frameTimes.push_back(EngineProfiling::GetFrameRate());
+		if (frameTimes.size() > 1000) frameTimes.erase(frameTimes.begin());
+
+		if (ImPlot::BeginPlot("Frame Rate"))
+		{
+			ImPlot::SetupAxes("Count", "FPS", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
+			ImPlot::PlotLine("Frame Rate", frameTimes.data(), frameTimes.size());
+			ImPlot::EndPlot();
+		}
+
+		ImGui::End();
+	}
+}
+
 void GUI::ResolutionSettingsDebug()
 {
 	std::string comboValue;
@@ -1085,6 +1099,67 @@ void GUI::ResolutionSettingsDebug()
 	}
 }
 
+void GUI::DLSSSettings()
+{
+	if (ImGui::CollapsingHeader("DLSS Settings"))
+	{
+		// Only show the next section if DLSS is supported!
+		if (DLSS::m_bIsNGXSupported)
+		{
+			static int dlssMode = 1; // 0: Performance, 1: Balanced, 2: Quality, etc.
+			const char* modes[] = { "Performance", "Balanced", "Quality", "Ultra Performance" };
+
+
+
+
+			// Main selection for user to play with!
+			if (ImGui::Checkbox("Enable DLSS", &m_bToggleDLSS))
+			{
+				m_bDLSSUpdatePending = true;
+			}
+
+			// Wrap mode selection in disabled blcok - only want to edit this when DLSS is ON
+			if (!m_bToggleDLSS)
+				ImGui::BeginDisabled(true);
+			if (ImGui::BeginCombo("Mode", modes[dlssMode]))
+			{
+
+				for (int n = 0; n < std::size(modes); n++)
+				{
+					const bool is_selected = (dlssMode == n);
+					if (ImGui::Selectable(modes[n], is_selected))
+					{
+						dlssMode = n;
+						// Update current mode
+						DLSS::m_CurrentQualityMode = n;
+						// Set flags
+						DLSS::m_bNeedsReleasing = true;
+						m_bDLSSUpdatePending = true;
+						m_bUpdateDLSSMode = true;
+					}
+
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+
+			}
+
+			if (!m_bToggleDLSS)
+				ImGui::EndDisabled();
+
+		}
+		else
+		{
+			// Let user know that DLSS isn't supported
+			const char* centerText = "DLSS is not supported by your hardware! Sorry!";
+			CenterNextTextItem(centerText);
+			ImGui::TextColored({ 1.f,0.f,0.f,1.f }, centerText);
+		}
+
+	}
+
+}
 
 void GUI::GraphicsSettingsDebug(CommandContext& Context)
 {
@@ -1163,78 +1238,6 @@ void GUI::GraphicsSettingsDebug(CommandContext& Context)
 		}
 	}
 
-}
-
-void GUI::PerformanceMetrics()
-{
-	// Show checkboxes that open windows!
-	ImGui::TextColored(ThemeColours::m_RtuaGold, "Peformance Metrics");
-	ImGui::Checkbox("Hardware Frame Times", &m_ShowHardwareMetrics);
-	ImGui::Checkbox("Frame Rate (FPS)", &m_ShowFrameRate);
-	
-
-	// Open windows when bools are true! 
-	if (m_ShowHardwareMetrics)
-	{
-		// Re-calculate window sizes for the current resolution!
-		m_MetricWindowSize = { m_MainWindowSize.x, m_MainWindowSize.y * 0.666f };
-		m_HwTimingWindowPos = { m_MainWindowPos.x - m_MainWindowSize.x, m_MainWindowPos.y }; // Set it directly next to the main window at the top
-
-		ImGui::SetNextWindowSize(m_MetricWindowSize, ImGuiCond_Appearing);
-		ImGui::SetNextWindowPos(m_HwTimingWindowPos, ImGuiCond_Appearing);
-
-		ImGui::Begin("Hardware Metrics");
-
-		// Continue with rest of window
-		
-		// Frame data from MiniEngine profiler!
-		static std::vector<float> cpuTimes, gpuTimes;
-
-		cpuTimes.push_back(EngineProfiling::GetCPUTime());		// CPU time per frame
-		gpuTimes.push_back(EngineProfiling::GetGPUTime());		// GPU time per frame
-
-		// Limit buffer sizes
-		if (cpuTimes.size() > 1000) cpuTimes.erase(cpuTimes.begin());
-		if (gpuTimes.size() > 1000) gpuTimes.erase(gpuTimes.begin());
-
-		// Plot the data
-		if (ImPlot::BeginPlot("Hardware Timings (MS)"))
-		{
-			// Setup axis, x then y. This will be Frame,Ms. Use autofit for now, will mess around with these later
-			ImPlot::SetupAxes("Frame", "Speed(ms)", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
-			ImPlot::PlotLine("CPU Time", cpuTimes.data(), cpuTimes.size());
-			ImPlot::PlotLine("GPU Time", gpuTimes.data(), gpuTimes.size());
-			ImPlot::EndPlot();
-		}
-
-		ImGui::End();
-	}
-
-	// Repeat for FPS!
-	if (m_ShowFrameRate)
-	{
-		m_MetricWindowSize = { m_MainWindowSize.x, m_MainWindowSize.y * 0.666f };
-		m_FrameRateWindowPos = { m_MainWindowPos.x - m_MainWindowSize.x, m_MainWindowPos.y + m_MetricWindowSize.y };	// Next to main window start pos, and just below where the hardware timings would have gone
-
-		ImGui::SetNextWindowSize(m_MetricWindowSize, ImGuiCond_Appearing);
-		ImGui::SetNextWindowPos(m_FrameRateWindowPos, ImGuiCond_Appearing);
-
-		ImGui::Begin("Frame Rate");
-
-		static std::vector<float> frameTimes;
-
-		frameTimes.push_back(EngineProfiling::GetFrameRate());
-		if (frameTimes.size() > 1000) frameTimes.erase(frameTimes.begin());
-
-		if (ImPlot::BeginPlot("Frame Rate"))
-		{
-			ImPlot::SetupAxes("Count", "FPS", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
-			ImPlot::PlotLine("Frame Rate", frameTimes.data(), frameTimes.size());
-			ImPlot::EndPlot();
-		}
-
-		ImGui::End();
-	}
 }
 
 #endif
