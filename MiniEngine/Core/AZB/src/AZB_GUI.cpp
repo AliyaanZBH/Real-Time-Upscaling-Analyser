@@ -18,6 +18,8 @@
 #include <ModelLoader.h>
 
 //===============================================================================
+// Wrapped in macro so it still compiles in source
+#if AZB_MOD
 
 void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const DXGI_FORMAT& renderTargetFormat)
 {
@@ -707,7 +709,6 @@ void GUI::RenderModeSelection()
 
 						case eRenderingMode::BILINEAR_UPSCALE:
 						{
-
 							// Reset DLSS just like we did with Native
 							if (m_PreviousRenderingMode == eRenderingMode::DLSS)
 							{
@@ -1140,3 +1141,5 @@ void GUI::PerformanceMetrics()
 	}
 #endif
 }
+
+#endif

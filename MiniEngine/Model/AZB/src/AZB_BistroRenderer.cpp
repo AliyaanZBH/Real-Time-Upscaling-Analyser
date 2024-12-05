@@ -38,6 +38,8 @@ using namespace Renderer;
 using namespace Math;
 using namespace Graphics;
 
+#if AZB_MOD
+
 namespace Bistro
 {
     void RenderLightShadows(GraphicsContext& gfxContext, const Camera& camera, ModelInstance& model);
@@ -424,3 +426,5 @@ void Bistro::RenderScene(
         }
     }
 }
+
+#endif

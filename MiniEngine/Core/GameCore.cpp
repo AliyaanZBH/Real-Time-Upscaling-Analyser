@@ -90,7 +90,11 @@ namespace GameCore
         game.Startup();
 
         // [AZB]: Once the game has started up, retrieve the loaded model as a pointer for our GUI to manipulate!
+#if AZB_MOD
+
         AZB_GUI->m_pScene = game.GetScene();
+
+#endif
     }
 
 
@@ -239,7 +243,9 @@ namespace GameCore
         g_CommandManager.IdleGPU();
 
         // [AZB]: Cleanup our classes first!
+#if AZB_MOD
         AZB_GUI->Terminate();
+#endif
         // [AZB]: DLSS gets cleaned up inside Graphics::Shutdown
 
         game.Cleanup();

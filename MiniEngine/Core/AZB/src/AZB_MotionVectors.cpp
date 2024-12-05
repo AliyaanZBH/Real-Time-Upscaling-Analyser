@@ -27,6 +27,11 @@
 
 #include "CompiledShaders/ScreenQuadCommonVS.h" // Allows us to render a quad to the screen for graphics!
 
+
+// Wrap in Macro so that source still compiles when it is disabled
+
+#if AZB_MOD
+
 namespace MotionVectors
 {
     // Define PSOs
@@ -210,3 +215,5 @@ void MotionVectors::Render(CommandContext& BaseContext)
    Context.TransitionResource(Graphics::g_MotionVectorVisualisationBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
    //Context.Finish();
 }
+
+#endif

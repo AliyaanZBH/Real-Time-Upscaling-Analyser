@@ -30,7 +30,7 @@ using namespace Graphics;
 #if AZB_MOD
 #include "AZB_DLSS.h"
 #include <cmath>    // For log2
-namespace SamplerManager
+namespace
 {
     map< size_t, D3D12_CPU_DESCRIPTOR_HANDLE > s_SamplerCache;
     void ReinitialiseSamplerCache(Resolution inputResolution, bool bOverride, float overrideLodBias)
@@ -63,6 +63,7 @@ namespace SamplerManager
             Utility::Printf("Updated sampler with MipLODBias = %.2f", lodBias);
         }
     }
+}
 #else
 // [AZB]: Original empty namespace
 namespace
@@ -70,13 +71,12 @@ namespace
     map< size_t, D3D12_CPU_DESCRIPTOR_HANDLE > s_SamplerCache;
 }
 #endif
-}
 
 D3D12_CPU_DESCRIPTOR_HANDLE SamplerDesc::CreateDescriptor()
 {
     size_t hashValue = Utility::HashState(this);
-    auto iter = SamplerManager::s_SamplerCache.find(hashValue);
-    if (iter != SamplerManager::s_SamplerCache.end())
+    auto iter = s_SamplerCache.find(hashValue);
+    if (iter != s_SamplerCache.end())
     {
         return iter->second;
     }
