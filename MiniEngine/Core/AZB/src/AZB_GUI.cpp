@@ -308,8 +308,14 @@ void GUI::Terminate()
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
 	ImPlot::DestroyContext();
-}
 
+	// Last step - ensure the swapchain is not in fullscreen as otherwise the rest of the pipeline can't terminate correctly
+	HRESULT hr = Display::GetSwapchain()->SetFullscreenState(FALSE, nullptr);
+	if (SUCCEEDED(hr))
+	{
+		DEBUGPRINT("Switched to Windowed mode at shutdown!");
+	}
+}
 void GUI::StartupModal()
 {
 	// Counter variable to track "pages"

@@ -496,7 +496,12 @@ void Display::Initialize(void)
 
 void Display::Shutdown( void )
 {
+#if AZB_MOD
+    // [AZB]: Do nothing here as we should already have set fullscreen state to windowed upon terminating our GUI class
+#else
+    // [AZB]: As our experiment runs in fullscreen, this would fail and cause an error on shutdown
     s_SwapChain1->SetFullscreenState(FALSE, nullptr);
+#endif
     s_SwapChain1->Release();
 
     for (UINT i = 0; i < SWAP_CHAIN_BUFFER_COUNT; ++i)

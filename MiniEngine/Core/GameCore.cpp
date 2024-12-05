@@ -238,9 +238,15 @@ namespace GameCore
     {
         g_CommandManager.IdleGPU();
 
+        // [AZB]: Cleanup our classes first!
+        AZB_GUI->Terminate();
+        // [AZB]: DLSS gets cleaned up inside Graphics::Shutdown
+
         game.Cleanup();
 
         GameInput::Shutdown();
+
+      
     }
 
     int RunApplication( IGameApp& app, const wchar_t* className, HINSTANCE hInst, int nCmdShow )
