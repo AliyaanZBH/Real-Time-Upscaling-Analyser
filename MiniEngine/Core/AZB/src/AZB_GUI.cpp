@@ -646,6 +646,18 @@ void GUI::ResolutionDisplay()
 	CenterNextTextItem(labelText);
 	ImGui::Text(labelText);
 
+	SingleLineBreak();
+
+	// Create a button to relaunch tutorial model
+	labelText = "Help";
+	CenterNextTextItem(labelText);
+	MakeNextItemFitText(labelText);
+	if (ImGui::Button(labelText))
+	{
+		m_bShowStartupModal = true;
+	}
+	ImGui::SameLine();
+	HelpMarker("This will restart the tutorial so you can refresh your knowledge of inputs.");
 
 	Separator();
 
