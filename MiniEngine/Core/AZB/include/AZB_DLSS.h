@@ -30,7 +30,7 @@ namespace DLSS
 		ID3D12GraphicsCommandList* m_pCmdList;
 		unsigned int m_InCreationNodeMask = 1;					// These only matter for Multi GPU (default 1)
 		unsigned int m_InVisibilityNodeMask = 1;				// These only matter for Multi GPU (default 1)
-		NVSDK_NGX_DLSS_Create_Params m_DlSSCreateParams;
+		NVSDK_NGX_DLSS_Create_Params m_DlSSCreateParams = {};
 	};
 
 	struct ExecutionRequirements
@@ -96,6 +96,11 @@ namespace DLSS
 	extern Resolution m_MaxNativeResolution;
 	// Track the current native resolution
 	extern Resolution m_CurrentNativeResolution;
+	// Track the current internal rendering resolution
+	extern Resolution m_CurrentInternalResolution;
+
+	// Track the current loD Bias.
+	extern float m_LodBias;
 
 	// Track which DLSS mode is currently selectd
 	extern uint8_t m_CurrentQualityMode;
@@ -107,7 +112,7 @@ namespace DLSS
 	extern bool m_bIsNGXSupported;
 
 	// Flag to allow for runtime toggling of DLSS
-	extern bool m_DLSS_Enabled;
+	extern bool m_bDLSS_Enabled;
 
 	// Flag to track when native resolution has changed and DLSS needs re-creating
 	extern bool m_bNeedsReleasing;
@@ -117,4 +122,5 @@ namespace DLSS
 
 	// Flag to track when the pipeline needs to reset back to native!
 	extern bool m_bPipelineReset;
+
 };

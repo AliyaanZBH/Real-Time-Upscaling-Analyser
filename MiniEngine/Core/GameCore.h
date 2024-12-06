@@ -15,6 +15,14 @@
 
 #include "pch.h"
 
+//===============================================================================
+// desc: This is the interface for "GameApp", where the application layer is defined.
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+#include "AZB_Utils.h"
+
+class Model;
+
 namespace GameCore
 {
     extern bool gIsSupending;
@@ -43,6 +51,12 @@ namespace GameCore
 
         // Override this in applications that use DirectX Raytracing to require a DXR-capable device.
         virtual bool RequiresRaytracingSupport() const { return false; }
+
+#if AZB_MOD
+        // [AZB]: New function that allows the main scene mesh to be retrieved for manipulation in graphics! e.g. change texture sampling for DLSS
+        virtual const Model* GetScene() = 0;
+
+#endif
     };
 }
 

@@ -45,7 +45,7 @@ namespace Display
 
 #if AZB_MOD
     // [AZB]: Making this function public so that resolution can be changed in ImGui
-    void SetWindowedResolution(uint32_t width, uint32_t height);
+    Resolution SetWindowedResolution(uint32_t width, uint32_t height);
     // [AZB]: This function replicates setNativeRes() that is defined within Graphics namespace in the implementation file for display. The key difference here is that it can be called from ImGui!
     void SetPipelineResolution(bool bDLSS, uint32_t queriedWidth, uint32_t queriedHeight, bool bFullscreen = false);
     // [AZB]: Some extra accessors to further ease GUI usability when it comes to controlling rendering

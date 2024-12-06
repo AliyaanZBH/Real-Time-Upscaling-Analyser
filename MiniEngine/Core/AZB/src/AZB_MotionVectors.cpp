@@ -27,6 +27,11 @@
 
 #include "CompiledShaders/ScreenQuadCommonVS.h" // Allows us to render a quad to the screen for graphics!
 
+
+// Wrap in Macro so that source still compiles when it is disabled
+
+#if AZB_MOD
+
 namespace MotionVectors
 {
     // Define PSOs
@@ -103,6 +108,8 @@ void MotionVectors::DecodeMotionVectors(CommandContext& BaseContext)
     Context.TransitionResource(Graphics::g_VelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     // Transition our decoded buffer back to SRV!
     //Context.TransitionResource(Graphics::g_DecodedVelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+    Context.Flush();
 }
 
 void MotionVectors::GeneratePerPixelMotionVectors(CommandContext& BaseContext, const Math::Camera& camera)
@@ -208,3 +215,5 @@ void MotionVectors::Render(CommandContext& BaseContext)
    Context.TransitionResource(Graphics::g_MotionVectorVisualisationBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
    //Context.Finish();
 }
+
+#endif

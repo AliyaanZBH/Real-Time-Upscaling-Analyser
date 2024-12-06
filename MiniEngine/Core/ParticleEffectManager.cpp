@@ -668,8 +668,6 @@ void ParticleEffectManager::Render( CommandContext& Context, const Camera& Camer
 
 
     // [AZB]: This assertion will fail when using the upscaled DLSS color buffer!
-#if AZB_MOD
-#else
     ASSERT(
         Width == DepthTarget.GetWidth() &&
         Height == DepthTarget.GetHeight() &&
@@ -677,7 +675,7 @@ void ParticleEffectManager::Render( CommandContext& Context, const Camera& Camer
         Height == LinearDepth.GetHeight(),
         "There is a mismatch in buffer dimensions for rendering particles"
     );
-#endif
+
     ScopedTimer _prof(L"Particle Render", Context);
 
     uint32_t BinsPerRow = 4 * DivideByMultiple(Width, 4 * BIN_SIZE_X);
@@ -721,8 +719,8 @@ void ParticleEffectManager::Render( CommandContext& Context, const Camera& Camer
         CompContext.SetDynamicConstantBufferView(1, sizeof(CBChangesPerView), &s_ChangesPerView);
 
         RenderTiles(CompContext, ColorTarget, LinearDepth);
-
         CompContext.InsertUAVBarrier(ColorTarget);
+
     }
     else
     {

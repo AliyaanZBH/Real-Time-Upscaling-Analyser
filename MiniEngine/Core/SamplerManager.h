@@ -1,4 +1,3 @@
-//
 // Copyright (c) Microsoft. All rights reserved.
 // This code is licensed under the MIT License (MIT).
 // THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
@@ -21,6 +20,7 @@
 //       See NVIDIA Docs section 3.5 for more info!
 // modified: Aliyaan Zulfiqar
 //===============================================================================
+#include "AZB_Utils.h"
 
 class SamplerDesc : public D3D12_SAMPLER_DESC
 {
@@ -66,3 +66,12 @@ public:
     // Create descriptor in place (no deduplication).  Handle must be preallocated
     void CreateDescriptor( D3D12_CPU_DESCRIPTOR_HANDLE Handle );
 };
+
+#if AZB_MOD
+namespace SamplerManager
+{
+    // [AZB]: Define namespace and function for calling from our GUI!
+    void ReinitialiseSamplerCache(Resolution inputResolution, bool bOverride = false, float overrideLodBias = 0.f);
+
+}
+#endif

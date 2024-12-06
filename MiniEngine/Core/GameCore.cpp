@@ -55,7 +55,7 @@
 #include "AZB_DLSS.h"
 #include "AZB_MotionVectors.h"
 
-// [AZB]: Set bool here, ensuring a single declaration and definiton.
+// [AZB]: Set external bool here, ensuring a single declaration and definiton. It can now be used across MiniEngine! (namely within Input.cpp)
 bool g_bMouseExclusive = true;
 
 // [AZB]: Used to track when the window loses focus
@@ -64,7 +64,7 @@ bool g_bIsWindowActive = false;
 bool g_bIsWindowMinimized = false;
 
 // [AZB]: Temporary global UI class
-GUI* AZB_GUI = new GUI();
+GUI* RTUA = new GUI();
 
 
 // [AZB]: Forward declare message handler from imgui_impl_win32.cpp
@@ -88,6 +88,13 @@ namespace GameCore
         EngineTuning::Initialize();
 
         game.Startup();
+
+        // [AZB]: Once the game has started up, retrieve the loaded model as a pointer for our GUI to manipulate!
+#if AZB_MOD
+
+        RTUA->m_pScene = game.GetScene();
+
+#endif
     }
 
 
@@ -106,7 +113,7 @@ namespace GameCore
 #if AZB_MOD
         
         // [AZB]: See if the user changed any graphical settings in the previous frame and apply them now at the start of this one!
-        AZB_GUI->UpdateGraphics();
+        RTUA->UpdateGraphics();
 
         // [AZB]: The app will start in exclusive mode, but as this input gets repeated we need to check which one we're currently set to in order to correctly toggle
         if (g_bMouseExclusive)
@@ -145,17 +152,17 @@ namespace GameCore
 
 
         // [AZB]: Check if we want to render MVs
-        if (AZB_GUI->m_bEnableMotionVisualisation)
+        if (RTUA->m_bEnableMotionVisualisation)
         {
         }
         
         //MotionVectors::Render();
 
         // [AZB]: Also added an option to toggle the post step entirely!
-        if (AZB_GUI->m_bEnablePostFX)
+        if (RTUA->m_bEnablePostFX)
         {
 
-            if(DLSS::m_DLSS_Enabled)
+            if(DLSS::m_bDLSS_Enabled)
                 // [AZB]: Overloaded function that acts on a chosen buffer
                 PostEffects::Render(g_DLSSOutputBuffer);
             else
@@ -186,10 +193,10 @@ namespace GameCore
 
 
         // [AZB]: Set the descriptor heap that we set up in the GUI class
-        ImGuiContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, AZB_GUI->m_pSrvDescriptorHeap);
+        ImGuiContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, RTUA->m_pSrvDescriptorHeap);
 
         // [AZB]: Run our UI! Pass context down for GBuffer manipulation
-        AZB_GUI->Run(ImGuiContext);
+        RTUA->Run(ImGuiContext);
 
      
         // [AZB]: Setup ImGui buffer using the GraphicsContext API
@@ -235,9 +242,17 @@ namespace GameCore
     {
         g_CommandManager.IdleGPU();
 
+        // [AZB]: Cleanup our classes first!
+#if AZB_MOD
+        RTUA->Terminate();
+#endif
+        // [AZB]: DLSS gets cleaned up inside Graphics::Shutdown
+
         game.Cleanup();
 
         GameInput::Shutdown();
+
+      
     }
 
     int RunApplication( IGameApp& app, const wchar_t* className, HINSTANCE hInst, int nCmdShow )
@@ -281,7 +296,7 @@ namespace GameCore
 // [AZB]: Custom init steps and game loop setup
 #if AZB_MOD 
         // [AZB]: Set up ImGui Context here, initalising our UI class
-        AZB_GUI->Init(g_hWnd, g_Device, SWAP_CHAIN_BUFFER_COUNT, SWAP_CHAIN_FORMAT);
+        RTUA->Init(g_hWnd, g_Device, SWAP_CHAIN_BUFFER_COUNT, SWAP_CHAIN_FORMAT);
 #endif
 
         // [AZB]: Original game Loop
@@ -349,11 +364,21 @@ namespace GameCore
             {
                 // Window has lost focus
                 g_bIsWindowActive = false;
+
+                // Set it to windowed to avoid any backbuffer issues
+                Display::GetSwapchain()->SetFullscreenState(FALSE, nullptr);
             }
             else
             {
                 // Window has gained focus
                 g_bIsWindowActive = true;
+
+                // If the GUI class exists at this point (as this block will execute on program startup too!), reset the fullscreen state through there!
+                if (RTUA != nullptr)
+                {
+                    RTUA->m_bFullscreen = true;
+                    RTUA->m_bDisplayModeChangePending = true;
+                }
             }
             break;
 #endif

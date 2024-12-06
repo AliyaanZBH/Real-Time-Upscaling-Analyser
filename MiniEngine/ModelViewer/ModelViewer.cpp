@@ -87,6 +87,11 @@ public:
     virtual void Update( float deltaT ) override;
     virtual void RenderScene( void ) override;
 
+#if AZB_MOD
+
+    // [AZB]: New function that returns the currently loaded scene - needed to get a pointer to our GUI which then passes it off to the renderer to allow for sampler updating!
+    virtual const Model* GetScene() override { return m_Scenes[activeScene].GetModel().get(); }
+#endif
 private:
     Camera m_Camera;
     unique_ptr<CameraController> m_CameraController;
@@ -146,7 +151,7 @@ void ChangeIBLBias(EngineVar::ActionType)
 #include <direct.h> // for _getcwd() to check data root path
 
 //[AZB]: Test for particles in sponza glTF
-//#include <ParticleEffects.h>
+#include <ParticleEffects.h>
 
 #if AZB_MOD
 // [AZB]: Modified method that detects PNGs and HDRs and converts to DDS!
@@ -258,6 +263,8 @@ void LoadIBLTextures()
     // [AZB} Set Stonewall as starting env since it seems to be the only one that lets the scene look right!
     int setIdx = 8;
     Renderer::SetIBLTextures(g_IBLTextures[setIdx].first, g_IBLTextures[setIdx].second);
+
+    
 }
 
 #else
@@ -351,21 +358,21 @@ void ModelViewer::Startup( void )
     // [AZB]: Get sponza started up
     Sponza::Startup(m_Camera);
     // [AZB]: Now spin up bistro
-    Bistro::Startup(m_Camera, m_Scenes[0]);
+    //Bistro::Startup(m_Camera, m_Scenes[0]);
 #else
 
     // [AZB]: If we're not legacy rendering, load sponza from glTF
     m_Scenes[1] = Renderer::LoadModel(L"Sponza/PBR/sponza2.gltf", forceRebuild);
     m_Scenes[1].Resize(100.0f * m_Scenes[1].GetRadius());
 
-    // [AZB]: Set up camera starting position. Use the scene at index 0 (Bistro)for now
-    OrientedBox obb = m_Scenes[0].GetBoundingBox();
+    // [AZB]: Set up camera starting position. Use the active scene
+    OrientedBox obb = m_Scenes[activeScene].GetBoundingBox();
     float modelRadius = Length(obb.GetDimensions()) * 0.5f;
     const Vector3 eye = obb.GetCenter() + Vector3(modelRadius * 0.5f, 0.0f, 0.f);
     m_Camera.SetEyeAtUp(eye, Vector3(kZero), Vector3(kYUnitVector));
 
     // [AZB]: TMP TEST, do particles look alright on sponza glTF?
-    //ParticleEffects::InitFromJSON(L"Sponza/particles.json");
+    ParticleEffects::InitFromJSON(L"Sponza/particles.json");
 #endif
 
     // [AZB]: Set near/far planes and start our FPS camera!
@@ -444,8 +451,7 @@ void ModelViewer::Update( float deltaT )
 #if AZB_MOD
 #ifndef LEGACY_RENDERER
     // [AZB]: Only update models when they're being used, which is when legacy rendering is disabled!
-    m_Scenes[0].Update(gfxContext, deltaT);
-    m_Scenes[1].Update(gfxContext, deltaT);
+    m_Scenes[activeScene].Update(gfxContext, deltaT);
 #endif
 #else
     // [AZB]: Always update model
@@ -703,7 +709,7 @@ void ModelViewer::RenderScene( void )
     MotionVectors::DecodeMotionVectors(gfxContext);
     
     // [AZB]: Render our MVs to a texture and represent them using arrows!
-    MotionVectors::Render(gfxContext);
+    //MotionVectors::Render(gfxContext);
 
     // [AZB]: Generate true per-pixel motion vectors!
     //MotionVectors::GeneratePerPixelMotionVectors(gfxContext, m_Camera);

@@ -19,13 +19,16 @@ namespace DLSS
 
 	Resolution m_MaxNativeResolution = {};
 	Resolution m_CurrentNativeResolution = {};
+	Resolution m_CurrentInternalResolution = {};
+
+	float m_LodBias = 0.f;
 
 	uint8_t m_CurrentQualityMode = 1;
 
 	const wchar_t* m_AppDataPath = L"./../../DLSS_Data/";
 
 	bool m_bIsNGXSupported = false;
-	bool m_DLSS_Enabled = false;
+	bool m_bDLSS_Enabled = false;
 	bool m_bNeedsReleasing = false;
 	bool m_bPipelineUpdate = false;
 	bool m_bPipelineReset = false;
@@ -98,6 +101,8 @@ void DLSS::Init(ID3D12Device* device)
 
 	// Important step! Fill in our member parameters so that we can refer back to them and use them throughout the lifetime of the app
 	NVSDK_NGX_Result Result = NVSDK_NGX_D3D12_GetCapabilityParameters(&m_DLSS_Parameters);
+	if (NVSDK_NGX_FAILED(Result))
+		Utility::Print("\nNVIDIA DLSS capabilities could not be queried\n\n");
 
 	// Secondary hardware query
 	NVSDK_NGX_Result ResultDlssSupported = m_DLSS_Parameters->Get(NVSDK_NGX_Parameter_SuperSampling_Available, &DLSS_Supported);
@@ -234,10 +239,6 @@ void DLSS::Execute(ExecutionRequirements& params)
 	if (!m_bIsNGXSupported)
 		return;
 
-	// TMP: DEBUGGGIN MVS
-	//params.m_DlSSEvalParams.InMVScaleX = 50.5f;
-	//params.m_DlSSEvalParams.InMVScaleY = 50.5f;
-
 	NVSDK_NGX_Result ret = NGX_D3D12_EVALUATE_DLSS_EXT(params.m_pCmdList, m_DLSS_FeatureHandle, m_DLSS_Parameters, &params.m_DlSSEvalParams);
 	if (NVSDK_NGX_SUCCEED(ret))
 		Utility::Print("\nDLSS executed!!\nCheck that the final image looks right!\n\n");
@@ -253,11 +254,11 @@ void DLSS::Release()
 void DLSS::UpdateDLSS(bool toggle, bool updateMode, Resolution currentResolution)
 {
 	// Flip our flag
-	m_DLSS_Enabled = toggle;
+	m_bDLSS_Enabled = toggle;
 
 	// If we are going from disabled to enabled, we need to recreate the feature if the target resolution has changed!
 	// If the mode has changed, we also need to recreate DLSS with this value
-	if (m_DLSS_Enabled || updateMode)
+	if (m_bDLSS_Enabled || updateMode)
 	{
 		
 		// Check if feature has already been created, release if so
@@ -301,6 +302,8 @@ void DLSS::UpdateDLSS(bool toggle, bool updateMode, Resolution currentResolution
 
 	// Update current resolution
 	m_CurrentNativeResolution = currentResolution;
+	// Update handle for current internal resolution
+	m_CurrentInternalResolution = { m_DLSS_Modes[m_CurrentQualityMode].m_RenderWidth, m_DLSS_Modes[m_CurrentQualityMode].m_RenderHeight };
 
 }
 
