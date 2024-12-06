@@ -343,7 +343,6 @@ void GUI::StartupModal()
 
 
 				SectionTitle("Welcome to Real-Time Upscaling Analyser!");
-
 				Separator();
 
 				ImGui::TextWrapped("This is a tool developed as part of a study into upscaling techniques within the field of real-time rendering.");
@@ -393,12 +392,27 @@ void GUI::StartupModal()
 				break;
 			}
 
-			// Second page
 			case 2:
+			{
+				SectionTitle("Scene Controls");
+				Separator();
+
+				ImGui::TextWrapped("You have a few different ways to move throughout the scene.");
+				SingleLineBreak();
+				HighlightTextItem("WASD to move, Mouse for camera");
+				SingleLineBreak();
+				ImGui::TextWrapped("You can also change how fast you move with WASD so you can slow down for evaluation.");
+				SingleLineBreak();
+				HighlightTextItem("LSHIFT to change movement speed");
+				break;
+			}
+			
+			case 3:
 			{
 
 				SectionTitle("GUI Controls");
 				Separator();
+
 				ImGui::TextWrapped("Occasionally you will need the mouse to interact with certain elements like tooltips or graphs.");
 				SingleLineBreak();
 				ImGui::TextWrapped("You can also move any GUI windows around wherever you like by dragging with the mouse.");
@@ -444,10 +458,24 @@ void GUI::StartupModal()
 			}
 
 			// Final page
-			case 3:
+			case 4:
 			{
 				SectionTitle("Evaluation Guidance");
 				Separator();
+
+				ImGui::TextWrapped("Native rendering should be straightforward to evaluate, however you may find yourself struggling to compare the two upscale methods.");
+				SingleLineBreak();
+				HighlightTextItem("To best compare upscaling, use similar input resolutions.");
+				ImGui::TextWrapped("When swapping between Bilinear or DLSS upscaling, the input resolution you select will be saved.");
+				SingleLineBreak();
+				HighlightTextItem("To best compare upscaling, use similar input resolutions.");
+				SingleLineBreak();
+				ImGui::TextWrapped("Additionally, LOD or Mip bias has a great effect on texture resolution when upscaling. DLSS automatically calculates the optimal bias, but you are free to override this and see the effects in real-time.");
+				SingleLineBreak();
+				ImGui::TextWrapped("Lastly, upscaling can have varying effects depending on the type of surface you are looking at, the distance and angle from which you view it and much more.");
+				SingleLineBreak();
+				HighlightTextItem("Try and test against as many different surfaces as possible.");
+				DoubleLineBreak();
 
 				const char* btnText = "Previous";
 				MakeNextItemFitText(btnText);
@@ -469,14 +497,16 @@ void GUI::StartupModal()
 
 				break;
 			}
-			case 4:
+			case 5:
 			{
 
 				SectionTitle("Final Words");
 				Separator();
 
-				ImGui::TextWrapped("If you ever need to read these instructions again, you can find a button to re-open this popup at any time.");
-				SingleLineBreak();
+				ImGui::TextWrapped("If you need to read these instructions again, you can find a button to re-open this popup at any time.");
+				HalfLineBreak();
+				ImGui::TextWrapped("And most importantly, let your curiosity drive you. You may come away from this experience with an increased sensitivity and appreciation for rendering quality.");
+				DoubleLineBreak();
 
 				const char* btnText = "Previous";
 				MakeNextItemFitText(btnText);
