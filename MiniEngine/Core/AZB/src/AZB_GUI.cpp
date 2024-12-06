@@ -404,6 +404,9 @@ void GUI::StartupModal()
 				ImGui::TextWrapped("You can also change how fast you move with WASD so you can slow down for evaluation.");
 				SingleLineBreak();
 				HighlightTextItem("LSHIFT to change movement speed");
+
+				TutorialPageButtons();
+
 				break;
 			}
 			
@@ -432,27 +435,7 @@ void GUI::StartupModal()
 				HighlightTextItem("Use Arrow Keys while to move selected window position.");
 				DoubleLineBreak();
 
-
-				const char* btnText = "Previous";
-				MakeNextItemFitText(btnText);
-				ImGui::SetItemDefaultFocus();
-
-				// Return to previous page
-				if (ImGui::Button(btnText))
-				{
-					--m_Page;
-				}
-
-				btnText = "Next";
-				RightAlignSameLine(btnText);
-				MakeNextItemFitText(btnText);
-
-
-				if (ImGui::Button(btnText))
-				{
-					// Advance to final page
-					++m_Page;
-				}
+				TutorialPageButtons();
 
 				break;
 			}
@@ -477,26 +460,11 @@ void GUI::StartupModal()
 				HighlightTextItem("Try and test against as many different surfaces as possible.");
 				DoubleLineBreak();
 
-				const char* btnText = "Previous";
-				MakeNextItemFitText(btnText);
-				ImGui::SetItemDefaultFocus();
-				if (ImGui::Button(btnText))
-				{
-					--m_Page;
-				}
-
-				btnText = "Next!";
-				RightAlignSameLine(btnText);
-				MakeNextItemFitText(btnText);
-
-				// Finally allow them to close the popup
-				if (ImGui::Button(btnText))
-				{
-					++m_Page;
-				}
+				TutorialPageButtons();
 
 				break;
 			}
+
 			case 5:
 			{
 

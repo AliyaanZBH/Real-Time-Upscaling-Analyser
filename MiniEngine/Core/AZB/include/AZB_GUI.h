@@ -342,6 +342,31 @@ private:
         ImGui::PopStyleColor();
     }
 
+    // Reusable page button code
+    const void TutorialPageButtons()
+    {
+        const char* btnText = "Previous";
+        MakeNextItemFitText(btnText);
+        ImGui::SetItemDefaultFocus();
+
+        // Return to previous page
+        if (ImGui::Button(btnText))
+        {
+            --m_Page;
+        }
+
+        btnText = "Next";
+        RightAlignSameLine(btnText);
+        MakeNextItemFitText(btnText);
+
+
+        if (ImGui::Button(btnText))
+        {
+            // Advance to final page
+            ++m_Page;
+        }
+
+    }
 
 	//============================================================================
 	//
