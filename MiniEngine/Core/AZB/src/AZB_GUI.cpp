@@ -453,8 +453,6 @@ void GUI::StartupModal()
 				SingleLineBreak();
 				ImGui::TextWrapped("When swapping between Bilinear or DLSS upscaling, the input resolution you select will be saved.");
 				SingleLineBreak();
-				HighlightTextItem("To best compare upscaling, use similar input resolutions.");
-				SingleLineBreak();
 				ImGui::TextWrapped("Additionally, LOD or Mip bias has a great effect on texture resolution when upscaling. DLSS automatically calculates the optimal bias, but you are free to override this and see the effects in real-time.");
 				SingleLineBreak();
 				ImGui::TextWrapped("Lastly, upscaling can have varying effects depending on the type of surface you are looking at, the distance and angle from which you view it and much more.");
@@ -502,11 +500,9 @@ void GUI::StartupModal()
 
 			}
 		}
-
-		
+ 
 		ImGui::EndPopup();
 	}
-
 }
 
 void GUI::MainWindowTitle()
@@ -980,7 +976,6 @@ void GUI::GraphicsSettings(CommandContext& Context)
 	}
 #endif
 }
-
 
 void GUI::PerformanceMetrics()
 {

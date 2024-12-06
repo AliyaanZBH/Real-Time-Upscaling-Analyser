@@ -75,11 +75,11 @@ using namespace std;
 
 using Renderer::MeshSorter;
 
-class ModelViewer : public GameCore::IGameApp
+class RTUA : public GameCore::IGameApp
 {
 public:
 
-    ModelViewer( void ) {}
+    RTUA( void ) {}
 
     virtual void Startup( void ) override;
     virtual void Cleanup( void ) override;
@@ -111,7 +111,7 @@ private:
     ShadowCamera m_SunShadowCamera;
 };
 
-CREATE_APPLICATION( ModelViewer )
+CREATE_APPLICATION(RTUA)
 
 ExpVar g_SunLightIntensity("Viewer/Lighting/Sun Light Intensity", 1.0f, 0.0f, 16.0f, 0.1f);
 NumVar g_SunOrientation("Viewer/Lighting/Sun Orientation", -0.5f, -100.0f, 100.0f, 0.1f );
@@ -314,7 +314,7 @@ void LoadIBLTextures()
 }
 #endif
 
-void ModelViewer::Startup( void )
+void RTUA::Startup( void )
 {
 #if AZB_MOD
     // [AZB] Disable these for maximum image clarity!
@@ -411,7 +411,7 @@ void ModelViewer::Startup( void )
 #endif
 }
 
-void ModelViewer::Cleanup( void )
+void RTUA::Cleanup( void )
 {
 #if AZB_MOD
     // [AZB]: Cleanup scene array
@@ -435,7 +435,7 @@ namespace Graphics
     extern EnumVar DebugZoom;
 }
 
-void ModelViewer::Update( float deltaT )
+void RTUA::Update( float deltaT )
 {
     ScopedTimer _prof(L"Update State");
 
@@ -482,7 +482,7 @@ void ModelViewer::Update( float deltaT )
     m_MainScissor.bottom = (LONG)g_SceneColorBuffer.GetHeight();
 }
 
-void ModelViewer::RenderScene( void )
+void RTUA::RenderScene( void )
 {
     GraphicsContext& gfxContext = GraphicsContext::Begin(L"Scene Render");
 
