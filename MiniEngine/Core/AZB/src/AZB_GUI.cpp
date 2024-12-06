@@ -215,6 +215,10 @@ void GUI::UpdateGraphics()
 			// Also move GUI window to the new top corner!
 			m_MainWindowPos.x = ((float)m_NewWidth - m_MainWindowSize.x) - 5.f;
 			ImGui::SetWindowPos("RTUA", m_MainWindowPos);
+
+			// If we are in a different rendering mode, reset those values
+			if (m_CurrentRenderingMode == eRenderingMode::BILINEAR_UPSCALE)
+				m_BilinearInputRes = { m_NewWidth, m_NewHeight };
 		}
 		else
 		{
