@@ -404,6 +404,7 @@ void GUI::StartupModal()
 				ImGui::TextWrapped("You can also change how fast you move with WASD so you can slow down for evaluation.");
 				SingleLineBreak();
 				HighlightTextItem("LSHIFT to change movement speed");
+				DoubleLineBreak();
 
 				TutorialPageButtons();
 
