@@ -329,7 +329,7 @@ private:
     // Function to create helpful little tooltips
     const void HelpMarker(const char* desc)
     {
-        ImGui::TextDisabled("(?)");
+        ImGui::TextColored(ThemeColours::m_RtuaGold, "(?)");
         // Added this to give it a custom color
         ImGui::PushStyleColor(0, ThemeColours::m_RtuaGold);
         if (ImGui::BeginItemTooltip())

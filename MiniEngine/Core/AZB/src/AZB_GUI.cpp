@@ -461,7 +461,8 @@ void GUI::StartupModal()
 				SingleLineBreak();
 				ImGui::TextWrapped("Lastly, upscaling can have varying effects depending on the type of surface you are looking at, the distance and angle from which you view it and much more.");
 				SingleLineBreak();
-				HighlightTextItem("Try and test against as many different surfaces as possible.");
+				HighlightTextItem("Try and test against many surfaces in as many different ways as possible.");
+				SingleLineBreak();
 				DoubleLineBreak();
 
 				TutorialPageButtons();
@@ -477,6 +478,10 @@ void GUI::StartupModal()
 
 				ImGui::TextWrapped("If you need to read these instructions again, you can find a button to re-open this popup at any time.");
 				HalfLineBreak();
+				ImGui::TextWrapped("There are also helpful tooltips across the main application, please interact with these!");
+				SingleLineBreak();
+				HighlightTextItem("Helper tooltips will look like this: (?) ");
+				SingleLineBreak();
 				ImGui::TextWrapped("And most importantly, let your curiosity drive you. You may come away from this experience with an increased sensitivity and appreciation for rendering quality.");
 				DoubleLineBreak();
 
