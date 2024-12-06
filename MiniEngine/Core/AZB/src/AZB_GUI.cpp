@@ -461,8 +461,7 @@ void GUI::StartupModal()
 				SingleLineBreak();
 				ImGui::TextWrapped("Lastly, upscaling can have varying effects depending on the type of surface you are looking at, the distance and angle from which you view it and much more.");
 				SingleLineBreak();
-				HighlightTextItem("Try and test against many surfaces in as many different ways as possible.");
-				SingleLineBreak();
+				HighlightTextItem("Try and test against many surfaces in as many ways as possible.");
 				DoubleLineBreak();
 
 				TutorialPageButtons();
