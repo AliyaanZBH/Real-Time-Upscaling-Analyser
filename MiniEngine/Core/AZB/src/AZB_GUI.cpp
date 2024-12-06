@@ -450,6 +450,7 @@ void GUI::StartupModal()
 				ImGui::TextWrapped("Native rendering should be straightforward to evaluate, however you may find yourself struggling to compare the two upscale methods.");
 				SingleLineBreak();
 				HighlightTextItem("To best compare upscaling, use similar input resolutions.");
+				SingleLineBreak();
 				ImGui::TextWrapped("When swapping between Bilinear or DLSS upscaling, the input resolution you select will be saved.");
 				SingleLineBreak();
 				HighlightTextItem("To best compare upscaling, use similar input resolutions.");
