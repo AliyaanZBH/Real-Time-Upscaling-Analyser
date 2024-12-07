@@ -94,7 +94,7 @@ namespace
     //          D3D12 WARNING: ID3D12CommandList::Dispatch: No threads will be dispatched, because at least one of {ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ} is 0.
     //          [ EXECUTION WARNING #1254: EMPTY_DISPATCH]
 
-    BoolVar s_EnableVSync("Timing/VSync", false);
+    BoolVar s_EnableVSync("Timing/VSync", true);
     BoolVar s_LimitTo30Hz("Timing/Limit To 30Hz", false);
     BoolVar s_DropRandomFrames("Timing/Drop Random Frames", false);
 }
