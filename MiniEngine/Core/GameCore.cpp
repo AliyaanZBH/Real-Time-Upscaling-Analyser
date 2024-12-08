@@ -366,7 +366,7 @@ namespace GameCore
                 g_bIsWindowActive = false;
 
                 // Set it to windowed to avoid any backbuffer issues
-                if (RTUA != nullptr)
+                if (RTUA->m_bReady)
                 {
                     Display::GetSwapchain()->SetFullscreenState(FALSE, nullptr);
                 }
@@ -377,7 +377,7 @@ namespace GameCore
                 g_bIsWindowActive = true;
 
                 // If the GUI class exists at this point (as this block will execute on program startup too!), reset the fullscreen state through there!
-                if (RTUA != nullptr)
+                if (RTUA->m_bReady)
                 {
                     RTUA->m_bFullscreen = true;
                     RTUA->m_bDisplayModeChangePending = true;

@@ -68,6 +68,9 @@ public:
     // Counter variable to track "pages" on the tutorial
     uint8_t m_Page = 1;
 
+    // Bool that tracks when GUI, and by proxy the rest of the app, is fully setup. Used to ensure smooth alt+tabbing and startup behaviour across devices!
+    bool m_bReady = false;
+
     // Public flag to enable/disable tonemapping!
     bool m_bEnablePostFX = true; 
     

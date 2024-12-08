@@ -95,6 +95,9 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 		DEBUGPRINT("Switched to %s mode", m_bFullscreen ? "Fullscreen" : "Windowed");
 	}
 
+	// Set init flag to true so rest of windows app can behave appropriately!
+	m_bReady = true;
+
 }
 
 void GUI::Run(CommandContext& Context)
