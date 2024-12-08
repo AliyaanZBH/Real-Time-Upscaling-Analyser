@@ -16,4 +16,9 @@ Build_VS*
 Build
 Packages
 /ModelConverter/assimp.dll
-Packages
+
+#
+# AZB: Custom Ignores
+#
+
+/ModelViewer/Bistro

@@ -33,6 +33,16 @@
 #include "CompiledShaders/ScreenQuadCommonVS.h"
 #include "CompiledShaders/DownsampleDepthPS.h"
 
+//===============================================================================
+// desc: This is where samplers get initialised and created. Update mips here!
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
+#if AZB_MOD
+#include "AZB_DLSS.h"
+#include <cmath>  // For log2f
+#endif
+
 namespace Graphics
 {
     SamplerDesc SamplerLinearWrapDesc;
@@ -104,6 +114,12 @@ namespace Graphics
     };
 
     GraphicsPSO g_DownsampleDepthPSO(L"DownsampleDepth PSO");
+
+#if AZB_MOD
+    // [AZB]: Tracker for LOD bias within the engine
+    float m_DefaultLodBias = 0.f;
+    bool m_bOverrideLodBias = false;
+#endif
 }
 
 namespace BitonicSort
@@ -114,10 +130,34 @@ namespace BitonicSort
 
 void Graphics::InitializeCommonState(void)
 {
+#if AZB_MOD
+
+    // [AZB]: Only do this once at program start
+   //if (!m_bOverrideLodBias)
+   //{
+   //    float lodBias = 0.f;
+   //    // [AZB]: Set this default LOD based on the max queried resolution
+   //    float texLodXDimension = DLSS::m_MaxNativeResolution.m_Width;
+   //
+   //    // [AZB]: Use the formula of the DLSS programming guide for determining the LOD Bias...
+   //    lodBias = std::log2f(texLodXDimension / DLSS::m_MaxNativeResolution.m_Width) - 2.0f;
+   //
+   //    // [AZB]: Set mip bias for all samplers before they get created
+   //    SamplerLinearWrapDesc.MipLODBias = lodBias;
+   //    SamplerLinearClampDesc.MipLODBias = lodBias;
+   //    SamplerLinearBorderDesc.MipLODBias = lodBias;
+   //    SamplerPointClampDesc.MipLODBias = lodBias;
+   //    SamplerPointBorderDesc.MipLODBias = lodBias;
+   //    SamplerAnisoWrapDesc.MipLODBias = lodBias;
+   //
+   //    m_DefaultLodBias = lodBias;
+   //}
+#endif
+
     SamplerLinearWrapDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
     SamplerLinearWrap = SamplerLinearWrapDesc.CreateDescriptor();
 
-    SamplerAnisoWrapDesc.MaxAnisotropy = 4;
+    SamplerAnisoWrapDesc.MaxAnisotropy = 16;
     SamplerAnisoWrap = SamplerAnisoWrapDesc.CreateDescriptor();
 
     SamplerShadowDesc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
@@ -309,3 +349,70 @@ void Graphics::DestroyCommonState(void)
     
     BitonicSort::Shutdown();
 }
+
+#if AZB_MOD
+void Graphics::ReInitializeCommonState(Resolution inputResolutionDLSS, float overrideLodBias)
+{
+    //DestroyCommonState();
+
+    float lodBias = 0.f;
+
+    // [AZB]: Use the input resolution of DLSS
+    float texLodXDimension = inputResolutionDLSS.m_Width;
+
+    // [AZB]: Use the formula of the DLSS programming guide for the LOD Bias...
+    lodBias = std::log2f(texLodXDimension / DLSS::m_MaxNativeResolution.m_Width) - 1.0f;
+    
+    // [AZB]: ... but leave the opportunity to override it in the UI...
+    if (overrideLodBias != 0.0f)
+    {
+        lodBias = overrideLodBias;
+    }
+
+    // [AZB]: Set mip bias for all samplers before they get created
+    SamplerLinearWrapDesc.MipLODBias = lodBias;
+    SamplerLinearWrapDesc.MinLOD = lodBias - 1.f;
+
+    SamplerLinearClampDesc.MipLODBias = lodBias;
+    SamplerLinearClampDesc.MinLOD = lodBias - 1.f;
+
+    SamplerLinearBorderDesc.MipLODBias = lodBias;
+    SamplerLinearBorderDesc.MinLOD = lodBias - 1.f;
+
+    SamplerPointClampDesc.MipLODBias = lodBias;
+    SamplerPointClampDesc.MinLOD = lodBias - 1.f;
+
+    SamplerPointBorderDesc.MipLODBias = lodBias;
+    SamplerPointBorderDesc.MinLOD = lodBias - 1.f;
+
+    SamplerAnisoWrapDesc.MipLODBias = lodBias;
+    SamplerAnisoWrapDesc.MinLOD = lodBias - 1.f;
+
+
+    // Recreate the samplers with this new bias!
+    // 
+    
+    SamplerLinearWrap = SamplerLinearWrapDesc.CreateDescriptor();
+    SamplerAnisoWrap = SamplerAnisoWrapDesc.CreateDescriptor();
+    SamplerShadow = SamplerShadowDesc.CreateDescriptor();
+    SamplerLinearClamp = SamplerLinearClampDesc.CreateDescriptor();
+    SamplerVolumeWrap = SamplerVolumeWrapDesc.CreateDescriptor();
+    SamplerPointClamp = SamplerPointClampDesc.CreateDescriptor();
+    SamplerLinearBorder = SamplerLinearBorderDesc.CreateDescriptor();
+    SamplerPointBorder = SamplerPointBorderDesc.CreateDescriptor();
+
+    // Recreate Root Signature
+    g_CommonRS.Reset(4, 3);
+    g_CommonRS[0].InitAsConstants(0, 4);
+    g_CommonRS[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 10);
+    g_CommonRS[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 10);
+    g_CommonRS[3].InitAsConstantBuffer(1);
+    g_CommonRS.InitStaticSampler(0, SamplerLinearClampDesc);
+    g_CommonRS.InitStaticSampler(1, SamplerPointBorderDesc);
+    g_CommonRS.InitStaticSampler(2, SamplerLinearBorderDesc);
+    g_CommonRS.Finalize(L"GraphicsCommonRS");
+    
+    //m_bOverrideLodBias = true;
+    //InitializeCommonState();
+}
+#endif

@@ -26,16 +26,49 @@
 #include <fstream>
 #include <unordered_map>
 
+
 using namespace Renderer;
 using namespace Graphics;
 
+//===============================================================================
+// desc: This is where models are loaded in and textures get converted to DDS. 
+// mod: Aliyaan Zulfiqar
+//===============================================================================
+
+#if AZB_MOD
+#include "AZB_BistroRenderer.h"
+#include "AZB_DLSS.h"
+#endif
+
+//#if AZB_MOD
+//namespace Renderer
+//{
+//    std::unordered_map<uint32_t, uint32_t> g_SamplerPermutations;
+//// [AZB]: Original permutations map, local to the modelLoader file
+//#else
+// [AZB]: This maps addressModes (a combination of sampler settings) to offsets in our sampler heap, which shaders (and DLSS) will access at runtime
 std::unordered_map<uint32_t, uint32_t> g_SamplerPermutations;
+
+
+#if AZB_MOD
+namespace Renderer
+{
+    // [AZB]: Maps materials to addressModes to allow us to update samplers at runtime!
+    std::unordered_map<uint16_t, uint32_t> m_MaterialAddressModes;  // uint16_t is the materialCBV from the Mesh structure, which uniquely identifies the material. uint32_t stores the addressModes for that mat.
+}
+#endif
+//#endif
 
 D3D12_CPU_DESCRIPTOR_HANDLE GetSampler(uint32_t addressModes)
 {
     SamplerDesc samplerDesc;
     samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE(addressModes & 0x3);
     samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE(addressModes >> 2);
+
+    //[AZB]: Experimenting with setting mip bias here
+   //samplerDesc.MipLODBias = -2.f;
+   //samplerDesc.MinLOD = -2.f;
+
     return samplerDesc.CreateDescriptor();
 }
 
@@ -66,7 +99,6 @@ void LoadMaterials(Model& model,
     for (uint32_t matIdx = 0; matIdx < numMaterials; ++matIdx)
     {
         const MaterialTextureData& srcMat = materialTextures[matIdx];
-
         DescriptorHandle TextureHandles = Renderer::s_TextureHeap.Alloc(kNumTextures);
         uint32_t SRVDescriptorTable = Renderer::s_TextureHeap.GetOffsetOfHandle(TextureHandles);
 
@@ -97,6 +129,11 @@ void LoadMaterials(Model& model,
         // See if this combination of samplers has been used before.  If not, allocate more from the heap
         // and copy in the descriptors.
         uint32_t addressModes = srcMat.addressModes;
+
+        // [AZB]: Store the addressModes so that we can use them when updating the samplers later!
+#if AZB_MOD
+        Renderer::m_MaterialAddressModes[matIdx] = addressModes;
+#endif
         auto samplerMapLookup = g_SamplerPermutations.find(addressModes);
 
         if (samplerMapLookup == g_SamplerPermutations.end())
@@ -263,10 +300,16 @@ std::shared_ptr<Model> Renderer::LoadModel(const std::wstring& filePath, bool fo
         std::string utf8TextureName;
         std::getline(inFile, utf8TextureName, '\0');
         textureNames[i] = Utility::UTF8ToWideString(utf8TextureName);
+        // [AZB]: Store texture names for use in SDR renderer, to help determine which textures are cutouts and transparent.
+#if AZB_MOD
+        Bistro::m_TextureNames.push_back(utf8TextureName);
+#endif
     }
 
+
+
     std::vector<uint8_t> textureOptions(header.numTextures);
-    inFile.read((char*)textureOptions.data(), header.numTextures * sizeof(uint8_t));
+    inFile.read((char*)textureOptions.data(), header.numTextures *sizeof(uint8_t));
 
     LoadMaterials(*model, materialTextures, textureNames, textureOptions, basePath);
 
@@ -299,3 +342,63 @@ std::shared_ptr<Model> Renderer::LoadModel(const std::wstring& filePath, bool fo
 
     return model;
 }
+
+#if AZB_MOD
+void Renderer::UpdateSamplers(const Model* scene, Resolution inputResolution, bool bOverride, float overrideLodBias)
+{
+    // [AZB]: First, calculate the LOD bias
+    float lodBias = 0.f;
+
+    // [AZB]: Use the input resolution of DLSS or the current native resolution
+    float texLodXDimension = inputResolution.m_Width;
+
+    // [AZB]: Use the formula of the DLSS programming guide for the LOD Bias...
+    lodBias = std::log2f(texLodXDimension / DLSS::m_MaxNativeResolution.m_Width) - 1.0f;
+
+    // [AZB]: ... but leave the opportunity to override it in the UI...
+    if (bOverride)
+    {
+        lodBias = overrideLodBias;
+    }
+
+    // [AZB]: Update bias in DLSS namespace
+    DLSS::m_LodBias = lodBias;
+
+    // [AZB]: Iterate through all the address modes stored in the g_SamplerPermutations map
+    for (auto& perm : g_SamplerPermutations)
+    {
+        // [AZB]: Perm.first is the addressMode, we need to fetch the corresponding descriptors
+        uint32_t addressModes = perm.first;
+
+        // [AZB]: Retrieve the original sampler descriptor handle from the heap using the saved table offset
+        DescriptorHandle samplerHandles = Renderer::s_SamplerHeap[perm.second];
+
+        // [AZB]: Create the array of source samplers to be updated
+        D3D12_CPU_DESCRIPTOR_HANDLE SourceSamplers[kNumTextures];
+        uint32_t addressModeCopy = addressModes;
+
+        // [AZB]: Iterate over the textures (e.g. kNumTextures textures) and create new samplers for each
+        for (uint32_t j = 0; j < kNumTextures; ++j)
+        {
+            // [AZB]: Create a new sampler descriptor with the updated mipBias
+            SamplerDesc updatedSamplerDesc = SamplerDesc();
+            updatedSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE(addressModeCopy & 0x3);         // U address mode - These all default to wrap according to GetSampler() and LoadMaterials()
+            updatedSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE((addressModeCopy >> 2) & 0x3);  // V address mode - These all default to wrap according to GetSampler() and LoadMaterials()
+            updatedSamplerDesc.MipLODBias = lodBias;  // Set the mip bias dynamically
+
+            // [AZB]: Create the new sampler handle using the updated descriptor
+            SourceSamplers[j] = updatedSamplerDesc.CreateDescriptor();
+
+            // [AZB]: Move to the next address mode component (4 bits for each of U, V, W)
+            addressModeCopy >>= 4;
+        }
+
+        // [AZB]: Copy the new samplers into the original slot in the heap
+        uint32_t DestCount = kNumTextures;
+
+        g_Device->CopyDescriptors(1, &samplerHandles, &DestCount,
+            DestCount, SourceSamplers, &DestCount,
+            D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+    }
+}
+#endif

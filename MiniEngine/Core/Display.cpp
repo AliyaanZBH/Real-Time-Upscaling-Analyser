@@ -12,13 +12,17 @@
 //
 
 //===============================================================================
-// desc: This is a helper namespace that mainly deals with the swapchain
+// desc: This is a helper namespace that mainly deals with the swapchain and resolution.
 // modified: Aliyaan Zulfiqar
 //===============================================================================
 
 /*
    Change Log:
    [AZB] 16/10/24: Tweaked swapchain data to allow it to be accessed by ImGui
+   [AZB] 21/10/24: Passing DLSS into this namespace as part of preliminary integration into rendering pipeline.
+   [AZB] 22/10/24: Querying DLSS optimal settings to begin feature creation
+   [AZB] 22/10/24: DLSS implementation continued, pipeline now rendering at optimal lower resolution for upscaling!
+   [AZB] 23/10/24: DLSS creation continued, decided it was more appropriate to postpone creation until after the rest of the engine is initalised as GraphicsContext requires some timing to be setup
 */
 
 #include "pch.h"
@@ -32,11 +36,22 @@
 #include "ImageScaling.h"
 #include "TemporalEffects.h"
 
+
 #pragma comment(lib, "dxgi.lib") 
 
 // This macro determines whether to detect if there is an HDR display and enable HDR10 output.
 // Currently, with HDR display enabled, the pixel magnfication functionality is broken.
 #define CONDITIONALLY_ENABLE_HDR_OUTPUT 1
+
+
+//
+// [AZB]: Custom includes and macro mods
+//
+
+#if AZB_MOD
+#include "AZB_DLSS.h"
+#endif
+
 
 namespace GameCore { extern HWND g_hWnd; }
 
@@ -71,6 +86,13 @@ namespace
     float s_FrameTime = 0.0f;
     uint64_t s_FrameIndex = 0;
     int64_t s_FrameStartTick = 0;
+
+    // [AZB]: TODO Figure out how to correctly disable VSync!
+    // 
+    // [AZB]: We need VSync disabled in the final app but this is not (atleast not the ONLY) place to change it
+    //        When this is set to false, we get a warning from D3D: 
+    //          D3D12 WARNING: ID3D12CommandList::Dispatch: No threads will be dispatched, because at least one of {ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ} is 0.
+    //          [ EXECUTION WARNING #1254: EMPTY_DISPATCH]
 
     BoolVar s_EnableVSync("Timing/VSync", true);
     BoolVar s_LimitTo30Hz("Timing/Limit To 30Hz", false);
@@ -108,6 +130,16 @@ namespace Graphics
     uint32_t g_DisplayHeight = 1080;
     ColorBuffer g_PreDisplayBuffer;
 
+// [AZB]: Extra values to keep track of DLSS values globally
+#if AZB_MOD
+
+    // [AZB]: These will be evaluated when the swapchain gets created in Display::Initialise(), which is when the DLSS Query will be called
+    uint32_t g_DLSSWidth = 0;
+    uint32_t g_DLSSHeight = 0;
+
+#endif
+
+    // [AZB]: Take in an eResolution, and store the underlying width and height values inside two external variables that are also passed in
     void ResolutionToUINT(eResolution res, uint32_t& width, uint32_t& height)
     {
         switch (res)
@@ -140,6 +172,7 @@ namespace Graphics
         }
     }
 
+    // [AZB]: Original function for setting the pipeline native resolution
     void SetNativeResolution(void)
     {
         uint32_t NativeWidth, NativeHeight;
@@ -194,12 +227,44 @@ namespace Graphics
     GraphicsPSO MagnifyPixelsPS(L"Core: MagnifyPixels");
 
     const char* FilterLabels[] = { "Bilinear", "Sharpening", "Bicubic", "Lanczos" };
+
+#if AZB_MOD
+    // [AZB]: Use Bilinear scaling instead so that when resolution is lowered in fullscreen, we can get a stretched image
+    EnumVar UpsampleFilter("Graphics/Display/Scaling Filter", kBilinear, kFilterCount, FilterLabels);
+#else
     EnumVar UpsampleFilter("Graphics/Display/Scaling Filter", kSharpening, kFilterCount, FilterLabels);
+#endif
 
     enum DebugZoomLevel { kDebugZoomOff, kDebugZoom2x, kDebugZoom4x, kDebugZoom8x, kDebugZoom16x, kDebugZoomCount };
     const char* DebugZoomLabels[] = { "Off", "2x Zoom", "4x Zoom", "8x Zoom", "16x Zoom" };
     EnumVar DebugZoom("Graphics/Display/Magnify Pixels", kDebugZoomOff, kDebugZoomCount, DebugZoomLabels);
 }
+
+
+// [AZB]: The new version which takes in a value that we pass in, used for DLSS and regular downscaling!
+#if AZB_MOD
+void Display::SetPipelineResolution(bool bDLSS,uint32_t queriedWidth, uint32_t queriedHeight, bool bFullscreen)
+{
+    //if (g_NativeWidth == queriedWidth && g_NativeHeight == queriedHeight)
+    //    return;
+
+    if (bDLSS)
+    {
+        // [AZB]: Updating the print statement to signal that DLSS is responsible
+        DEBUGPRINT("Changing native resolution to match DLSS query result %ux%u", queriedWidth, queriedHeight);
+    }
+    else
+        DEBUGPRINT("Changing internal resolution to %ux%u", queriedWidth, queriedHeight);
+
+
+    // [AZB]: Still update the existing native global as it may be used in other places of the pipeline that DLSS doesn't touch (e.g. post-effects)
+    g_NativeWidth = queriedWidth;
+    g_NativeHeight = queriedHeight;
+
+    g_CommandManager.IdleGPU();
+    InitializeRenderingBuffers(queriedWidth, queriedHeight);
+}
+#endif
 
 void Display::Resize(uint32_t width, uint32_t height)
 {
@@ -210,8 +275,58 @@ void Display::Resize(uint32_t width, uint32_t height)
 
     DEBUGPRINT("Changing display resolution to %ux%u", width, height);
 
-    g_PreDisplayBuffer.Create(L"PreDisplay Buffer", width, height, 1, SwapChainFormat);
+// [AZB]: Create DLSS - repeat steps in Initialise() but also release the old feature and create a new one
+#if AZB_MOD
 
+    // [AZB]: Only do the next few steps if DLSS is actually supported by the hardware! 
+    if (DLSS::m_bIsNGXSupported)
+    {
+        // [AZB]: Check it hasn't been released already
+        if (DLSS::m_DLSS_FeatureHandle != nullptr)
+            DLSS::Release();
+
+        // [AZB]: Even when DLSS is disabled, query the settings here so that we can safely and corectly enable later!
+        DLSS::PreQueryAllSettings(g_DisplayWidth, g_DisplayHeight);
+
+        // [AZB]: Set the queried results here
+        g_DLSSWidth = DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderWidth;
+        g_DLSSHeight = DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderHeight;
+
+        // [AZB]: These steps are similar to those we perform in GraphicsCore.cpp, Initialize()
+        ComputeContext& Context = ComputeContext::Begin(L"DLSS Resize");
+        // [AZB]: Fill in requirements struct ready for the feature creation
+        DLSS::CreationRequirements reqs;
+        reqs.m_pCmdList = Context.GetCommandList();
+
+        NVSDK_NGX_Feature_Create_Params dlssParams = { g_DLSSWidth, g_DLSSHeight, g_DisplayWidth, g_DisplayHeight, static_cast<NVSDK_NGX_PerfQuality_Value>(DLSS::m_CurrentQualityMode) };
+        // [AZB]: Delay the setting of feature flags until we're inside the create function to allow for a unification of flags (previously had to be changed in multiple places)
+        reqs.m_DlSSCreateParams = NVSDK_NGX_DLSS_Create_Params{ dlssParams, NVSDK_NGX_DLSS_Feature_Flags_None };
+        DLSS::Create(reqs);
+
+        Context.Finish();
+    }
+
+    // [AZB]: Additional flag so that we can toggle DLSS at run-time
+    if (DLSS::m_bDLSS_Enabled)
+    {
+        // [AZB]: Resize internal buffers to use the lower resolution that DLSS will upscale from
+        SetPipelineResolution(true, g_DLSSWidth, g_DLSSHeight);
+        // [AZB]: Recreate this buffer with DLSS data
+        g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DLSSWidth, g_DLSSHeight, 1, SwapChainFormat);
+    }
+    else
+    {
+        // SetPipelineResolution(false, width, height);
+        // [AZB]: Original pre-buffer creation
+        g_PreDisplayBuffer.Create(L"PreDisplay Buffer", width, height, 1, SwapChainFormat);
+    }
+
+#else
+    // [AZB]: Original pre-buffer creation
+    g_PreDisplayBuffer.Create(L"PreDisplay Buffer", width, height, 1, SwapChainFormat);
+#endif
+
+    // [AZB]: Continue with regular swap chain creation, this should be unaffected by DLSS as it our render targets will eventually upscale up to here
     for (uint32_t i = 0; i < SWAP_CHAIN_BUFFER_COUNT; ++i)
         g_DisplayPlane[i].Destroy();
 
@@ -222,6 +337,7 @@ void Display::Resize(uint32_t width, uint32_t height)
     {
         ComPtr<ID3D12Resource> DisplayPlane;
         ASSERT_SUCCEEDED(s_SwapChain1->GetBuffer(i, MY_IID_PPV_ARGS(&DisplayPlane)));
+        // [AZB]: This does not need to match DLSS as it should match the display buffer
         g_DisplayPlane[i].CreateFromSwapChain(L"Primary SwapChain Buffer", DisplayPlane.Detach());
     }
 
@@ -229,6 +345,7 @@ void Display::Resize(uint32_t width, uint32_t height)
 
     g_CommandManager.IdleGPU();
 
+    // [AZB]: This does not need to match DLSS as it should match the display buffer
     ResizeDisplayDependentBuffers(g_NativeWidth, g_NativeHeight);
 }
 
@@ -255,7 +372,6 @@ void Display::Initialize(void)
 
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = {};
     fsSwapChainDesc.Windowed = TRUE;
-
     ASSERT_SUCCEEDED(dxgiFactory->CreateSwapChainForHwnd(
         g_CommandManager.GetCommandQueue(),
         GameCore::g_hWnd,
@@ -291,32 +407,33 @@ void Display::Initialize(void)
         g_DisplayPlane[i].CreateFromSwapChain(L"Primary SwapChain Buffer", DisplayPlane.Detach());
     }
 
-    s_PresentRS.Reset(4, 2);
-    s_PresentRS[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 2);
-    s_PresentRS[1].InitAsConstants(0, 6, D3D12_SHADER_VISIBILITY_ALL);
-    s_PresentRS[2].InitAsBufferSRV(2, D3D12_SHADER_VISIBILITY_PIXEL);
-    s_PresentRS[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 2);
-    s_PresentRS.InitStaticSampler(0, SamplerLinearClampDesc);
-    s_PresentRS.InitStaticSampler(1, SamplerPointClampDesc);
-    s_PresentRS.Finalize(L"Present");
+    {
+        s_PresentRS.Reset(4, 2);
+        s_PresentRS[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 2);
+        s_PresentRS[1].InitAsConstants(0, 6, D3D12_SHADER_VISIBILITY_ALL);
+        s_PresentRS[2].InitAsBufferSRV(2, D3D12_SHADER_VISIBILITY_PIXEL);
+        s_PresentRS[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 2);
+        s_PresentRS.InitStaticSampler(0, SamplerLinearClampDesc);
+        s_PresentRS.InitStaticSampler(1, SamplerPointClampDesc);
+        s_PresentRS.Finalize(L"Present");
 
-    // Initialize PSOs
-    s_BlendUIPSO.SetRootSignature(s_PresentRS);
-    s_BlendUIPSO.SetRasterizerState( RasterizerTwoSided );
-    s_BlendUIPSO.SetBlendState( BlendPreMultiplied );
-    s_BlendUIPSO.SetDepthStencilState( DepthStateDisabled );
-    s_BlendUIPSO.SetSampleMask(0xFFFFFFFF);
-    s_BlendUIPSO.SetInputLayout(0, nullptr);
-    s_BlendUIPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-    s_BlendUIPSO.SetVertexShader( g_pScreenQuadPresentVS, sizeof(g_pScreenQuadPresentVS) );
-    s_BlendUIPSO.SetPixelShader( g_pBufferCopyPS, sizeof(g_pBufferCopyPS) );
-    s_BlendUIPSO.SetRenderTargetFormat(SwapChainFormat, DXGI_FORMAT_UNKNOWN);
-    s_BlendUIPSO.Finalize();
+        // Initialize PSOs
+        s_BlendUIPSO.SetRootSignature(s_PresentRS);
+        s_BlendUIPSO.SetRasterizerState(RasterizerTwoSided);
+        s_BlendUIPSO.SetBlendState(BlendPreMultiplied);
+        s_BlendUIPSO.SetDepthStencilState(DepthStateDisabled);
+        s_BlendUIPSO.SetSampleMask(0xFFFFFFFF);
+        s_BlendUIPSO.SetInputLayout(0, nullptr);
+        s_BlendUIPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+        s_BlendUIPSO.SetVertexShader(g_pScreenQuadPresentVS, sizeof(g_pScreenQuadPresentVS));
+        s_BlendUIPSO.SetPixelShader(g_pBufferCopyPS, sizeof(g_pBufferCopyPS));
+        s_BlendUIPSO.SetRenderTargetFormat(SwapChainFormat, DXGI_FORMAT_UNKNOWN);
+        s_BlendUIPSO.Finalize();
 
-    s_BlendUIHDRPSO = s_BlendUIPSO;
-    s_BlendUIHDRPSO.SetPixelShader(g_pBlendUIHDRPS, sizeof(g_pBlendUIHDRPS));
-    s_BlendUIHDRPSO.Finalize();
-
+        s_BlendUIHDRPSO = s_BlendUIPSO;
+        s_BlendUIHDRPSO.SetPixelShader(g_pBlendUIHDRPS, sizeof(g_pBlendUIHDRPS));
+        s_BlendUIHDRPSO.Finalize();
+    }
 #define CreatePSO( ObjName, ShaderByteCode ) \
     ObjName = s_BlendUIPSO; \
     ObjName.SetBlendState( BlendDisable ); \
@@ -338,15 +455,53 @@ void Display::Initialize(void)
 
 #undef CreatePSO
 
+
+
+// [AZB]: Continue DLSS intialisation after creating main swap chain by querying DLSS modes and their optimal settings to determine the resolution of our render targets
+#if AZB_MOD
+  
+    // [AZB]: We figured out the maximum native fullscreen resolution inside GraphicsCore.cpp, pass this up to Display
+    g_NativeWidth = DLSS::m_MaxNativeResolution.m_Width;
+    g_NativeHeight = DLSS::m_MaxNativeResolution.m_Height;
+
+    g_DisplayWidth = g_NativeWidth;
+    g_DisplayHeight = g_NativeHeight;
+
+    // [AZB]: Check for NGX support before executing any DLSS SDK commands
+    if (DLSS::m_bIsNGXSupported)
+     // [AZB]: Pre-query all settings for current native resolution
+     DLSS::PreQueryAllSettings(g_DisplayWidth, g_DisplayHeight);
+
+    // [AZB] Set the initial value of DLSS res to the balanced one
+    g_DLSSWidth = DLSS::m_DLSS_Modes[1].m_RenderWidth;
+    g_DLSSHeight = DLSS::m_DLSS_Modes[1].m_RenderHeight;
+
+    // [AZB]: At this point we could create DLSS however we can't create a graphics context just yet as the rest of the engine needs to initalise first. 
+    //        DLSS creation is therefore postponed until after these steps.
+
+    // [AZB]: Call my version of setNativeRes, which sets the resolution for all buffers in the pipeline! (smaller buffers work off of divisions of this total size)
+    SetPipelineResolution(false, g_NativeWidth, g_NativeHeight);
+
+    g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DisplayWidth, g_DisplayHeight, 1, SwapChainFormat);
+    ImageScaling::Initialize(g_PreDisplayBuffer.GetFormat());
+#else
+    // [AZB]: This is where native resolution gets set originally, we need to override this with DLSS recommended lower resolution
     SetNativeResolution();
 
     g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DisplayWidth, g_DisplayHeight, 1, SwapChainFormat);
     ImageScaling::Initialize(g_PreDisplayBuffer.GetFormat());
+#endif
+
 }
 
 void Display::Shutdown( void )
 {
+#if AZB_MOD
+    // [AZB]: Do nothing here as we should already have set fullscreen state to windowed upon terminating our GUI class
+#else
+    // [AZB]: As our experiment runs in fullscreen, this would fail and cause an error on shutdown
     s_SwapChain1->SetFullscreenState(FALSE, nullptr);
+#endif
     s_SwapChain1->Release();
 
     for (UINT i = 0; i < SWAP_CHAIN_BUFFER_COUNT; ++i)
@@ -427,18 +582,51 @@ void Graphics::PreparePresentSDR(void)
     Context.SetRootSignature(s_PresentRS);
     Context.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+#if AZB_MOD
+    //[AZB]: Additional check as DLSS may be toggled off
+    if (DLSS::m_bDLSS_Enabled)
+    {
+        // [AZB]: Our color buffer is was downscaled and used as an input for DLSS, so instead read from the DLSS output!
+        Context.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+            D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        Context.SetDynamicDescriptor(0, 0, g_DLSSOutputBuffer.GetSRV());
+    }
+    else
+    {
+        // [AZB]: Use the regular, non-upscaled colour buffer
+        Context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+            D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        Context.SetDynamicDescriptor(0, 0, g_SceneColorBuffer.GetSRV());
+    }
+#else
     // We're going to be reading these buffers to write to the swap chain buffer(s)
     Context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | 
         D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     Context.SetDynamicDescriptor(0, 0, g_SceneColorBuffer.GetSRV());
+#endif
 
+
+#if AZB_MOD
+    // [AZB]: When DLSS is enabled, you no longer need to upscale the scene buffer! This is because we will be rendering using the DLSS output buffer which has already been upscaled
+    bool NeedsScaling = !DLSS::m_bDLSS_Enabled && (g_NativeWidth != g_DisplayWidth || g_NativeHeight != g_DisplayHeight);
+#else
     bool NeedsScaling = g_NativeWidth != g_DisplayWidth || g_NativeHeight != g_DisplayHeight;
+#endif
 
     // On Windows, prefer scaling and compositing in one step via pixel shader
     if (DebugZoom == kDebugZoomOff && (UpsampleFilter == kSharpening || !NeedsScaling))
     {
+//#if AZB_MOD
+//        // [AZB]: Set both imgui buffer and existing UI buffer descriptors
+//        Context.TransitionResource(g_OverlayBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+//        Context.TransitionResource(g_ImGuiBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+//        const D3D12_CPU_DESCRIPTOR_HANDLE handles[] = { g_OverlayBuffer.GetSRV(), g_ImGuiBuffer.GetSRV() };
+//        Context.SetDynamicDescriptors(0, 1, 2, handles);
+//#else
+        // [AZB]: Original descriptor set for UI overlay
         Context.TransitionResource(g_OverlayBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         Context.SetDynamicDescriptor(0, 1, g_OverlayBuffer.GetSRV());
+//#endif
         Context.SetPipelineState(NeedsScaling ? ScaleAndCompositeSDRPS : CompositeSDRPS);
         Context.SetConstants(1, 0.7071f / g_NativeWidth, 0.7071f / g_NativeHeight);
         Context.TransitionResource(g_DisplayPlane[g_CurrentBuffer], D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -448,6 +636,8 @@ void Graphics::PreparePresentSDR(void)
     }
     else
     {
+
+        // [AZB]: Upscale() draws directly onto the destination RT, so use the display plane! (Debug zoom is always off, but there's no need to change this code as I may enable it at times)
         ColorBuffer& Dest = DebugZoom == kDebugZoomOff ? g_DisplayPlane[g_CurrentBuffer] : g_PreDisplayBuffer;
 
         // Scale or Copy
@@ -465,17 +655,17 @@ void Graphics::PreparePresentSDR(void)
         }
 
         // Magnify without stretching
-        if (DebugZoom != kDebugZoomOff)
-        {
-            Context.SetPipelineState(MagnifyPixelsPS);
-            Context.TransitionResource(g_PreDisplayBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-            Context.TransitionResource(g_DisplayPlane[g_CurrentBuffer], D3D12_RESOURCE_STATE_RENDER_TARGET);
-            Context.SetRenderTarget(g_DisplayPlane[g_CurrentBuffer].GetRTV());
-            Context.SetDynamicDescriptor(0, 0, g_PreDisplayBuffer.GetSRV());
-            Context.SetViewportAndScissor(0, 0, g_DisplayWidth, g_DisplayHeight);
-            Context.SetConstants(1, 1.0f / ((int)DebugZoom + 1.0f));
-            Context.Draw(3);
-        }
+       if (DebugZoom != kDebugZoomOff)
+       {
+           Context.SetPipelineState(MagnifyPixelsPS);
+           Context.TransitionResource(g_PreDisplayBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+           Context.TransitionResource(g_DisplayPlane[g_CurrentBuffer], D3D12_RESOURCE_STATE_RENDER_TARGET);
+           Context.SetRenderTarget(g_DisplayPlane[g_CurrentBuffer].GetRTV());
+           Context.SetDynamicDescriptor(0, 0, g_PreDisplayBuffer.GetSRV());
+           Context.SetViewportAndScissor(0, 0, g_DisplayWidth, g_DisplayHeight);
+           Context.SetConstants(1, 1.0f / ((int)DebugZoom + 1.0f));
+           Context.Draw(3);
+       }
 
         CompositeOverlays(Context);
     }
@@ -534,10 +724,57 @@ void Display::Present(void)
     ++s_FrameIndex;
 
     TemporalEffects::Update((uint32_t)s_FrameIndex);
+    
+#if AZB_MOD
+   // [AZB]: Resize according to DLSS
+   //if (DLSS::m_bDLSS_Enabled)
+   //     SetPipelineResolution(true, g_DisplayWidth, g_DisplayHeight);
+   // else
+   //    SetPipelineResolution(false, g_DisplayWidth, g_DisplayHeight);
+#else
 
+    // [AZB]: Original call here to resize internal rendering resolution
     SetNativeResolution();
+#endif
     SetDisplayResolution();
 }
+
+
+#if AZB_MOD
+
+// [AZB]: This function is essentially a copy of SetDisplayResolution at the top, but with a passed in resolution, and stripping away some of the extra steps it was taken
+// [AZB]: It also returns the size of the new titlebar!
+Resolution Display::SetWindowedResolution(uint32_t width, uint32_t height)
+{
+   g_CommandManager.IdleGPU();
+
+   // [AZB]: If DLSS is active, the resize here will break. So, we need to check for this, then release DLSS and recreate it!
+   if (DLSS::m_bDLSS_Enabled)
+   {
+       DLSS::m_bDLSS_Enabled = false;
+   }
+
+   // [AZB]: This function triggers WM_SIZE which in turn calls Display::Resize
+   SetWindowPos(GameCore::g_hWnd, 0, 0, 0, width, height, SWP_NOZORDER| SWP_NOACTIVATE);
+
+   // [AZB]: After the resize, return the size of the total display ( as g_display width and height end up getting shrunk by the Windows title bar!)
+   //
+   //return { width , height};
+
+   // [AZB]: Unfortunately, this breaks the regular resize method, so instead calculate the size of the title bar and add it on in our GUI class!
+   //        Do this by first getting the size of the client area and then subtract it from the intended resolution!
+   RECT totalClientSize;
+   GetClientRect(GameCore::g_hWnd, &totalClientSize);
+
+   return { width - totalClientSize.right , height - totalClientSize.bottom};
+}
+
+IDXGISwapChain1* Display::GetSwapchain()
+{
+    return s_SwapChain1;
+}
+
+#endif
 
 uint64_t Graphics::GetFrameCount(void)
 {

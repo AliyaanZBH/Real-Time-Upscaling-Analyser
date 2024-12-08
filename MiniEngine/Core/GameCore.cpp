@@ -21,6 +21,8 @@
    Change Log:
    [AZB] 16/10/24: Implemented ImGui and custom UI class into main program
    [AZB] 21/10/24: Implemented mouse accessor to enable swapping of input focus between ImGui and application
+   [AZB] 22/10/24: Tweaked ImGui implementation and added comments ready for DLSS
+   [AZB] 13/11/24: Tweaked postFX to dynamically take in a colorbuffer
 */
 
 #include "pch.h"
@@ -50,12 +52,19 @@
 // [AZB]: These will only be included if the global modificiation macro is defined as true (=1)
 #if AZB_MOD
 #include "AZB_GUI.h"
+#include "AZB_DLSS.h"
+#include "AZB_MotionVectors.h"
 
-// [AZB]: Set extern bool here, ensuring a single declaration and definiton.
+// [AZB]: Set external bool here, ensuring a single declaration and definiton. It can now be used across MiniEngine! (namely within Input.cpp)
 bool g_bMouseExclusive = true;
 
+// [AZB]: Used to track when the window loses focus
+bool g_bIsWindowActive = false;
+// [AZB]: Similar function as above
+bool g_bIsWindowMinimized = false;
+
 // [AZB]: Temporary global UI class
-GUI* AZB_GUI = new GUI();
+GUI* RTUA = new GUI();
 
 
 // [AZB]: Forward declare message handler from imgui_impl_win32.cpp
@@ -79,18 +88,32 @@ namespace GameCore
         EngineTuning::Initialize();
 
         game.Startup();
+
+        // [AZB]: Once the game has started up, retrieve the loaded model as a pointer for our GUI to manipulate!
+#if AZB_MOD
+
+        RTUA->m_pScene = game.GetScene();
+
+#endif
     }
 
 
     bool UpdateApplication(IGameApp& game)
     {
+#if AZB_MOD
+        // [AZB]: Early return here if the window is inactive or minimised!
+        if (!g_bIsWindowActive || g_bIsWindowMinimized)
+            return !game.IsDone();
+#endif
         EngineProfiling::Update();
 
         float DeltaTime = Graphics::GetFrameTime();
 
         // [AZB]: Set an input option to toggle between exclusive and non-exclusive mouse access for Mini EngineImGui control and Application control
 #if AZB_MOD
-
+        
+        // [AZB]: See if the user changed any graphical settings in the previous frame and apply them now at the start of this one!
+        RTUA->UpdateGraphics();
 
         // [AZB]: The app will start in exclusive mode, but as this input gets repeated we need to check which one we're currently set to in order to correctly toggle
         if (g_bMouseExclusive)
@@ -122,10 +145,34 @@ namespace GameCore
         EngineTuning::Update(DeltaTime);
 
         game.Update(DeltaTime);
+        // [AZB]: Execute DLSS here, before post-effects, per NVIDIA recommendations
         game.RenderScene();
 
-        PostEffects::Render();
+#if AZB_MOD
 
+
+        // [AZB]: Check if we want to render MVs
+        if (RTUA->m_bEnableMotionVisualisation)
+        {
+        }
+        
+        //MotionVectors::Render();
+
+        // [AZB]: Also added an option to toggle the post step entirely!
+        if (RTUA->m_bEnablePostFX)
+        {
+
+            if(DLSS::m_bDLSS_Enabled)
+                // [AZB]: Overloaded function that acts on a chosen buffer
+                PostEffects::Render(g_DLSSOutputBuffer);
+            else
+                PostEffects::Render(g_SceneColorBuffer);
+        }
+
+#else
+        // [AZB]: Original function that acts on global scene buffer
+        PostEffects::Render();
+#endif
         GraphicsContext& UiContext = GraphicsContext::Begin(L"Render UI");
         UiContext.TransitionResource(g_OverlayBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
         UiContext.ClearColor(g_OverlayBuffer);
@@ -142,22 +189,31 @@ namespace GameCore
         // [AZB]: Run our ImGui windows and render them correctly within the MiniEngine's pipeline
 #if AZB_MOD
 
-        // [AZB]: Run our UI!
-        AZB_GUI->Run();
+        GraphicsContext& ImGuiContext = GraphicsContext::Begin(L"Render ImGui");
+
+
+        // [AZB]: Set the descriptor heap that we set up in the GUI class
+        ImGuiContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, RTUA->m_pSrvDescriptorHeap);
+
+        // [AZB]: Run our UI! Pass context down for GBuffer manipulation
+        RTUA->Run(ImGuiContext);
+
+     
+        // [AZB]: Setup ImGui buffer using the GraphicsContext API
+        //ImGuiContext.TransitionResource(g_ImGuiBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+        
+        // [AZB]: This also calls ClearRTV()
+        //ImGuiContext.ClearColor(g_ImGuiBuffer);
+
+        // [AZB]: Using the overlay buffer render target - can't use the one from g_ImGuiBuffer
+        ImGuiContext.SetRenderTarget(g_OverlayBuffer.GetRTV());
+        ImGuiContext.SetViewportAndScissor(0, 0, g_OverlayBuffer.GetWidth(), g_OverlayBuffer.GetHeight());
+
 
         // [AZB]: Submit ImGui draw calls within engine context
         ImGui::Render();
 
-        // [AZB]: Setup ImGui buffer using the GraphicsContext API
-        GraphicsContext& ImGuiContext = GraphicsContext::Begin(L"Render ImGui");
-        ImGuiContext.TransitionResource(g_ImGuiBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
-        ImGuiContext.ClearColor(g_ImGuiBuffer);
-        // [AZB]: Using the overlay buffer render target - can't use the one from g_imGuiBuffer
-        ImGuiContext.SetRenderTarget(g_OverlayBuffer.GetRTV());
-        ImGuiContext.SetViewportAndScissor(0, 0, g_ImGuiBuffer.GetWidth(), g_ImGuiBuffer.GetHeight());
-
-        ImGuiContext.GetCommandList()->SetDescriptorHeaps(1, &AZB_GUI->m_pSrvDescriptorHeap);
-
+        // [AZB]: Actually draw ImGui
         ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), ImGuiContext.GetCommandList());
 
         // [AZB]: This will execute and then close the command list and do some other super optimal context flushing
@@ -186,9 +242,17 @@ namespace GameCore
     {
         g_CommandManager.IdleGPU();
 
+        // [AZB]: Cleanup our classes first!
+#if AZB_MOD
+        RTUA->Terminate();
+#endif
+        // [AZB]: DLSS gets cleaned up inside Graphics::Shutdown
+
         game.Cleanup();
 
         GameInput::Shutdown();
+
+      
     }
 
     int RunApplication( IGameApp& app, const wchar_t* className, HINSTANCE hInst, int nCmdShow )
@@ -232,7 +296,7 @@ namespace GameCore
 // [AZB]: Custom init steps and game loop setup
 #if AZB_MOD 
         // [AZB]: Set up ImGui Context here, initalising our UI class
-        AZB_GUI->Init(g_hWnd, g_Device, SWAP_CHAIN_BUFFER_COUNT, SWAP_CHAIN_FORMAT);
+        RTUA->Init(g_hWnd, g_Device, SWAP_CHAIN_BUFFER_COUNT, SWAP_CHAIN_FORMAT);
 #endif
 
         // [AZB]: Original game Loop
@@ -272,12 +336,52 @@ namespace GameCore
         switch( message )
         {
         case WM_SIZE:
+#if AZB_MOD
+            // [AZB]: Previously, the app would crash when minimising!
+            if (wParam == SIZE_MINIMIZED)
+            {
+                g_bIsWindowMinimized = true;
+                break;
+            }
+            else if (wParam == SIZE_RESTORED || wParam == SIZE_MAXIMIZED)
+            {
+                g_bIsWindowMinimized = false;
+            }
+#endif
             Display::Resize((UINT)(UINT64)lParam & 0xFFFF, (UINT)(UINT64)lParam >> 16);
             break;
 
         case WM_DESTROY:
             PostQuitMessage(0);
             break;
+
+// [AZB]: Extra windows message handling
+#if AZB_MOD
+
+        // [AZB]: Occurs when the window loses focus - app will crash if fullscreen is enabled so handle accordingly!
+        case WM_ACTIVATE:
+            if (wParam == WA_INACTIVE)
+            {
+                // Window has lost focus
+                g_bIsWindowActive = false;
+
+                // Set it to windowed to avoid any backbuffer issues
+                Display::GetSwapchain()->SetFullscreenState(FALSE, nullptr);
+            }
+            else
+            {
+                // Window has gained focus
+                g_bIsWindowActive = true;
+
+                // If the GUI class exists at this point (as this block will execute on program startup too!), reset the fullscreen state through there!
+                if (RTUA != nullptr)
+                {
+                    RTUA->m_bFullscreen = true;
+                    RTUA->m_bDisplayModeChangePending = true;
+                }
+            }
+            break;
+#endif
 
         default:
             return DefWindowProcW( hWnd, message, wParam, lParam );

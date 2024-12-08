@@ -33,6 +33,13 @@ struct GlobalConstants;
 struct Mesh;
 struct Joint;
 
+//===============================================================================
+// desc: This is where samplers get initialised and created when using the new glTF renderer. Update mips here!
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
+#include "AZB_Utils.h"
+
 namespace Renderer
 {
     extern BoolVar SeparateZPass;
@@ -67,11 +74,21 @@ namespace Renderer
     void UpdateGlobalDescriptors(void);
     void DrawSkybox( GraphicsContext& gfxContext, const Camera& camera, const D3D12_VIEWPORT& viewport, const D3D12_RECT& scissor );
 
+#if AZB_MOD
+    // [AZB]: This function will re-initalise samplers so that textures are fed to DLSS with the correct Mip bias
+    //          See DLSS docs 3.5 for more info!
+    void ReinitialiseSamplers(Resolution inputResolutionDLSS, float overrideLodBias = 0.f);
+#endif
     class MeshSorter
     {
     public:
 		enum BatchType { kDefault, kShadows };
+        // [AZB]: Adding a draw pass!
+#if AZB_MOD
+        enum DrawPass { kZPass, kOpaque, kTransparent, kBakedLight, kNumPasses };
+#else
         enum DrawPass { kZPass, kOpaque, kTransparent, kNumPasses };
+#endif
 
 		MeshSorter(BatchType type)
 		{
@@ -111,7 +128,10 @@ namespace Renderer
         void Sort();
 
         void RenderMeshes(DrawPass pass, GraphicsContext& context, GlobalConstants& globals);
-
+#if AZB_MOD
+        // [AZB]: Overloaded version to take the viewProjMat of the sunShadow
+        void RenderMeshes(DrawPass pass, GraphicsContext& context, GlobalConstants& globals, const Math::Matrix4& vpm);
+#endif
     private:
 
         struct SortKey

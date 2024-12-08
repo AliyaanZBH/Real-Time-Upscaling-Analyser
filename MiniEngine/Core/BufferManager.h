@@ -37,12 +37,18 @@ namespace Graphics
     extern ColorBuffer g_SceneColorBuffer;  // R11G11B10_FLOAT
     extern ColorBuffer g_SceneNormalBuffer; // R16G16B16A16_FLOAT
     extern ColorBuffer g_PostEffectsBuffer; // R32_UINT (to support Read-Modify-Write with a UAV)
-    extern ColorBuffer g_OverlayBuffer;     // R8G8B8A8_UNORM
+    extern ColorBuffer g_OverlayBuffer;     // [AZB:] Previouisly R8G8B8A8_UNORM, now R10G10B10A2_UNORM
     extern ColorBuffer g_HorizontalBuffer;  // For separable (bicubic) upsampling
 
 #if AZB_MOD
-    extern ColorBuffer g_ImGuiBuffer;     // For ImGui R8G8B8A8_UNORM
+    extern ColorBuffer g_ImGuiBuffer;                           // [AZB]: For ImGui R10G10B10A2_UNORM
+    extern ColorBuffer g_DLSSOutputBuffer;                      // [AZB]: For DLSS to Upscale to R10G10B10A2_UNORM
+    extern ColorBuffer g_PerPixelMotionBuffer;                  // [AZB]: For DLSS to use, per-pixel motion vectors, to R32G32_FLOAT
+    extern ColorBuffer g_MotionVectorVisualisationBuffer;       // [AZB]: For debugging per-pixel motion vectors, a texture that can be displayed 
+    extern ColorBuffer g_MotionVectorRTBuffer;                  // [AZB]: For debugging per-pixel motion vectors, a render target R8G8B8A8
+    extern ColorBuffer g_DecodedVelocityBuffer;                 // [AZB]: For DLSS to use in addition to per-pixel MVs, decoded from g_VelocityBuffer, to R32G32_FLOAT
 #endif
+    // [AZB]: This only stores camera velocity, which is not enough for DLSS! We need per-pixel motion vectors
     extern ColorBuffer g_VelocityBuffer;    // R10G10B10  (3D velocity)
     extern ShadowBuffer g_ShadowBuffer;
 

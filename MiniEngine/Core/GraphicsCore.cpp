@@ -11,6 +11,19 @@
 // Author:  James Stanard 
 //
 
+//===============================================================================
+// desc: This is where the rendering pipeline gets created and run.
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
+/*
+   Change Log:
+   [AZB] 21/10/24: Began DLSS implementation, getting NGX SDK to properly init
+   [AZB] 22/10/24: DLSS implementation continued, pipeline now rendering at optimal lower resolution for upscaling!
+   [AZB] 23/10/24: Fixed bug where DLSS was being Init multiple times due to iGPU and APUs
+   [AZB] 23/10/24: Moved DLSS feature creation outside of display initialisation
+*/
+
 #include "pch.h"
 #include "GraphicsCore.h"
 #include "GameCore.h"
@@ -39,6 +52,19 @@
 #endif
 
 using namespace Math;
+
+//
+// [AZB]: Custom includes and macro mods
+//
+
+// [AZB]: Container file for code modifications and other helper tools. Contains the global "AZB_MOD" macro.
+#include "AZB_Utils.h"
+
+
+// [AZB]: These will only be included if the global modificiation macro is defined as true (==1)
+#if AZB_MOD
+#include "AZB_DLSS.h"
+#endif
 
 namespace Graphics
 {
@@ -242,7 +268,12 @@ void Graphics::Initialize(bool RequireDXRSupport)
     if (!bUseWarpDriver)
     {
         SIZE_T MaxSize = 0;
-
+#if AZB_MOD
+        // [AZB]: We need the adapter to query for NXG, but we only have access to it within the upcoming loop. Create a flag to ensure the SDK only gets queried once - ignoring iGPUs or APUs
+        // [AZB]: IMPORTANT: This was causing alot of issues for me as my GPU was appearing twice in the list and the device was being created and deleted after NGX init.
+        //        The cause was identified as Parsec! It had created a Virtual Adapter, which I was able to uninstall in device manager. Something to check if things break!
+        bool isNGXQueried = false;
+#endif
         for (uint32_t Idx = 0; DXGI_ERROR_NOT_FOUND != dxgiFactory->EnumAdapters1(Idx, &pAdapter); ++Idx)
         {
             DXGI_ADAPTER_DESC1 desc;
@@ -274,6 +305,58 @@ void Graphics::Initialize(bool RequireDXRSupport)
                 g_Device->Release();
 
             g_Device = pDevice.Detach();
+
+#if AZB_MOD
+            if (!isNGXQueried)
+            {
+                // [AZB]: Query for hardware for NGX capability with the current adapter query hardware first
+                DLSS::QueryFeatureRequirements(pAdapter.Get());
+                // [AZB]: Flip our dirty flag to ensure we don't try to query the SDK again, which would lead to the query failing (due to not being an RTX adapter), which would effectively de-init DLSS!
+                isNGXQueried = true;
+            }
+
+            // [AZB]: Also query display possibilities to get maximum fullscreen resolution output!
+            IDXGIOutput* output = nullptr;
+            if (SUCCEEDED(pAdapter->EnumOutputs(0, &output)))
+            {
+                DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
+                UINT modeCount = 0;
+
+                // [AZB]:First, get the number of display modes
+                output->GetDisplayModeList(format, 0, &modeCount, nullptr);
+
+                // [AZB]: Allocate space and get the list of display modes
+                DXGI_MODE_DESC* modeList = new DXGI_MODE_DESC[modeCount];
+                output->GetDisplayModeList(format, 0, &modeCount, modeList);
+
+                DXGI_MODE_DESC maxResolution = {};
+
+                for (UINT i = 0; i < modeCount; ++i) 
+                {
+                    if (modeList[i].Width > maxResolution.Width ||
+                        (modeList[i].Width == maxResolution.Width && modeList[i].Height > maxResolution.Height))
+                    {
+                        Utility::Printf(L"\nNew Resolution Found: %ux%u", maxResolution.Width, maxResolution.Height);
+                        maxResolution = modeList[i];
+                        // [AZB]: Store this resolution inside DLSS namespace and increase our counter so we know how big to create our array in ImGui
+                        ++DLSS::m_NumResolutions;
+                        std::string resName = std::to_string(maxResolution.Width) + "x" + std::to_string(maxResolution.Height);
+                        DLSS::m_Resolutions.push_back(std::pair<std::string, Resolution>(resName, { maxResolution.Width, maxResolution.Height }));
+
+                    }
+                }
+
+                Utility::Printf(L"\n\nMax Fullscreen Resolution: %ux%u\n", maxResolution.Width, maxResolution.Height);
+
+                // [AZB]: Store this value inside DLSS namespace
+                DLSS::m_MaxNativeResolution = { maxResolution.Width, maxResolution.Height };
+                DLSS::m_CurrentNativeResolution = DLSS::m_MaxNativeResolution;
+                delete[] modeList;
+                output->Release();
+
+            }
+           
+#endif
 
             Utility::Printf(L"Selected GPU:  %s (%u MB)\n", desc.Description, desc.DedicatedVideoMemory >> 20);
         }
@@ -407,7 +490,13 @@ void Graphics::Initialize(bool RequireDXRSupport)
 
     // Common state was moved to GraphicsCommon.*
     InitializeCommonState();
-
+#if AZB_MOD 
+    // [AZB]: Init DLSS with the global device if we find NGX support
+    if (DLSS::m_bIsNGXSupported)
+        DLSS::Init(g_Device);
+#endif
+    // [AZB]: As the swap chain and other buffers are created here, DLSS first queries for optimal render resolution here too
+    //        However, in order to create DLSS, the rest of the engine must initalise first, so it is postponed until slightly later
     Display::Initialize();
 
     GpuTimeManager::Initialize(4096);
@@ -432,6 +521,11 @@ void Graphics::Shutdown( void )
 
     DestroyCommonState();
     DestroyRenderingBuffers();
+
+#if AZB_MOD
+    // [AZB]: Cleanup DLSS
+    DLSS::Terminate();
+#endif
     TemporalEffects::Shutdown();
     PostEffects::Shutdown();
     SSAO::Shutdown();

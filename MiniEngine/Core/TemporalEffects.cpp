@@ -29,6 +29,24 @@ using namespace Graphics;
 using namespace Math;
 using namespace TemporalEffects;
 
+//===============================================================================
+// desc: This is a helper namespace dedcicated to TAA and other temporal effects within the rendering pipeline. DLSS needs to replace that!
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
+/*
+   Change Log:
+   [AZB] 24/10/24: DLSS moved to TemporalEffects
+*/
+
+#include "AZB_Utils.h"
+
+#if AZB_MOD
+#include "AZB_DLSS.h"
+// [AZB]: For g_DisplayPlane
+#include "Display.h"
+#endif
+
 namespace TemporalEffects
 {
     BoolVar EnableTAA("Graphics/AA/TAA/Enable", false);
@@ -81,7 +99,13 @@ void TemporalEffects::Update( uint64_t FrameIndex )
     s_FrameIndex = (uint32_t)FrameIndex;
     s_FrameIndexMod2 = s_FrameIndex % 2;
 
-    if (EnableTAA)// && !DepthOfField::Enable)
+    // [AZB]: Also do this for DLSS! We need the jitter to update otherwise image won't resolve properly.
+#if AZB_MOD
+    if (EnableTAA || DLSS::m_bDLSS_Enabled)
+#else
+    // [AZB]: Original condition.
+    if (EnableTAA)// && !DepthOfField::Enable) 
+#endif
     {
         static const float Halton23[8][2] =
         {
@@ -142,6 +166,73 @@ void TemporalEffects::ClearHistory( CommandContext& Context )
 
 void TemporalEffects::ResolveImage( CommandContext& BaseContext )
 {
+
+#if AZB_MOD
+    // [AZB]: Execute DLSS instead of TAA
+    if (DLSS::m_bDLSS_Enabled)
+    {
+        ScopedTimer _prof(L"DLSS Temporal Resolve", BaseContext);
+
+        //GraphicsContext& dlssContext = BaseContext.GetGraphicsContext();
+        ComputeContext& dlssContext = BaseContext.GetComputeContext();
+
+        // [AZB]: Set pipeline state and signature
+        dlssContext.SetRootSignature(g_CommonRS);
+        // [AZB]: This compute shader is key as it is what updates our motion vectors!
+        dlssContext.SetPipelineState(s_TemporalBlendCS);
+
+
+        // [AZB]: Create requirement struct - we need motion vectors, output colour buffer
+        DLSS::ExecutionRequirements reqs;
+        reqs.m_pCmdList = dlssContext.GetCommandList();
+
+        // [AZB]: This where the bulk of data needed for DLSS needs to go
+        NVSDK_NGX_D3D12_DLSS_Eval_Params execParams = {};
+
+        // [AZB]: Before we can actually use the resources, they need to be transitioned
+        dlssContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
+        dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
+        dlssContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
+        dlssContext.TransitionResource(g_DecodedVelocityBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
+        //dlssContext.TransitionResource(g_PerPixelMotionBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, true);
+
+        // [AZB]: Input color buffer and output buffer for the fully processed frame.
+        execParams.Feature = NVSDK_NGX_D3D12_Feature_Eval_Params{ g_SceneColorBuffer.GetResource(), g_DLSSOutputBuffer.GetResource() };
+        execParams.pInDepth = g_SceneDepthBuffer.GetResource();
+        // [AZB]: Use hand-made per-pixel motion vectors
+        //execParams.pInMotionVectors = g_PerPixelMotionBuffer.GetResource();
+        // [AZB]: Use our hand-decoded camera motion vectors!
+        execParams.pInMotionVectors = g_DecodedVelocityBuffer.GetResource();
+        execParams.InJitterOffsetX = s_JitterX;
+        execParams.InJitterOffsetY = s_JitterY;
+        execParams.InRenderSubrectDimensions = NVSDK_NGX_Dimensions{ DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderWidth, DLSS::m_DLSS_Modes[DLSS::m_CurrentQualityMode].m_RenderHeight };
+
+        // [AZB]: Finalise reqs struct with these params
+        reqs.m_DlSSEvalParams = execParams;
+
+        DLSS::Execute(reqs);
+
+        // [AZB]: Transition resources back to what they used to be so the rest of the pipeline can execute smoothly!
+        dlssContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+        dlssContext.TransitionResource(g_DLSSOutputBuffer, D3D12_RESOURCE_STATE_COMMON, true);
+        dlssContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ, true);
+        //dlssContext.TransitionResource(g_PerPixelMotionBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
+        dlssContext.TransitionResource(g_DecodedVelocityBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
+
+        // [AZB]: DLSS Messes with the command list, so flush it and reset it back to avoid errors!
+       dlssContext.Flush();
+    }
+    else
+    {
+        // [AZB]: Refresh jitter positions to avoid shadowo acne and banding on surfaces!
+        ScopedTimer _prof(L"DLSS Temporal Reset", BaseContext);
+
+        ComputeContext& dlssContext = BaseContext.GetComputeContext();
+
+        ClearHistory(dlssContext);
+    }
+#else
+    // [AZB]: Original TAA image resolve
     ScopedTimer _prof(L"Temporal Resolve", BaseContext);
 
     ComputeContext& Context = BaseContext.GetComputeContext();
@@ -164,7 +255,16 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
         ApplyTemporalAA(Context);
         SharpenImage(Context, g_TemporalColor[Dst]);
     }
+
+#endif
 }
+
+#if AZB_MOD
+uint32_t TemporalEffects::GetFrameIndex(void)
+{
+    return s_FrameIndex;
+}
+#endif
 
 void TemporalEffects::ApplyTemporalAA(ComputeContext& Context)
 {

@@ -19,6 +19,13 @@
 #include <stdint.h>
 #include "CommandAllocatorPool.h"
 
+
+//===============================================================================
+// desc: This is a collection of helper classes that mainly deals with the command queue and command list management.
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
+
 class CommandQueue
 {
     friend class CommandListManager;

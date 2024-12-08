@@ -69,6 +69,37 @@
 #define TILES_PER_BIN_Y (BIN_SIZE_Y / TILE_SIZE)
 #define TILES_PER_BIN (TILES_PER_BIN_X * TILES_PER_BIN_Y)
 
+
+
+//===============================================================================
+// desc: This is the core "game" application, where the game loop is contained. We can also access the Graphics Pipeline from here!
+//       Heavily modified at this point.
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
+/*
+   Change Log:
+   [AZB] 13/11/24: Added a check to apply post-processing to DLSS_OutputBuffer and not the main color buffer when DLSS enabled!
+
+*/
+
+
+//
+// [AZB]: Custom includes and macro mods
+//
+
+// [AZB]: Container file for code modifications and other helper tools. Contains the global "AZB_MOD" macro.
+#include "AZB_Utils.h"
+
+
+
+
+// [AZB]: These will only be included if the global modificiation macro is defined as true (=1)
+#if AZB_MOD
+#include "AZB_DLSS.h"
+#endif
+
+
 using namespace Graphics;
 using namespace Math;
 using namespace ParticleEffectManager;
@@ -635,6 +666,8 @@ void ParticleEffectManager::Render( CommandContext& Context, const Camera& Camer
     uint32_t Width = (uint32_t)ColorTarget.GetWidth();
     uint32_t Height = (uint32_t)ColorTarget.GetHeight();
 
+
+    // [AZB]: This assertion will fail when using the upscaled DLSS color buffer!
     ASSERT(
         Width == DepthTarget.GetWidth() &&
         Height == DepthTarget.GetHeight() &&
@@ -675,16 +708,19 @@ void ParticleEffectManager::Render( CommandContext& Context, const Camera& Camer
         ComputeContext& CompContext = Context.GetComputeContext();
         CompContext.TransitionResource(ColorTarget, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
         CompContext.TransitionResource(BinCounters[0], D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-        CompContext.TransitionResource(BinCounters[1], D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
+        // [AZB]: This line causes the following D3D12 Error when DLSS is enabled:
+        // D3D12 ERROR: ID3D12CommandList::ResourceBarrier: Before state (0xC0: D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE|D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE) of resource (0x000001C91D3E3080:'DLSS Output Buffer') (subresource: 0) specified by transition barrier does not match with the current resource state (0x8: D3D12_RESOURCE_STATE_UNORDERED_ACCESS) (assumed at first use) [ RESOURCE_MANIPULATION ERROR #527: RESOURCE_BARRIER_BEFORE_AFTER_MISMATCH]
+        // TODO: Solve this!
 
+        CompContext.TransitionResource(BinCounters[1], D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
         CompContext.ClearUAV(BinCounters[0]);
         CompContext.ClearUAV(BinCounters[1]);
         CompContext.SetRootSignature(RootSig);
         CompContext.SetDynamicConstantBufferView(1, sizeof(CBChangesPerView), &s_ChangesPerView);
 
         RenderTiles(CompContext, ColorTarget, LinearDepth);
-
         CompContext.InsertUAVBarrier(ColorTarget);
+
     }
     else
     {

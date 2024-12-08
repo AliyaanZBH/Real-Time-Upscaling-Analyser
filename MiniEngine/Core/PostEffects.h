@@ -18,6 +18,11 @@
 
 class ComputeContext;
 
+#if AZB_MOD
+// Forward declare
+class ColorBuffer;
+#endif
+
 namespace PostEffects
 {
     extern BoolVar EnableHDR;			// Turn on tone mapping features
@@ -43,4 +48,11 @@ namespace PostEffects
 
     // Copy the contents of the post effects buffer onto the main scene buffer
     void CopyBackPostBuffer( ComputeContext& Context );
+
+#if AZB_MOD
+    // [AZB]: Overloaded versions of the function that can take the input color buffer explicitly, enabling DLSS output to also be tonemapped etc.
+    void CopyBackPostBuffer( ComputeContext& Context, ColorBuffer& inputBuffer);
+    void Render(ColorBuffer& inputBuffer);
+
+#endif
 }

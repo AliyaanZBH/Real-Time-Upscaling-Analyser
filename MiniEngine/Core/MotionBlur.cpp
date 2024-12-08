@@ -9,7 +9,19 @@
 // Developed by Minigraph
 //
 // Author:  James Stanard 
-//
+
+
+//===============================================================================
+// desc: A collection of functions that extend beyond just motion blur - the entirety of motion velocity calculation takes here and within a compute shader!
+// mod: Aliyaan Zulfiqar
+//===============================================================================
+
+/*
+   Change Log:
+   [AZB] 19/11/24: Added an extra step to call my helper CS to decode MVs into a format ready for DLSS!
+   [AZB] 19/11/24: Moving my motion vector stuff into it's own namespace!
+
+*/
 
 #include "pch.h"
 #include "MotionBlur.h"
@@ -78,7 +90,6 @@ void MotionBlur::Initialize( void )
     CreatePSO( s_MotionBlurPrePassCS, g_pMotionBlurPrePassCS );
     CreatePSO( s_CameraVelocityCS[0], g_pCameraVelocityCS );
     CreatePSO( s_CameraVelocityCS[1], g_pCameraVelocityCS );
-
 #undef CreatePSO
 }
 

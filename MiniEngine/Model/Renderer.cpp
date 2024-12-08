@@ -48,6 +48,18 @@ using namespace Math;
 using namespace Graphics;
 using namespace Renderer;
 
+
+
+//===============================================================================
+// desc: This is where samplers get initialised and created when using the new glTF renderer. Update mips here!
+// modified: Aliyaan Zulfiqar
+//===============================================================================
+
+#if AZB_MOD
+#include "AZB_DLSS.h"
+#include <cmath>  // For log2f
+#endif
+
 namespace Renderer
 {
     BoolVar SeparateZPass("Renderer/Separate Z Pass", true);
@@ -469,6 +481,53 @@ void Renderer::DrawSkybox( GraphicsContext& gfxContext, const Camera& Camera, co
     gfxContext.Draw(3);
 }
 
+#if AZB_MOD
+void Renderer::ReinitialiseSamplers(Resolution inputResolutionDLSS, float overrideLodBias)
+{
+    float lodBias = 0.f;
+
+    // [AZB]: Use the input resolution of DLSS
+    float texLodXDimension = inputResolutionDLSS.m_Width;
+
+    // [AZB]: Use the formula of the DLSS programming guide for the LOD Bias...
+    lodBias = std::log2f(texLodXDimension / DLSS::m_MaxNativeResolution.m_Width) - 1.0f;
+
+    // [AZB]: ... but leave the opportunity to override it in the UI...
+    if (overrideLodBias != 0.0f)
+    {
+        lodBias = overrideLodBias;
+    }
+
+    // [AZB]: Set mip bias for all samplers before they get created
+    SamplerDesc DefaultSamplerDesc;
+    DefaultSamplerDesc.MaxAnisotropy = 16;
+
+
+
+    DefaultSamplerDesc.MipLODBias = lodBias;
+    DefaultSamplerDesc.MinLOD = lodBias - 1.f;
+
+    SamplerDesc CubeMapSamplerDesc = DefaultSamplerDesc;
+
+    // Recreate the samplers with this new bias!
+    // 
+
+    m_RootSig.Reset(kNumRootBindings, 3);
+    m_RootSig.InitStaticSampler(10, DefaultSamplerDesc, D3D12_SHADER_VISIBILITY_PIXEL);
+    m_RootSig.InitStaticSampler(11, SamplerShadowDesc, D3D12_SHADER_VISIBILITY_PIXEL);
+    m_RootSig.InitStaticSampler(12, CubeMapSamplerDesc, D3D12_SHADER_VISIBILITY_PIXEL);
+    m_RootSig[kMeshConstants].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX);
+    m_RootSig[kMaterialConstants].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_PIXEL);
+    m_RootSig[kMaterialSRVs].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 10, D3D12_SHADER_VISIBILITY_PIXEL);
+    m_RootSig[kMaterialSamplers].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 0, 10, D3D12_SHADER_VISIBILITY_PIXEL);
+    m_RootSig[kCommonSRVs].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 10, 10, D3D12_SHADER_VISIBILITY_PIXEL);
+    m_RootSig[kCommonCBV].InitAsConstantBuffer(1);
+    m_RootSig[kSkinMatrices].InitAsBufferSRV(20, D3D12_SHADER_VISIBILITY_VERTEX);
+    m_RootSig.Finalize(L"RootSig", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+}
+#endif
+
 void MeshSorter::AddMesh( const Mesh& mesh, float distance,
     D3D12_GPU_VIRTUAL_ADDRESS meshCBV,
     D3D12_GPU_VIRTUAL_ADDRESS materialCBV,
@@ -694,3 +753,161 @@ void MeshSorter::RenderMeshes(
 		context.TransitionResource(*m_DSV, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
 }
+
+#if AZB_MOD
+void MeshSorter::RenderMeshes(DrawPass pass, GraphicsContext& context, GlobalConstants& globals, const Math::Matrix4& vpm)
+{
+    ASSERT(m_DSV != nullptr);
+
+    Renderer::UpdateGlobalDescriptors();
+
+    context.SetRootSignature(m_RootSig);
+    context.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, s_TextureHeap.GetHeapPointer());
+    context.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, s_SamplerHeap.GetHeapPointer());
+
+    // Set common textures
+    context.SetDescriptorTable(kCommonSRVs, m_CommonTextures);
+
+    // Set common shader constants
+    // [AZB]: This is where we specify the sun shadows vpm!
+    globals.ViewProjMatrix = vpm;
+    globals.CameraPos = m_Camera->GetPosition();
+    //globals.IBLRange = s_SpecularIBLRange - s_SpecularIBLBias;
+    //globals.IBLBias = s_SpecularIBLBias;
+    context.SetDynamicConstantBufferView(kCommonCBV, sizeof(GlobalConstants), &globals);
+
+    if (m_BatchType == kShadows)
+    {
+        context.TransitionResource(*m_DSV, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
+        context.ClearDepth(*m_DSV);
+        context.SetDepthStencilTarget(m_DSV->GetDSV());
+
+        if (m_Viewport.Width == 0)
+        {
+            m_Viewport.TopLeftX = 0.0f;
+            m_Viewport.TopLeftY = 0.0f;
+            m_Viewport.Width = (float)m_DSV->GetWidth();
+            m_Viewport.Height = (float)m_DSV->GetHeight();
+            m_Viewport.MaxDepth = 1.0f;
+            m_Viewport.MinDepth = 0.0f;
+
+            m_Scissor.left = 1;
+            m_Scissor.right = m_DSV->GetWidth() - 2;
+            m_Scissor.top = 1;
+            m_Scissor.bottom = m_DSV->GetHeight() - 2;
+        }
+    }
+    else
+    {
+        for (uint32_t i = 0; i < m_NumRTVs; ++i)
+        {
+            ASSERT(m_RTV[i] != nullptr);
+            ASSERT(m_DSV->GetWidth() == m_RTV[i]->GetWidth());
+            ASSERT(m_DSV->GetHeight() == m_RTV[i]->GetHeight());
+        }
+
+        if (m_Viewport.Width == 0)
+        {
+            m_Viewport.TopLeftX = 0.0f;
+            m_Viewport.TopLeftY = 0.0f;
+            m_Viewport.Width = (float)m_DSV->GetWidth();
+            m_Viewport.Height = (float)m_DSV->GetHeight();
+            m_Viewport.MaxDepth = 1.0f;
+            m_Viewport.MinDepth = 0.0f;
+
+            m_Scissor.left = 0;
+            m_Scissor.right = m_DSV->GetWidth();
+            m_Scissor.top = 0;
+            m_Scissor.bottom = m_DSV->GetWidth();
+        }
+    }
+
+    for (; m_CurrentPass <= pass; m_CurrentPass = (DrawPass)(m_CurrentPass + 1))
+    {
+        const uint32_t passCount = m_PassCounts[m_CurrentPass];
+        if (passCount == 0)
+            continue;
+
+        if (m_BatchType == kDefault)
+        {
+            switch (m_CurrentPass)
+            {
+            case kZPass:
+                context.TransitionResource(*m_DSV, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+                context.SetDepthStencilTarget(m_DSV->GetDSV());
+                break;
+            case kOpaque:
+                if (SeparateZPass)
+                {
+                    context.TransitionResource(*m_DSV, D3D12_RESOURCE_STATE_DEPTH_READ);
+                    context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+                    context.SetRenderTarget(g_SceneColorBuffer.GetRTV(), m_DSV->GetDSV_DepthReadOnly());
+                }
+                else
+                {
+                    context.TransitionResource(*m_DSV, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+                    context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+                    context.SetRenderTarget(g_SceneColorBuffer.GetRTV(), m_DSV->GetDSV());
+                }
+                break;
+            case kTransparent:
+                context.TransitionResource(*m_DSV, D3D12_RESOURCE_STATE_DEPTH_READ);
+                context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+                context.SetRenderTarget(g_SceneColorBuffer.GetRTV(), m_DSV->GetDSV_DepthReadOnly());
+                break;
+            }
+        }
+
+        context.SetViewportAndScissor(m_Viewport, m_Scissor);
+        context.FlushResourceBarriers();
+
+        const uint32_t lastDraw = m_CurrentDraw + passCount;
+
+        while (m_CurrentDraw < lastDraw)
+        {
+            SortKey key;
+            key.value = m_SortKeys[m_CurrentDraw];
+            const SortObject& object = m_SortObjects[key.objectIdx];
+            const Mesh& mesh = *object.mesh;
+
+            context.SetConstantBuffer(kMeshConstants, object.meshCBV);
+            context.SetConstantBuffer(kMaterialConstants, object.materialCBV);
+            context.SetDescriptorTable(kMaterialSRVs, s_TextureHeap[mesh.srvTable]);
+            context.SetDescriptorTable(kMaterialSamplers, s_SamplerHeap[mesh.samplerTable]);
+            if (mesh.numJoints > 0)
+            {
+                ASSERT(object.skeleton != nullptr, "Unspecified joint matrix array");
+                context.SetDynamicSRV(kSkinMatrices, sizeof(Joint) * mesh.numJoints, object.skeleton + mesh.startJoint);
+            }
+            context.SetPipelineState(sm_PSOs[key.psoIdx]);
+
+            if (m_CurrentPass == kZPass)
+            {
+                bool alphaTest = (mesh.psoFlags & PSOFlags::kAlphaTest) == PSOFlags::kAlphaTest;
+                uint32_t stride = alphaTest ? 16u : 12u;
+                if (mesh.numJoints > 0)
+                    stride += 16;
+                context.SetVertexBuffer(0, { object.bufferPtr + mesh.vbDepthOffset, mesh.vbDepthSize, stride });
+            }
+            else
+            {
+                context.SetVertexBuffer(0, { object.bufferPtr + mesh.vbOffset, mesh.vbSize, mesh.vbStride });
+            }
+
+            context.SetIndexBuffer({ object.bufferPtr + mesh.ibOffset, mesh.ibSize, (DXGI_FORMAT)mesh.ibFormat });
+
+            for (uint32_t i = 0; i < mesh.numDraws; ++i)
+                context.DrawIndexed(mesh.draw[i].primCount, mesh.draw[i].startIndex, mesh.draw[i].baseVertex);
+
+            ++m_CurrentDraw;
+        }
+    }
+
+    if (m_BatchType == kShadows)
+    {
+        context.TransitionResource(*m_DSV, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    }
+}
+#endif
+

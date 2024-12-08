@@ -26,6 +26,23 @@ namespace glTF { class Asset; struct Mesh; }
 
 #define CURRENT_MINI_FILE_VERSION 13
 
+//===============================================================================
+// desc: This is where models are loaded in and textures get converted to DDS. Additionaly where samplers are created and will need updating in order to meet DLSS mipBias requirement!
+//       
+// mod: Aliyaan Zulfiqar
+//===============================================================================
+
+//
+// [AZB]: Custom includes and macro mods
+//
+
+// [AZB]: Container file for code modifications and other helper tools. Contains the global "AZB_MOD" macro.
+#include "AZB_Utils.h"
+
+#if AZB_MOD
+#include "unordered_map"
+#endif
+
 namespace Renderer
 {
     using namespace Math;
@@ -101,4 +118,16 @@ namespace Renderer
     bool SaveModel( const std::wstring& filePath, const ModelData& model );
     
     std::shared_ptr<Model> LoadModel( const std::wstring& filePath, bool forceRebuild = false );
+
+#if AZB_MOD
+    // [AZB]: This maps addressModes (a combination of sampler settings) to offsets in our sampler heap, which shaders (and DLSS) will access at runtime
+   // extern std::unordered_map<uint32_t, uint32_t> g_SamplerPermutations;
+
+    // [AZB]: Function that dynamically updates mipBias in our samplers according to the formula supplied by NVIDIA in the DLSS docs
+    void UpdateSamplers(const Model* scene, Resolution inputResolution, bool bOverride = false, float overrideLodBias = 0.f);
+
+    // [AZB]: Maps materials to addressModes to allow us to update samplers at runtime!
+    extern std::unordered_map<uint16_t, uint32_t> m_MaterialAddressModes;  // uint16_t is the materialCBV from the Mesh structure, which uniquely identifies the material. uint32_t stores the addressModes for that mat.
+
+#endif
 }
