@@ -366,7 +366,10 @@ namespace GameCore
                 g_bIsWindowActive = false;
 
                 // Set it to windowed to avoid any backbuffer issues
-                Display::GetSwapchain()->SetFullscreenState(FALSE, nullptr);
+                if (RTUA != nullptr)
+                {
+                    Display::GetSwapchain()->SetFullscreenState(FALSE, nullptr);
+                }
             }
             else
             {
