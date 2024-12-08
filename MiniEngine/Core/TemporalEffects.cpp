@@ -99,7 +99,13 @@ void TemporalEffects::Update( uint64_t FrameIndex )
     s_FrameIndex = (uint32_t)FrameIndex;
     s_FrameIndexMod2 = s_FrameIndex % 2;
 
-    if (EnableTAA)// && !DepthOfField::Enable)
+    // [AZB]: Also do this for DLSS! We need the jitter to update otherwise image won't resolve properly.
+#if AZB_MOD
+    if (EnableTAA || DLSS::m_bDLSS_Enabled)
+#else
+    // [AZB]: Original condition.
+    if (EnableTAA)// && !DepthOfField::Enable) 
+#endif
     {
         static const float Halton23[8][2] =
         {
@@ -218,34 +224,15 @@ void TemporalEffects::ResolveImage( CommandContext& BaseContext )
     }
     else
     {
-        // [AZB]: TODO: Turn these repeated code blocks into functions or macros!
-        // [AZB]: Revert back to TAA
-        ScopedTimer _prof(L"Temporal Resolve", BaseContext);
+        // [AZB]: Refresh jitter positions to avoid shadowo acne and banding on surfaces!
+        ScopedTimer _prof(L"DLSS Temporal Reset", BaseContext);
 
-        ComputeContext& Context = BaseContext.GetComputeContext();
+        ComputeContext& dlssContext = BaseContext.GetComputeContext();
 
-        static bool s_EnableTAA = false;
-        static bool s_EnableCBR = false;
-
-        if (EnableTAA != s_EnableTAA || EnableCBR && !s_EnableCBR || TriggerReset)
-        {
-            ClearHistory(Context);
-            s_EnableTAA = EnableTAA;
-            s_EnableCBR = EnableCBR;
-            TriggerReset = false;
-        }
-
-        uint32_t Src = s_FrameIndexMod2;
-        uint32_t Dst = Src ^ 1;
-
-        {
-            ApplyTemporalAA(Context);
-            SharpenImage(Context, g_TemporalColor[Dst]);
-        }
+        ClearHistory(dlssContext);
     }
-
-
 #else
+    // [AZB]: Original TAA image resolve
     ScopedTimer _prof(L"Temporal Resolve", BaseContext);
 
     ComputeContext& Context = BaseContext.GetComputeContext();

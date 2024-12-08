@@ -215,6 +215,10 @@ void GUI::UpdateGraphics()
 			// Also move GUI window to the new top corner!
 			m_MainWindowPos.x = ((float)m_NewWidth - m_MainWindowSize.x) - 5.f;
 			ImGui::SetWindowPos("RTUA", m_MainWindowPos);
+
+			// If we are in a different rendering mode, reset those values
+			if (m_CurrentRenderingMode == eRenderingMode::BILINEAR_UPSCALE)
+				m_BilinearInputRes = { m_NewWidth, m_NewHeight };
 		}
 		else
 		{
@@ -453,13 +457,11 @@ void GUI::StartupModal()
 				SingleLineBreak();
 				ImGui::TextWrapped("When swapping between Bilinear or DLSS upscaling, the input resolution you select will be saved.");
 				SingleLineBreak();
-				HighlightTextItem("To best compare upscaling, use similar input resolutions.");
-				SingleLineBreak();
 				ImGui::TextWrapped("Additionally, LOD or Mip bias has a great effect on texture resolution when upscaling. DLSS automatically calculates the optimal bias, but you are free to override this and see the effects in real-time.");
 				SingleLineBreak();
 				ImGui::TextWrapped("Lastly, upscaling can have varying effects depending on the type of surface you are looking at, the distance and angle from which you view it and much more.");
 				SingleLineBreak();
-				HighlightTextItem("Try and test against as many different surfaces as possible.");
+				HighlightTextItem("Try and test against many surfaces in as many ways as possible.");
 				DoubleLineBreak();
 
 				TutorialPageButtons();
@@ -475,6 +477,10 @@ void GUI::StartupModal()
 
 				ImGui::TextWrapped("If you need to read these instructions again, you can find a button to re-open this popup at any time.");
 				HalfLineBreak();
+				ImGui::TextWrapped("There are also helpful tooltips across the main application, please interact with these!");
+				SingleLineBreak();
+				HighlightTextItem("Helper tooltips will look like this: (?) ");
+				SingleLineBreak();
 				ImGui::TextWrapped("And most importantly, let your curiosity drive you. You may come away from this experience with an increased sensitivity and appreciation for rendering quality.");
 				DoubleLineBreak();
 
@@ -502,11 +508,9 @@ void GUI::StartupModal()
 
 			}
 		}
-
-		
+ 
 		ImGui::EndPopup();
 	}
-
 }
 
 void GUI::MainWindowTitle()
@@ -980,7 +984,6 @@ void GUI::GraphicsSettings(CommandContext& Context)
 	}
 #endif
 }
-
 
 void GUI::PerformanceMetrics()
 {
