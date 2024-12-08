@@ -66,6 +66,7 @@
 #include "TextureConvert.h"     // For converting HDRI PNGs to DDS
 #endif
 
+// [AZB]: This controls the rendering mode - comment out to get PBR + glTF models!
 //#define LEGACY_RENDERER
 
 using namespace GameCore;
@@ -319,7 +320,7 @@ void RTUA::Startup( void )
 #if AZB_MOD
     // [AZB] Disable these for maximum image clarity!
     MotionBlur::Enable = false;
-    //TemporalEffects::EnableTAA = false;
+    //TemporalEffects::EnableTAA = true;
     // [AZB]: Disable this so that we can get real frame-times! Has to be done within Display.cpp itself
     //Display::s_EnableVSync = false;
 #else
@@ -376,7 +377,7 @@ void RTUA::Startup( void )
 #endif
 
     // [AZB]: Set near/far planes and start our FPS camera!
-    m_Camera.SetZRange(1.0f, 20000.0f);
+    m_Camera.SetZRange(1.0f, 10000.0f);
     m_CameraController.reset(new FlyingFPSCamera(m_Camera, Vector3(kYUnitVector)));
 
 #else
