@@ -46,9 +46,6 @@
 // [AZB]: Container file for code modifications and other helper tools. Contains the global "AZB_MOD" macro.
 #include "AZB_Utils.h"
 
-
-
-
 // [AZB]: These will only be included if the global modificiation macro is defined as true (=1)
 #if AZB_MOD
 #include "AZB_GUI.h"

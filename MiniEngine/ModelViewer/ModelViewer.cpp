@@ -126,7 +126,7 @@ std::vector<std::pair<TextureRef, TextureRef>> g_IBLTextures;
 
 #if AZB_MOD
 // [AZB]: Default IBL bias makes Bistro appear in pure Chrome!
-NumVar g_IBLBias("Viewer/Lighting/Gloss Reduction", 7.0f, 0.0f, 16.0f, 1.0f, ChangeIBLBias);
+NumVar g_IBLBias("Viewer/Lighting/Gloss Reduction", 0.0f, 0.0f, 16.0f, 1.0f, ChangeIBLBias);        // Start at 7 for Bistro
 #else
 NumVar g_IBLBias("Viewer/Lighting/Gloss Reduction", 2.0f, 0.0f, 10.0f, 1.0f, ChangeIBLBias);
 #endif
@@ -260,12 +260,11 @@ void LoadIBLTextures()
 
     // [AZB]: Set IBL glossiness bias as alot of custom models come in looking like pure Chrome due to overtuned specular maps
     //g_IBLBias = 7;
-    Renderer::SetIBLBias(g_IBLBias);
+   // Renderer::SetIBLBias(g_IBLBias);
     // [AZB} Set Stonewall as starting env since it seems to be the only one that lets the scene look right!
-    int setIdx = 8;
+    int setIdx = 4;
     Renderer::SetIBLTextures(g_IBLTextures[setIdx].first, g_IBLTextures[setIdx].second);
 
-    
 }
 
 #else
@@ -349,9 +348,9 @@ void RTUA::Startup( void )
 
     // [AZB]: First, begin explicitly loading Bistro scene. Regardless of rendering mode, we want this model loaded
     // [AZB]: Load our lovely bistro model
-    m_Scenes[0] = Renderer::LoadModel(L"Bistro/BistroExterior/BistroExterior.gltf", forceRebuild);
-    m_Scenes[0].LoopAllAnimations();
-    m_Scenes[0].Resize(5.0f * m_Scenes[0].GetRadius());
+    //m_Scenes[0] = Renderer::LoadModel(L"Bistro/BistroExterior/BistroExterior.gltf", forceRebuild);
+    //m_Scenes[0].LoopAllAnimations();
+    //m_Scenes[0].Resize(5.0f * m_Scenes[0].GetRadius());
 
     // [AZB]: Deal with legacy vs modern renderer.
 #ifdef LEGACY_RENDERER
