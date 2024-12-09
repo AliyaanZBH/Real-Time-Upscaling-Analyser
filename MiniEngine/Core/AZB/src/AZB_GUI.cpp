@@ -347,7 +347,7 @@ void GUI::StartupModal()
 	// Allow window to resize, but only vertically. Restrict horizontal size to a fixed width
 	ImGui::SetNextWindowSizeConstraints(ImVec2(m_MainWindowSize.x, 0), ImVec2(m_MainWindowSize.x, FLT_MAX));
 
-	ImGui::BeginPopupModal("Welcome!", NULL, ImGuiWindowFlags_NoMove | ImGuiChildFlags_AlwaysAutoResize);
+	ImGui::BeginPopupModal("Welcome!", NULL, ImGuiChildFlags_AlwaysAutoResize);
 	{
 		DoubleLineBreak();
 
@@ -442,7 +442,7 @@ void GUI::StartupModal()
 				SingleLineBreak();
 				ImGui::TextWrapped("Use the command highlighted above to toggle between inputs when necessary.");
 				SingleLineBreak();
-				ImGui::TextWrapped("Note: This can also be achieved entirely from the keyboard without having to switch.");
+				ImGui::TextWrapped("You can also navigate between windows and move them without having to switch input mode. Note; the following commands will work on the main window, but not in this tutorial section");
 				SingleLineBreak();
 				HighlightTextItem("Hold LCTRL and press TAB once to bring up GUI window select.");
 				SingleLineBreak();

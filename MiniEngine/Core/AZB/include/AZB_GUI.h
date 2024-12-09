@@ -205,6 +205,7 @@ private:
     //  Main Sections that users will see
     //
 
+    // This section also acts as the tutorial
     void StartupModal();
 
 	void MainWindowTitle();
