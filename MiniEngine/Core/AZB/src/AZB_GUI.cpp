@@ -454,11 +454,15 @@ void GUI::StartupModal()
 				SectionTitle("Evaluation Guidance");
 				Separator();
 
-				ImGui::TextWrapped("Native rendering should be straightforward to evaluate, however you may find yourself struggling to compare the two upscale methods.");
+				ImGui::TextWrapped("Native rendering should be straightforward to evaluate, however you may find yourself struggling to compare the two upscale methods. The biggest factor in your evaluation should be input resolution.");
 				SingleLineBreak();
-				HighlightTextItem("To best compare upscaling, use similar input resolutions.");
+				HighlightTextItem("To best compare upscaling, use the exact same input resolution.");
 				SingleLineBreak();
-				ImGui::TextWrapped("When swapping between Bilinear or DLSS upscaling, the input resolution you select will be saved.");
+				ImGui::TextWrapped("When swapping between Bilinear or DLSS upscaling, the input resolution you select will be saved. However, not all DLSS input resolutions exist as inputs for Bilinear. As a result, a scaling factor has been provided to help your evaluation.");
+				SingleLineBreak();
+				HighlightTextItem("The scaling factor is your next most important comparison point.");
+				SingleLineBreak();
+				ImGui::TextWrapped("The scaling factor is a simple value that represents the percentage of native rendering we are currently rendering at. 1.0 means that no scaling is taking place and, if you prefer, that we are rendering at 100 percent native. 0.666 means that we are rendering at two-thirds or 66 percent of native resolution and then scaling up.");
 				SingleLineBreak();
 				ImGui::TextWrapped("Additionally, LOD or Mip bias has a great effect on texture resolution when upscaling. DLSS automatically calculates the optimal bias, but you are free to override this and see the effects in real-time.");
 				SingleLineBreak();
@@ -646,8 +650,21 @@ void GUI::ResolutionDisplay()
 	CenterNextTextItem(labelText);
 	ImGui::Text(labelText);
 	ImGui::SameLine();
-	HelpMarker("This is the current resolution of internal rendering buffers in the app. This will update as you interact with upscaling techniques.");
+	HelpMarker("This is the current resolution of internal rendering buffers in the app. This will update as you interact with upscaling techniques.\n\nTry finding where DLSS modes (e.g. Quality) and Bilinear inputs (e.g. 1280x800) match for the best comparison points!");
 	labelValue = std::to_string(Graphics::g_NativeWidth) + "x" + std::to_string(Graphics::g_NativeHeight);
+	labelText = labelValue.c_str();
+	CenterNextTextItem(labelText);
+	ImGui::Text(labelText);
+
+	SingleLineBreak();
+
+	labelText = "Current Scale Factor";
+	CenterNextTextItem(labelText);
+	ImGui::Text(labelText);
+	ImGui::SameLine();
+	HelpMarker("This is the magnitude of scaling being applied. When this is 100%, that means that no scaling is taking place.\n0.666 means that we are rendering at a scale of 66% native\n\nTry finding where DLSS modes and Bilinear inputs match for the best comparison points!");
+	m_ScalingFactor = static_cast<float>(Graphics::g_NativeHeight) / static_cast<float>(DLSS::m_MaxNativeResolution.m_Height);	// Calculated by using render height / display height
+	labelValue = std::to_string(m_ScalingFactor);
 	labelText = labelValue.c_str();
 	CenterNextTextItem(labelText);
 	ImGui::Text(labelText);

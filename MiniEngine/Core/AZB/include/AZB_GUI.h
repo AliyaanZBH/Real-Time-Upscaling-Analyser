@@ -161,6 +161,9 @@ private:
     // Track last mode so that we can reset any state
     eRenderingMode m_PreviousRenderingMode = eRenderingMode::NATIVE;
 
+    // Track scaling factor
+    float m_ScalingFactor = 0.f;
+
     // Tracker for bilinear upscale input, so it can be saved and returned to when swapping modes
     Resolution m_BilinearInputRes = { 640, 480 };
 
@@ -308,12 +311,14 @@ private:
     }
 
     // Reusable function to highlight items!
-    const void HighlightTextItem(const char* itemText, bool center = true, float spacing = 7.5f, float thickness = 3.f)
+    const void HighlightTextItem(const char* itemText, bool center = true, bool wrapped = false, float spacing = 7.5f, float thickness = 3.f)
     {
         if (center)
             CenterNextTextItem(itemText);
-        ImGui::Text(itemText);
-
+        if (!wrapped)
+            ImGui::Text(itemText);
+        else
+            ImGui::TextWrapped(itemText);
         // Calculate position to draw rect of last item
         ImVec2 firstItemPosMin = ImGui::GetItemRectMin();
         ImVec2 firstItemPosMax = ImGui::GetItemRectMax();
