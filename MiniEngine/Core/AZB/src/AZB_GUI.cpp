@@ -183,7 +183,7 @@ void GUI::UpdateGraphics()
 		m_bCommonStateChangePending = false;
 	}
 
-	// Check if display mode has changed next
+	// Check if display mode has changed - this will happen when alt+tabbing or alt+enter
 	if (m_bDisplayModeChangePending)
 	{
 		// wb for Windows Bool - have to use this when querying the swapchain!
@@ -221,7 +221,17 @@ void GUI::UpdateGraphics()
 
 			// If we are in a different rendering mode, reset those values
 			if (m_CurrentRenderingMode == eRenderingMode::BILINEAR_UPSCALE)
+				// Set bilinear back to the new native, effectively disabling scaling as the factor returns to 1
 				m_BilinearInputRes = { m_NewWidth, m_NewHeight };
+
+			if (m_CurrentRenderingMode == eRenderingMode::DLSS)
+			{
+				// For DLSS, just disable it and return to native
+				m_CurrentRenderingMode = eRenderingMode::NATIVE;
+				DLSS::m_bNeedsReleasing = true;
+				m_bToggleDLSS = false;
+				m_bDLSSUpdatePending = true;
+			}
 		}
 		else
 		{
@@ -693,10 +703,10 @@ void GUI::ResolutionDisplay()
 
 void GUI::RenderModeSelection()
 {
-	static int mode_current_idx = 0;
+	static int mode_current_idx = m_CurrentRenderingMode;
 
 	const char* comboLabel = "Rendering Mode";
-	const char* comboPreviewValue = m_RenderModeNames[mode_current_idx].c_str();
+	const char* comboPreviewValue = m_RenderModeNames[m_CurrentRenderingMode].c_str();
 
 
 	// Write custom centered label
