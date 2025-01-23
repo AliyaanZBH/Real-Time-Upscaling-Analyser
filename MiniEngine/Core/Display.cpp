@@ -605,7 +605,6 @@ void Graphics::PreparePresentSDR(void)
     Context.SetDynamicDescriptor(0, 0, g_SceneColorBuffer.GetSRV());
 #endif
 
-
 #if AZB_MOD
     // [AZB]: When DLSS is enabled, you no longer need to upscale the scene buffer! This is because we will be rendering using the DLSS output buffer which has already been upscaled
     bool NeedsScaling = !DLSS::m_bDLSS_Enabled && (g_NativeWidth != g_DisplayWidth || g_NativeHeight != g_DisplayHeight);

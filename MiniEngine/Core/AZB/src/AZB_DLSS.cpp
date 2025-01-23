@@ -9,6 +9,10 @@
 // Define externals to ensure no redefinition occurs elsewhere
 namespace DLSS
 {
+	//
+	// See header file for comments on each member here
+	//
+
 	ID3D12Device* m_pD3DDevice = nullptr;
 	NVSDK_NGX_Handle* m_DLSS_FeatureHandle = nullptr;
 	NVSDK_NGX_Parameter* m_DLSS_Parameters = nullptr;
@@ -138,7 +142,6 @@ void DLSS::Init(ID3D12Device* device)
 	else
 		// Final message to indicate success!
 		Utility::Print("\nNVIDIA DLSS is supported!\n\n");
-
 }
 
 void DLSS::QueryOptimalSettings(const uint32_t targetWidth, const uint32_t targetHeight, OptimalSettings& settings)

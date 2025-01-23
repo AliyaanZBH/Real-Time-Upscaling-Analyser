@@ -135,9 +135,7 @@ namespace GameCore
                 g_bMouseExclusive = true;
             }
         }
-
 #endif
-
         GameInput::Update(DeltaTime);
         EngineTuning::Update(DeltaTime);
 
@@ -146,15 +144,6 @@ namespace GameCore
         game.RenderScene();
 
 #if AZB_MOD
-
-
-        // [AZB]: Check if we want to render MVs
-        if (RTUA->m_bEnableMotionVisualisation)
-        {
-        }
-        
-        //MotionVectors::Render();
-
         // [AZB]: Also added an option to toggle the post step entirely!
         if (RTUA->m_bEnablePostFX)
         {

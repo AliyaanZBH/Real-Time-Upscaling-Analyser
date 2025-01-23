@@ -14,7 +14,7 @@
 #include "CommandContext.h"		// For transitioning resources
 #include <TemporalEffects.h>	// For jitter
 #include "Renderer.h"			
-#include "SamplerManager.h"	// For mipBias overriding and control!
+#include "SamplerManager.h"		// For mipBias overriding and control!
 #include <ModelLoader.h>
 
 //===============================================================================

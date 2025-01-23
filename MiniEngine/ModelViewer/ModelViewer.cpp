@@ -112,6 +112,7 @@ private:
     ShadowCamera m_SunShadowCamera;
 };
 
+// [AZB]: Creates WinMain
 CREATE_APPLICATION(RTUA)
 
 ExpVar g_SunLightIntensity("Viewer/Lighting/Sun Light Intensity", 1.0f, 0.0f, 16.0f, 0.1f);
@@ -126,7 +127,7 @@ std::vector<std::pair<TextureRef, TextureRef>> g_IBLTextures;
 
 #if AZB_MOD
 // [AZB]: Default IBL bias makes Bistro appear in pure Chrome!
-NumVar g_IBLBias("Viewer/Lighting/Gloss Reduction", 0.0f, 0.0f, 16.0f, 1.0f, ChangeIBLBias);        // Start at 7 for Bistro
+NumVar g_IBLBias("Viewer/Lighting/Gloss Reduction", 0.0f, 0.0f, 16.0f, 1.0f, ChangeIBLBias);        // [AZB]: Start at 7 for Bistro
 #else
 NumVar g_IBLBias("Viewer/Lighting/Gloss Reduction", 2.0f, 0.0f, 10.0f, 1.0f, ChangeIBLBias);
 #endif
@@ -258,9 +259,6 @@ void LoadIBLTextures()
     if (g_IBLTextures.size() > 0)
         g_IBLSet.Increment();
 
-    // [AZB]: Set IBL glossiness bias as alot of custom models come in looking like pure Chrome due to overtuned specular maps
-    //g_IBLBias = 7;
-   // Renderer::SetIBLBias(g_IBLBias);
     // [AZB} Set Stonewall as starting env since it seems to be the only one that lets the scene look right!
     int setIdx = 4;
     Renderer::SetIBLTextures(g_IBLTextures[setIdx].first, g_IBLTextures[setIdx].second);
@@ -707,12 +705,6 @@ void RTUA::RenderScene( void )
 #if AZB_MOD
     // [AZB]: Turn the camera velocity into something DLSS can read, and that we can use as a texture!
     MotionVectors::DecodeMotionVectors(gfxContext);
-    
-    // [AZB]: Render our MVs to a texture and represent them using arrows!
-    //MotionVectors::Render(gfxContext);
-
-    // [AZB]: Generate true per-pixel motion vectors!
-    //MotionVectors::GeneratePerPixelMotionVectors(gfxContext, m_Camera);
 
     // [AZB]: TMP: Particle rendering assumes that the depth buffer and output buffer are the same size. Experimenting with moving it to before DLSS so that the particles can get upscaled too!
     ParticleEffectManager::Render(gfxContext, m_Camera, g_SceneColorBuffer, g_SceneDepthBuffer,  g_LinearDepth[FrameIndex]);
@@ -720,18 +712,6 @@ void RTUA::RenderScene( void )
 #endif
     // [AZB]: This is where DLSS gets executed!
     TemporalEffects::ResolveImage(gfxContext);
-
-#if AZB_MOD
-   // [AZB]: The main sceneColorBuffer is effectively disposed of once DLSS executes, so run post effects on that buffer instead!
-   // if (DLSS::m_DLSS_Enabled)
-   //     //ParticleEffectManager::Render(gfxContext, m_Camera, g_DLSSOutputBuffer, g_SceneDepthBuffer, g_LinearDepth[FrameIndex]);
-   // else
-        // AZB]: DLSS can still be disabled, so default to original method when this happens
-       // ParticleEffectManager::Render(gfxContext, m_Camera, g_SceneColorBuffer, g_SceneDepthBuffer,  g_LinearDepth[FrameIndex]);
-
-#else
-    ParticleEffectManager::Render(gfxContext, m_Camera, g_SceneColorBuffer, g_SceneDepthBuffer,  g_LinearDepth[FrameIndex]);
-#endif
 
     // Until I work out how to couple these two, it's "either-or".
     if (DepthOfField::Enable)
