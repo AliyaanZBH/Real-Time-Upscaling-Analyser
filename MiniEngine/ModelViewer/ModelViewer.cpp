@@ -80,6 +80,7 @@ using Renderer::MeshSorter;
 
 #pragma region Application Class Definition
 
+// [AZB]: RTUA - Real Time Upscaling Analyser
 class RTUA : public GameCore::IGameApp
 {
 public:
