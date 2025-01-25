@@ -57,16 +57,12 @@ public:
 
 	// Shutdown ImGui safely
 	void Terminate();
-    
 
 	// A handle to render ImGui within MiniEngine
 	ID3D12DescriptorHeap* m_pSrvDescriptorHeap = nullptr;
 
     // Public pointer to the scene we will be investigating!
     const Model* m_pScene = nullptr;
-
-    // Counter variable to track "pages" on the tutorial
-    uint8_t m_Page = 1;
 
     // Bool that tracks when GUI, and by proxy the rest of the app, is fully setup. Used to ensure smooth alt+tabbing and startup behaviour across devices!
     bool m_bReady = false;
@@ -191,6 +187,9 @@ private:
     // Checkbox that controls whether to show metrics window
     bool m_ShowHardwareMetrics = false;
     bool m_ShowFrameRate = false;
+
+    // Counter variable to track "pages" on the tutorial
+    uint8_t m_Page = 1;
 
 
 

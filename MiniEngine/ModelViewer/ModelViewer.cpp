@@ -54,9 +54,6 @@
 // [AZB]: Container file for code modifications and other helper tools. Contains the global "AZB_MOD" macro.
 #include "AZB_Utils.h"
 
-
-
-
 // [AZB]: These will only be included if the global modificiation macro is defined as true (=1)
 #if AZB_MOD
 #include "AZB_DLSS.h"
@@ -66,7 +63,7 @@
 #include "TextureConvert.h"     // For converting HDRI PNGs to DDS
 #endif
 
-// [AZB]: This controls the rendering mode - comment out to get PBR + glTF models!
+// [AZB]: This controls the rendering mode - disable to get PBR + glTF models!
 //#define LEGACY_RENDERER
 
 using namespace GameCore;
@@ -76,11 +73,22 @@ using namespace std;
 
 using Renderer::MeshSorter;
 
+
+//
+//  [AZB]: Create a class using the IGameApp interface - this is the actual application used in the experiment!
+//
+
+#pragma region Application Class Definition
+
 class RTUA : public GameCore::IGameApp
 {
 public:
 
     RTUA( void ) {}
+
+    //
+    // [AZB]: Standard Game Loop functions
+    //
 
     virtual void Startup( void ) override;
     virtual void Cleanup( void ) override;
@@ -112,8 +120,9 @@ private:
     ShadowCamera m_SunShadowCamera;
 };
 
-// [AZB]: Creates WinMain
-CREATE_APPLICATION(RTUA)
+#pragma endregion
+
+#pragma region Application Implementation Helpers
 
 ExpVar g_SunLightIntensity("Viewer/Lighting/Sun Light Intensity", 1.0f, 0.0f, 16.0f, 0.1f);
 NumVar g_SunOrientation("Viewer/Lighting/Sun Orientation", -0.5f, -100.0f, 100.0f, 0.1f );
@@ -311,6 +320,10 @@ void LoadIBLTextures()
         g_IBLSet.Increment();
 }
 #endif
+
+#pragma endregion
+
+#pragma region Application Class Implementation
 
 void RTUA::Startup( void )
 {
@@ -721,3 +734,9 @@ void RTUA::RenderScene( void )
 
     gfxContext.Finish();
 }
+
+#pragma endregion
+
+
+// [AZB]: Creates WinMain and calls GameCore::RunApplication() - Actual Entry point
+CREATE_APPLICATION(RTUA)

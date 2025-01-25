@@ -70,6 +70,11 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace GameCore
 {
+
+    HWND g_hWnd = nullptr;
+
+    LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+
     using namespace Graphics;
 
     bool gIsSupending = false;
@@ -184,13 +189,6 @@ namespace GameCore
         // [AZB]: Run our UI! Pass context down for GBuffer manipulation
         RTUA->Run(ImGuiContext);
 
-     
-        // [AZB]: Setup ImGui buffer using the GraphicsContext API
-        //ImGuiContext.TransitionResource(g_ImGuiBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
-        
-        // [AZB]: This also calls ClearRTV()
-        //ImGuiContext.ClearColor(g_ImGuiBuffer);
-
         // [AZB]: Using the overlay buffer render target - can't use the one from g_ImGuiBuffer
         ImGuiContext.SetRenderTarget(g_OverlayBuffer.GetRTV());
         ImGuiContext.SetViewportAndScissor(0, 0, g_OverlayBuffer.GetWidth(), g_OverlayBuffer.GetHeight());
@@ -218,11 +216,6 @@ namespace GameCore
     {
         return GameInput::IsFirstPressed(GameInput::kKey_escape);
     }
-
-    HWND g_hWnd = nullptr;
-
-    LRESULT CALLBACK WndProc( HWND, UINT, WPARAM, LPARAM );
-
 
     void TerminateApplication(IGameApp& game)
     {
