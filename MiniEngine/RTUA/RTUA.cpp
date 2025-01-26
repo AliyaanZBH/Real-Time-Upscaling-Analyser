@@ -573,33 +573,22 @@ void RTUA::RenderScene( void )
         ScopedTimer _outerprof(L"Main Render", gfxContext);
 
         {
-            // [AZB]: Original method
+            
+
            ScopedTimer _prof(L"Sun Shadow Map", gfxContext);
-           
+
+           // [AZB]: Original method - was previously temporarily using this new method from a kind soul in the community:
+           //         https://github.com/microsoft/DirectX-Graphics-Samples/pull/891/commits/bec16cef860fee2a68a07b7c18551b942e1374a4 
+           //        See this commit here that shows my implementation of it: https://github.com/AliyaanZBH/Real-Time-Upscaling-Analyser/pull/7/commits/5e971e3b648aa088ff9f1f83df6ca75cf64dee13
+
            MeshSorter shadowSorter(MeshSorter::kShadows);
            shadowSorter.SetCamera(m_SunShadowCamera);
            shadowSorter.SetDepthStencilTarget(g_ShadowBuffer);
            
-           //m_ModelInst.Render(shadowSorter);
            m_Scenes[activeScene].Render(shadowSorter);
 
            shadowSorter.Sort();
            shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
-
-            // [AZB]: New Method from https://github.com/microsoft/DirectX-Graphics-Samples/pull/891/commits/bec16cef860fee2a68a07b7c18551b942e1374a4 
-            //ScopedTimer _prof(L"Sun Shadow Map", gfxContext);
-            //
-            //MeshSorter shadowSorter(MeshSorter::kShadows);
-            //// [AZB]: Use main camera instead for position
-            //shadowSorter.SetCamera(m_Camera);
-            ////globals.ViewProjMatrix = m_SunShadowCamera.GetViewProjMatrix();
-            //shadowSorter.SetDepthStencilTarget(g_ShadowBuffer);
-            //m_Scenes[activeScene].Render(shadowSorter);
-            //
-            //shadowSorter.Sort();
-            //// [AZB]: Use viewProjMat of sun_shadow, where the light is!
-            ////shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals);
-            //shadowSorter.RenderMeshes(MeshSorter::kZPass, gfxContext, globals, m_SunShadowCamera.GetViewProjMatrix());
         }
 
         gfxContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
@@ -727,12 +716,15 @@ void RTUA::RenderScene( void )
     // [AZB]: This is where DLSS gets executed!
     TemporalEffects::ResolveImage(gfxContext);
 
+#if AZB_MOD
+    // [AZB]: Do not carry out the next steps regarding motion blur and DoF. They don't work properly with DLSS and are best left off for better performance AND fidelity.
+#else
     // Until I work out how to couple these two, it's "either-or".
     if (DepthOfField::Enable)
         DepthOfField::Render(gfxContext, m_Camera.GetNearClip(), m_Camera.GetFarClip());
     else
         MotionBlur::RenderObjectBlur(gfxContext, g_VelocityBuffer);
-
+#endif
     gfxContext.Finish();
 }
 

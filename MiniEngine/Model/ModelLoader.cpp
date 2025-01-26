@@ -352,10 +352,10 @@ void Renderer::UpdateSamplers(const Model* scene, Resolution inputResolution, bo
     // [AZB]: Use the input resolution of DLSS or the current native resolution
     float texLodXDimension = inputResolution.m_Width;
 
-    // [AZB]: Use the formula of the DLSS programming guide for the LOD Bias...
+    // [AZB]: Use the formula of the DLSS programming guide for the LOD Bias
     lodBias = std::log2f(texLodXDimension / DLSS::m_MaxNativeResolution.m_Width) - 1.0f;
 
-    // [AZB]: ... but leave the opportunity to override it in the UI...
+    // [AZB]: Allow users the opportunity to override it in the UI
     if (bOverride)
     {
         lodBias = overrideLodBias;
@@ -374,11 +374,14 @@ void Renderer::UpdateSamplers(const Model* scene, Resolution inputResolution, bo
         DescriptorHandle samplerHandles = Renderer::s_SamplerHeap[perm.second];
 
         // [AZB]: Create the array of source samplers to be updated
-        D3D12_CPU_DESCRIPTOR_HANDLE SourceSamplers[kNumTextures];
+        D3D12_CPU_DESCRIPTOR_HANDLE sourceSamplers[kNumTextures];
         uint32_t addressModeCopy = addressModes;
 
-        // [AZB]: Iterate over the textures (e.g. kNumTextures textures) and create new samplers for each
-        for (uint32_t j = 0; j < kNumTextures; ++j)
+        // [AZB]: Number of descriptors that will be copied - 5 samplers for each type of texture
+        uint32_t descCount = kNumTextures;       
+
+        // [AZB]: Iterate over the existing samplers and create new descriptors for each
+        for (uint32_t j = 0; j < descCount; ++j)
         {
             // [AZB]: Create a new sampler descriptor with the updated mipBias
             SamplerDesc updatedSamplerDesc = SamplerDesc();
@@ -387,18 +390,39 @@ void Renderer::UpdateSamplers(const Model* scene, Resolution inputResolution, bo
             updatedSamplerDesc.MipLODBias = lodBias;  // Set the mip bias dynamically
 
             // [AZB]: Create the new sampler handle using the updated descriptor
-            SourceSamplers[j] = updatedSamplerDesc.CreateDescriptor();
+            sourceSamplers[j] = updatedSamplerDesc.CreateDescriptor();
 
             // [AZB]: Move to the next address mode component (4 bits for each of U, V, W)
             addressModeCopy >>= 4;
         }
 
-        // [AZB]: Copy the new samplers into the original slot in the heap
-        uint32_t DestCount = kNumTextures;
+        // [AZB]: Copy the new descriptors we just created (source) over the originals in the heap (destination). 
+        //        The source samplers exist as 5 distinct ranges with 1 descriptor each.
+        //        The destination samplers exist as a single range with 5 descriptors.
 
-        g_Device->CopyDescriptors(1, &samplerHandles, &DestCount,
-            DestCount, SourceSamplers, &DestCount,
+        uint32_t srcRangeCount = descCount;         // Range Count of the source (5)
+        uint32_t srcRangeSize = 1u;                 // Range Size of the source (1)
+
+        uint32_t destRangeCount = 1u;               // Range Count of the destination (1)
+        uint32_t destRangeSize = descCount;         // Range Size of the destination (5)
+
+        // [AZB]: xCount * xSize should always equal descCount!
+
+        g_Device->CopyDescriptors(destRangeCount, &samplerHandles, &destRangeSize,
+            srcRangeCount, sourceSamplers, &srcRangeSize,
             D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+        // [AZB]: TODO: BUG: Needs investigating further, but there isn't much time left.
+        // 
+        // [AZB]: This above function runs correctly with no crashes, however there is a persistent D3D error everytime it is called.
+        // 
+        // [AZB]: The version below crashes at run-time after a moment, however there is no D3D error so is technically more "correct"?.
+        // 
+        //g_Device->CopyDescriptors(destRangeCount, &samplerHandles, &destRangeSize,
+        //    srcRangeCount, sourceSamplers, &srcRangeSize,
+        //    D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+        // [AZB]: This is one case where I think it is justified to let the error continue for now - it could possibly be a genuine false positive with D3D!
     }
 }
 #endif
