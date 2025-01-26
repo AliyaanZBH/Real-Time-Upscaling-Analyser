@@ -6,22 +6,16 @@ https://github.com/microsoft/DirectX-Graphics-Samples/blob/master/README.md
 
 # Setup
 
-The repo uses submodules so remember to clone using --recurse-submodules
+This repository uses Git Submodules so it is **vital** that you clone the repo using the **--recurse-submodules** suffix. The project will fail to build if you miss this step, but it can technically be recovered albeit with alot of extra effort. I instead recommend that you delete the local repository and clone it from fresh.
 
-## Assets
-I cannot use Git LFS due to being a public fork of Microsoft's repo, so please find the assets on GDrive! 
+To ensure minimum friction, copy the below command into your terminal to clone the main branch of the repository with all submodules. If you would like to see a specific branch, please add the -b prefix.
 
- - Amazon Bistro
-    - https://drive.google.com/drive/folders/1Pt_xRMfKjZso96NdROuHLoR_yLE3i-NP?usp=sharing
+```git
+git clone https://github.com/AliyaanZBH/Real-Time-Upscaling-Analyser.git --recurse-submodules
+```
+
+Please visit the [official documentation](https://git-scm.com/book/en/v2/Git-Tools-Submodules) for more information on submodules.
 
 # Build
 
-For the time being, you need to manually copy the nvgx-dlss.dll from the lib folder and place it next to the MiniEngine exe in RTUA. This will soon be improved to be completed within a post-build step.
-
-
-# Third Party
-
-I use the Amazon Bistro scene provided by ORCA, the NVIDIA research group. The original files were provided in FBX format but these have been converted to GLTF, and the original files are not included in the repo directly. Find the files in the [Assets section](#Assets) above.
-
-# Assets
-
+Simply navigate to MiniEngine/RTUA and open the .sln file and build! All DLLS should be automatically copied across in a post build step now.
