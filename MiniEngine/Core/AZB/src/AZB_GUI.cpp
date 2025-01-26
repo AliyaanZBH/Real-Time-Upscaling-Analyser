@@ -104,7 +104,7 @@ const void GUI_Style::HelpMarker(const char* desc)
 	ImGui::PopStyleColor();
 }
 
-const void GUI_Style::TutorialPageButtons(uint8_t pageNum)
+const void GUI_Style::TutorialPageButtons(uint8_t& pageNum)
 {
 	const char* btnText = "Previous";
 	MakeNextItemFitText(btnText);

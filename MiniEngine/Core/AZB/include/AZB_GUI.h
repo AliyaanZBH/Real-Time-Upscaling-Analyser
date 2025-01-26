@@ -294,8 +294,8 @@ namespace GUI_Style
     // Function to create helpful little tooltips
     const void HelpMarker(const char* desc);
 
-    // Reusable page button code
-    const void TutorialPageButtons(uint8_t pageNum);
+    // Reusable page button code - using a ref as the page number will belong to the specific GUI (RTUA_GUI) that implements this function as part of its tutorial
+    const void TutorialPageButtons(uint8_t& pageNum);
 
     // 
     // Style Helper Members

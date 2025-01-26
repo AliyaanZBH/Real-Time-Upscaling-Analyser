@@ -110,7 +110,7 @@ namespace GameCore
 
         // [AZB]: Set an input option to toggle between exclusive and non-exclusive mouse access for Mini EngineImGui control and Application control
 #if AZB_MOD
-        
+       
         // [AZB]: See if the user changed any graphical settings in the previous frame and apply them now at the start of this one!
         RTUA_GUI::UpdateGraphics();
 
@@ -155,11 +155,11 @@ namespace GameCore
             else
                 PostEffects::Render(g_SceneColorBuffer);
         }
-
 #else
         // [AZB]: Original function that acts on global scene buffer
         PostEffects::Render();
 #endif
+
         GraphicsContext& UiContext = GraphicsContext::Begin(L"Render UI");
         UiContext.TransitionResource(g_OverlayBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
         UiContext.ClearColor(g_OverlayBuffer);
@@ -178,7 +178,6 @@ namespace GameCore
 
         GraphicsContext& ImGuiContext = GraphicsContext::Begin(L"Render ImGui");
 
-
         // [AZB]: Set the descriptor heap that we set up in the GUI class
         ImGuiContext.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, RTUA_GUI::m_pSrvDescriptorHeap);
 
@@ -188,7 +187,6 @@ namespace GameCore
         // [AZB]: Using the overlay buffer render target - can't use the one from g_ImGuiBuffer
         ImGuiContext.SetRenderTarget(g_OverlayBuffer.GetRTV());
         ImGuiContext.SetViewportAndScissor(0, 0, g_OverlayBuffer.GetWidth(), g_OverlayBuffer.GetHeight());
-
 
         // [AZB]: Submit ImGui draw calls within engine context
         ImGui::Render();
@@ -205,7 +203,6 @@ namespace GameCore
 
         return !game.IsDone();
     }
-
 
     // Default implementation to be overridden by the application
     bool IGameApp::IsDone( void )
@@ -226,8 +223,6 @@ namespace GameCore
         game.Cleanup();
 
         GameInput::Shutdown();
-
-      
     }
 
     int RunApplication( IGameApp& app, const wchar_t* className, HINSTANCE hInst, int nCmdShow )
