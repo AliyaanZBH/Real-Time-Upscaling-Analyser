@@ -20,6 +20,12 @@ Please visit the [official documentation](https://git-scm.com/book/en/v2/Git-Too
 
 Simply navigate to MiniEngine/RTUA and open the .sln file and build! All DLLS should be automatically copied across in a post build step now.
 
+**NOTE: For some reason (that needs to and will be solved soon), the step that copies the Sponza asset files to the output directory only does a shallow copy.**
+
+  - **This doesn't effect regular running from Visual Studio, but if you try to run the .exe directly, the application will run fine but the Sponza will be missing and not rendered.**
+
+  - **Please find the "pbr" folder under MiniEngine/RTUA/Sponza and copy the entire pbr folder to the Sponza folder in the output directory.**
+
 # Known Bugs and Troubleshooting
 
 For some reason, **GPU Tweak III** (and possibly older versions, tests needed here) causes an issue with the application, specifcally causing the swapchain to lose sync and cause a run-time exception. 
