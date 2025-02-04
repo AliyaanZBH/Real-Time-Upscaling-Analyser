@@ -43,6 +43,7 @@
 /*
    Change Log:
    [AZB] 13/11/24: Added a check to apply post-processing to DLSS_OutputBuffer and not the main color buffer when DLSS enabled!
+   [AZB] 25/01/25: Renamed file (and project) to reflect significance of changes made.
 
 */
 

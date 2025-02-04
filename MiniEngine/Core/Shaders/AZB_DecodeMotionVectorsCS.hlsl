@@ -13,9 +13,8 @@
 // This is the original packed velocity buffer, which should have been written to in cameraVelocityCS.hlsl!
 Texture2D<uint> PackedVelocityBuffer : register(t0); // SRV, input only
 
-// This is where we are going to output our decoded buffers, which is a custom buffer created in BufferManager
+// This is where we are going to output our decoded buffers, which is a custom buffer created in BufferManager, and will be passed to DLSS.
 RWTexture2D<float2> DecodedMotionVectors : register(u0); // UAV, we are writing to this buffer.
-
 
 
 //

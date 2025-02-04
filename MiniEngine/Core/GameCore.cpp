@@ -108,7 +108,7 @@ namespace GameCore
 
         float DeltaTime = Graphics::GetFrameTime();
 
-        // [AZB]: Set an input option to toggle between exclusive and non-exclusive mouse access for Mini EngineImGui control and Application control
+        // [AZB]: Update pipeline based on GUI settings and additionaly set an input option to toggle between exclusive and non-exclusive mouse access for Mini Engine Application control and ImGui control
 #if AZB_MOD
        
         // [AZB]: See if the user changed any graphical settings in the previous frame and apply them now at the start of this one!
@@ -117,7 +117,7 @@ namespace GameCore
         // [AZB]: The app will start in exclusive mode, but as this input gets repeated we need to check which one we're currently set to in order to correctly toggle
         if (g_bMouseExclusive)
         {
-            // [AZB]: This allows the mouse to disappear when controlling the in-engine camera, and reappear when using ImGui. L.ALT + M
+            // [AZB]: This allows the mouse to disappear when controlling the in-engine camera, and reappear when using ImGui. L.CTRL + M
             if (GameInput::IsPressed(GameInput::kKey_lcontrol) && GameInput::IsFirstReleased(GameInput::kKey_m))
             {
                 // [AZB]: Call bespoke function to unacquire mouse
