@@ -20,31 +20,8 @@
 class CommandContext;
 class Model;
 
-// Pallete consts for ease of use, readabilty and editability
-namespace ThemeColours
+namespace RTUA_GUI
 {
-   // const ImVec4 m_HighlightColour = ImVec4(1.0f, 1.f, 0.4f, 1.f);
-    const ImVec4 m_PureBlack = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
-    const ImVec4 m_PureWhite = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
-    const ImVec4 m_RtuaGold = ImVec4(1.f, 0.8f, 0.f, 1.f);
-
-    const ImVec4 m_RtuaBlack = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
-    const ImVec4 m_RtuaLightBlack = ImVec4(0.04f, 0.04f, 0.04f, 0.85f);
-    const ImVec4 m_PurgatoryGrey = ImVec4(0.25f, 0.25f, 0.25f, 0.5f);
-    const ImVec4 m_Charcoal = ImVec4(0.15f, 0.15f, 0.21f, 0.965f);
-    const ImVec4 m_GunmetalGrey = ImVec4(0.068f, 0.068f, 0.068f, 0.965f);
-    const ImVec4 m_DarkerGold = ImVec4(0.9f, 0.7f, 0.f, 0.9f);
-    const ImVec4 m_DarkestGold = ImVec4(0.8f, 0.6f, 0.f, 0.8f);;
-    const ImVec4 m_BasicallyRed = ImVec4(0.9f, 0.05f, 0.f, 0.9f);
-
-    const ImVec4 m_HighlightColour = m_RtuaGold;
-};
-
-class GUI
-{
-public:
-	GUI() {}
-
 	// Get ImGui started!
 	void Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const DXGI_FORMAT& renderTargetFormat);
 
@@ -57,82 +34,56 @@ public:
 
 	// Shutdown ImGui safely
 	void Terminate();
+
+
+
+    //
+    //
+    //  Namespace Members
+    //
+    //
+    // 
+
     
+    //
+    //  Key GUI Members
+    //  
 
 	// A handle to render ImGui within MiniEngine
-	ID3D12DescriptorHeap* m_pSrvDescriptorHeap = nullptr;
+	extern ID3D12DescriptorHeap* m_pSrvDescriptorHeap;
 
-    // Public pointer to the scene we will be investigating!
-    const Model* m_pScene = nullptr;
-
-    // Counter variable to track "pages" on the tutorial
-    uint8_t m_Page = 1;
-
-    // Public flag to enable/disable tonemapping!
-    bool m_bEnablePostFX = true; 
-    
-    // Public flag to enable/disable Motion Vector visualisation!
-    bool m_bEnableMotionVisualisation = true;
-
-    // Flag to show startup modal
-    bool m_bShowStartupModal = true;
-
-    // Flag to track display mode and adjust behaviour accordingly
-    bool m_bFullscreen = false;
-    // Flag to indicate that display mode should change next frame
-    bool m_bDisplayModeChangePending = false;
-
-private:
-
-
-    //
-    //  MiniEngine Integration
-    //  
-    
     // Handle to global device - needed to update descriptor heap!
-    ID3D12Device* m_pD3DDevice = nullptr;
+    extern ID3D12Device* m_pD3DDevice;
 
-
-    //
-    // GBuffer handling
-    //
-    enum eGBuffers : uint8_t
-    {
-        SCENE_COLOR,
-        SCENE_DEPTH,
-        MOTION_VECTORS,
-        VISUAL_MOTION_VECTORS,
-        NUM_BUFFERS
-    };
-
-
-    // String look-up table to give names to buffers in ImGui!
-    // IF the above enum changes, you need to change this!
-    std::string m_BufferNames[eGBuffers::NUM_BUFFERS] =
-    {
-        "Main Color"            ,
-        "Depth"                 ,
-        "Motion Vectors Raw"    ,
-        "MV Visualisation"       
-    };
-
-    // The actual array of buffer handles
-    std::array<D3D12_CPU_DESCRIPTOR_HANDLE, NUM_BUFFERS> m_GBuffers{};
-
-
-    //
-    // Member variables that allow for safe manipulation of graphics pipeline.
-    //
+    // Pointer to the scene we will be investigating!
+    extern const Model* m_pScene;
 
     // Values that represent the new resolution to change to next frame (if the user requests a change!)
-    uint32_t m_NewWidth = 0u;
-    uint32_t m_NewHeight = 0u;
+    extern uint32_t m_NewWidth;
+    extern uint32_t m_NewHeight;
 
     // The size of the the title bar in windowed mode - this was originally the total window resolution but this led to memory leaks when resizing!
-    Resolution m_TitleBarSize{};
+    extern Resolution m_TitleBarSize;
 
+    // Key Flags
+    //
 
+    // Bool that tracks when GUI, and by proxy the rest of the app, is fully setup. Used to ensure smooth alt+tabbing and startup behaviour across devices!
+    extern bool m_bReady;
 
+    // Public flag to enable/disable tonemapping!
+    extern bool m_bEnablePostFX;
+
+    // Public flag to enable/disable Motion Vector visualisation!
+    extern bool m_bEnableMotionVisualisation;
+
+    // Flag to show startup modal
+    extern bool m_bShowStartupModal;
+
+    // Flag to track display mode and adjust behaviour accordingly
+    extern bool m_bFullscreen;
+    // Flag to indicate that display mode should change next frame
+    extern bool m_bDisplayModeChangePending;
 
     //
     //  Rendering mode selection helpers
@@ -146,59 +97,81 @@ private:
         NUM_RENDER_MODES
     };
 
-    std::string m_RenderModeNames[eRenderingMode::NUM_RENDER_MODES] =
-    {
-        "Native"            ,
-        "Bilinear Upscale"  ,
-        "DLSS "
-    };
+    extern std::string m_RenderModeNames[eRenderingMode::NUM_RENDER_MODES];
 
     // Tracker for rendering mode
-    eRenderingMode m_CurrentRenderingMode = eRenderingMode::NATIVE;
+    extern eRenderingMode m_CurrentRenderingMode;
     // Track last mode so that we can reset any state
-    eRenderingMode m_PreviousRenderingMode = eRenderingMode::NATIVE;
+    extern  eRenderingMode m_PreviousRenderingMode;
+
+    // Track scaling factor
+    extern float m_ScalingFactor;
 
     // Tracker for bilinear upscale input, so it can be saved and returned to when swapping modes
-    Resolution m_BilinearInputRes = { 640, 480 };
+    extern Resolution m_BilinearInputRes;
 
     // Flag to indicate that the resolution should change next frame
-    bool m_bResolutionChangePending = false;
+    extern bool m_bResolutionChangePending;
     
     // Flag to indicate that common graphics state needs re-initalising next frame e.g. due to a change in mip bias for texture sampling
-    bool m_bCommonStateChangePending = false;
+    extern bool m_bCommonStateChangePending;
     // Flag that tracks the checkbox which controls LOD bias
-    bool m_bOverrideLodBias = false;
+    extern bool m_bOverrideLodBias;
     // Actual value that can be controlled by the user to determine a custom LOD bias
-    float m_ForcedLodBias = 0.f;
+    extern float m_ForcedLodBias;
     // Original LOD bias before overriding
-    float m_OriginalLodBias = 0.f;
+    extern float m_OriginalLodBias;
 
 
     // Flag to indicate when a change has been made to DLSS
-    bool m_bDLSSUpdatePending = false;
+    extern bool m_bDLSSUpdatePending;
     // Flag to control when to enable/disable DLSS
-    bool m_bToggleDLSS = false;
+    extern bool m_bToggleDLSS;
     // Flag to indicate that the requested change is to DLSS mode
-    bool m_bUpdateDLSSMode = false;
+    extern bool m_bUpdateDLSSMode;
 
 
     // Checkbox that controls whether to show metrics window
-    bool m_ShowHardwareMetrics = false;
-    bool m_ShowFrameRate = false;
+    extern bool m_ShowHardwareMetrics;
+    extern bool m_ShowFrameRate;
+
+    // Counter variable to track "pages" on the tutorial
+    extern uint8_t m_Page;
+
+    //
+    // GBuffer handling
+    //
+
+    enum eGBuffers : uint8_t
+    {
+        SCENE_COLOR,
+        SCENE_DEPTH,
+        MOTION_VECTORS,
+        VISUAL_MOTION_VECTORS,
+        NUM_BUFFERS
+    };
+
+    // String look-up table to give names to buffers in ImGui!
+    // If the above enum changes, you need to change this!
+    extern std::string m_BufferNames[eGBuffers::NUM_BUFFERS];
+
+    // The actual array of buffer handles
+    extern std::array<D3D12_CPU_DESCRIPTOR_HANDLE, NUM_BUFFERS> m_GBuffers;
 
 
 
-
-
+    //
 	//
 	//	Functions to break up smaller sections of the UI
 	//
+    //
 
 
     //
     //  Main Sections that users will see
     //
 
+    // This section also acts as the tutorial
     void StartupModal();
 
 	void MainWindowTitle();
@@ -223,209 +196,114 @@ private:
 
 
 	//
-	// Constants to help with the UI
+	// Constants to help with this specific GUI
 	//
 
+    // How big is the main GUI window? Normally I'd make this a constant but the resolution will constantly be changing in this app!
+    extern ImVec2 m_MainWindowSize;
+    // Starting position of main window
+    extern ImVec2 m_MainWindowPos;
 
-    // How big is the window? Normally I'd make this a constant but the resolution will constantly be changing in this app!
-    ImVec2 m_MainWindowSize;
 
-    //
     // Size of child windows
     //
 
-    ImVec2 m_BufferWindowSize;
-    ImVec2 m_MetricWindowSize;
+    extern ImVec2 m_BufferWindowSize;
+    extern ImVec2 m_MetricWindowSize;
 
-    // Starting position of main window
-    ImVec2 m_MainWindowPos;
-    
     //
     // Starting position of child windows
     
-    ImVec2 m_BufferWindowPos;       // Set it at far corner
-    ImVec2 m_HwTimingWindowPos;     // Set it directly next to the main window at the top
-    ImVec2 m_FrameRateWindowPos;    // Set underneath the other one
+    extern ImVec2 m_BufferWindowPos;       // Set it at far corner
+    extern ImVec2 m_HwTimingWindowPos;     // Set it directly next to the main window at the top
+    extern ImVec2 m_FrameRateWindowPos;    // Set underneath the other one
 
+};
 
-	// Common window pivot positions
-	const ImVec2 kTopLeftPivot = { 0.f, 0.f };
-	const ImVec2 kTopRightPivot = { 1.f, 0.f };
-	const ImVec2 kCenterPivot = { 0.5f, 0.5f };
-	const ImVec2 kBottomLeftPivot = { 0.f, 1.f };
+// Pallete consts for ease of use, readabilty and editability
+namespace ThemeColours
+{
+    // const ImVec4 m_HighlightColour = ImVec4(1.0f, 1.f, 0.4f, 1.f);
+    const ImVec4 m_PureBlack = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
+    const ImVec4 m_PureWhite = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+    const ImVec4 m_RtuaGold = ImVec4(1.f, 0.8f, 0.f, 1.f);
 
-	// Common item spacings
-	const void QuarterLineBreak() { ImGui::Dummy(ImVec2(0.0f, 5.0f)); }
-	const void HalfLineBreak() { ImGui::Dummy(ImVec2(0.0f, 10.0f)); }
-	const void SingleLineBreak() { ImGui::Dummy(ImVec2(0.0f, 20.0f)); }
-	const void DoubleLineBreak() { ImGui::Dummy(ImVec2(0.0f, 40.0f)); }
+    const ImVec4 m_RtuaBlack = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
+    const ImVec4 m_RtuaLightBlack = ImVec4(0.04f, 0.04f, 0.04f, 0.85f);
+    const ImVec4 m_PurgatoryGrey = ImVec4(0.25f, 0.25f, 0.25f, 0.5f);
+    const ImVec4 m_Charcoal = ImVec4(0.15f, 0.15f, 0.21f, 0.965f);
+    const ImVec4 m_GunmetalGrey = ImVec4(0.068f, 0.068f, 0.068f, 0.965f);
+    const ImVec4 m_DarkerGold = ImVec4(0.9f, 0.7f, 0.f, 0.9f);
+    const ImVec4 m_DarkestGold = ImVec4(0.8f, 0.6f, 0.f, 0.8f);;
+    const ImVec4 m_BasicallyRed = ImVec4(0.9f, 0.05f, 0.f, 0.9f);
 
-	const void SingleTabSpace() { ImGui::SameLine(0.0f, 20.0f); }
-	const void DoubleTabSpace() { ImGui::SameLine(0.0f, 40.0f); }
-	const void TripleTabSpace() { ImGui::SameLine(0.0f, 60.0f); }
+    const ImVec4 m_HighlightColour = m_RtuaGold;
+};
 
-	// Section separator
-	const void Separator() {
-		// Add space between previous item
-		DoubleLineBreak();
-		// Draw separator
-		ImGui::Separator();
-		// Add space for next item
-		DoubleLineBreak();
-	}
+// Helper namespace (separated for readability) that helps with styling any GUI!
+namespace GUI_Style
+{
+   //
+   // Custom Style Setter
+   // 
+
+    void SetStyle();
+
 
     //
-	// Text item alignment (works for buttons too! basically, anything that uses text!)
+    // Style Helper Methods
     //
-	const void CenterNextTextItem(const char* text) { ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize(text).x) / 2.f); }
-	const void RightAlignNextTextItem(const char* text) { ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize(text).x)); }
+
+    // Common item spacings
+    const void QuarterLineBreak();
+    const void HalfLineBreak();  
+    const void SingleLineBreak();
+    const void DoubleLineBreak();
+
+    const void SingleTabSpace();
+    const void DoubleTabSpace();
+    const void TripleTabSpace();
+
+    // Section Separator
+    const void Separator();
+
+    //
+    // Text item alignment (works for buttons too! basically, anything that uses text!)
+    //
+    const void CenterNextTextItem(const char* text);
+    const void RightAlignNextTextItem(const char* text);
 
     // Used for aligning a button onto the right side of the window
-    const void RightAlignSameLine(const char* text) { ImGui::SameLine(ImGui::GetWindowWidth() - (ImGui::CalcTextSize(text).x + ImGui::GetTextLineHeightWithSpacing())); }
+    const void RightAlignSameLine(const char* text);
 
-	// Common function to make an ImGui item that contains text fit that text
-	const void MakeNextItemFitText(const char* text) { ImGui::PushItemWidth(ImGui::CalcTextSize(text).x + ImGui::GetTextLineHeightWithSpacing()); }
+    // Common function to make an ImGui item that contains text fit that text
+    const void MakeNextItemFitText(const char* text);
 
     // Custom function for combos - they have an additional arrow to account for
-	const void CenterNextCombo(const char* text) { ImGui::SetCursorPosX(((ImGui::GetWindowWidth() - ImGui::CalcTextSize(text).x) / 2.f) - ImGui::GetFrameHeight()) ; }
+    const void CenterNextCombo(const char* text);
 
-	// Reusable section title function
-	const void SectionTitle(const char* titleText)
-	{
-		CenterNextTextItem(titleText);
-		ImGui::Text(titleText);
-	}
+    // Reusable section title function
+    const void SectionTitle(const char* titleText);
 
     // Reusable wrapped bullet text! Self-Indents by 1 level, call xxTabSpace() for more levels!
-    const void WrappedBullet(const char* bulletText)
-    {
-        ImGui::Bullet();
-        SingleTabSpace();
-        ImGui::TextWrapped(bulletText);
-    }
+    const void WrappedBullet(const char* bulletText);
 
     // Reusable function to highlight items!
-    const void HighlightTextItem(const char* itemText, bool center = true, float spacing = 7.5f, float thickness = 3.f)
-    {
-        if (center)
-            CenterNextTextItem(itemText);
-        ImGui::Text(itemText);
-
-        // Calculate position to draw rect of last item
-        ImVec2 firstItemPosMin = ImGui::GetItemRectMin();
-        ImVec2 firstItemPosMax = ImGui::GetItemRectMax();
-
-        // Add an offset to create some space around the item we are highlighting
-        ImVec2 firstRectPosMin = ImVec2(firstItemPosMin.x - spacing, firstItemPosMin.y - spacing);
-        ImVec2 firstRectPosMax = ImVec2(firstItemPosMax.x + spacing, firstItemPosMax.y + spacing);
-
-        // Submit the highlight rectangle to ImGui's draw list!
-        ImGui::GetWindowDrawList()->AddRect(firstRectPosMin, firstRectPosMax, ImColor(ThemeColours::m_HighlightColour), 0, ImDrawFlags_None, thickness);
-    }
-
-    // Slightly more advanced function that can highlight variable items! 
-    const void HighlightItem();
+    const void HighlightTextItem(const char* itemText, bool center = true, bool wrapped = false, float spacing = 7.5f, float thickness = 3.f);
 
     // Function to create helpful little tooltips
-    const void HelpMarker(const char* desc)
-    {
-        ImGui::TextColored(ThemeColours::m_RtuaGold, "(?)");
-        // Added this to give it a custom color
-        ImGui::PushStyleColor(0, ThemeColours::m_RtuaGold);
-        if (ImGui::BeginItemTooltip())
-        {
-            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-            ImGui::TextUnformatted(desc);
-            ImGui::PopTextWrapPos();
-            ImGui::EndTooltip();
-        }
-        ImGui::PopStyleColor();
-    }
+    const void HelpMarker(const char* desc);
 
-    // Reusable page button code
-    const void TutorialPageButtons()
-    {
-        const char* btnText = "Previous";
-        MakeNextItemFitText(btnText);
-        ImGui::SetItemDefaultFocus();
+    // Reusable page button code - using a ref as the page number will belong to the specific GUI (RTUA_GUI) that implements this function as part of its tutorial
+    const void TutorialPageButtons(uint8_t& pageNum);
 
-        // Return to previous page
-        if (ImGui::Button(btnText))
-        {
-            --m_Page;
-        }
-
-        btnText = "Next";
-        RightAlignSameLine(btnText);
-        MakeNextItemFitText(btnText);
-
-
-        if (ImGui::Button(btnText))
-        {
-            // Advance to final page
-            ++m_Page;
-        }
-
-    }
-
-	//============================================================================
-	//
-	// Custom Style
-	// 
-	//============================================================================
-
-
-	void SetStyle()
-	{
-        ImVec4* colors = ImGui::GetStyle().Colors;
-
-        colors[ImGuiCol_Text] = ThemeColours::m_PureWhite;
-        colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
-        colors[ImGuiCol_WindowBg] = ThemeColours::m_Charcoal;
-        colors[ImGuiCol_ChildBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-        colors[ImGuiCol_PopupBg] = ThemeColours::m_Charcoal;
-        colors[ImGuiCol_Border] = ThemeColours::m_PureBlack;
-        colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-        colors[ImGuiCol_FrameBg] = ThemeColours::m_GunmetalGrey;
-        colors[ImGuiCol_FrameBgHovered] = ThemeColours::m_DarkestGold;
-        colors[ImGuiCol_FrameBgActive] = ThemeColours::m_RtuaGold;
-        colors[ImGuiCol_TitleBg] = ThemeColours::m_DarkerGold;
-        colors[ImGuiCol_TitleBgActive] = ThemeColours::m_DarkerGold;
-        colors[ImGuiCol_TitleBgCollapsed] = ThemeColours::m_DarkestGold;
-        colors[ImGuiCol_MenuBarBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
-        colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.53f);
-        colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
-        colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
-        colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
-        colors[ImGuiCol_CheckMark] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-        colors[ImGuiCol_SliderGrab] = ImVec4(0.25f, 0.25f, 0.25f, 0.5f);
-        colors[ImGuiCol_SliderGrabActive] = ImVec4(1.f, 0.171f, 0.f, 0.9f);
-        colors[ImGuiCol_Button] = ThemeColours::m_RtuaBlack;
-        colors[ImGuiCol_ButtonHovered] = ThemeColours::m_DarkestGold;
-        colors[ImGuiCol_ButtonActive] = ThemeColours::m_RtuaGold;
-        colors[ImGuiCol_Header] = ThemeColours::m_RtuaLightBlack;
-        colors[ImGuiCol_HeaderHovered] = ThemeColours::m_DarkestGold;
-        colors[ImGuiCol_HeaderActive] = ThemeColours::m_RtuaGold;
-        colors[ImGuiCol_Separator] = ThemeColours::m_RtuaGold;
-        colors[ImGuiCol_SeparatorHovered] = ImVec4(1.f, 0.171f, 0.f, 1.f);
-        colors[ImGuiCol_SeparatorActive] = ImVec4(1.f, 0.1f, 0.f, 1.f);
-        colors[ImGuiCol_ResizeGrip] = ThemeColours::m_RtuaGold;
-        colors[ImGuiCol_ResizeGripHovered] = ThemeColours::m_DarkerGold;
-        colors[ImGuiCol_ResizeGripActive] = ThemeColours::m_DarkestGold;
-        colors[ImGuiCol_Tab] = ImLerp(colors[ImGuiCol_Header], colors[ImGuiCol_TitleBgActive], 0.80f);
-        colors[ImGuiCol_TabHovered] = colors[ImGuiCol_HeaderHovered];
-        colors[ImGuiCol_TabActive] = ImLerp(colors[ImGuiCol_HeaderActive], colors[ImGuiCol_TitleBgActive], 0.60f);
-        colors[ImGuiCol_TabUnfocused] = ImLerp(colors[ImGuiCol_Tab], colors[ImGuiCol_TitleBg], 0.80f);
-        colors[ImGuiCol_TabUnfocusedActive] = ImLerp(colors[ImGuiCol_TabActive], colors[ImGuiCol_TitleBg], 0.40f);
-        colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
-        colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
-        colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
-        colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
-        colors[ImGuiCol_TextSelectedBg] = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
-        colors[ImGuiCol_DragDropTarget] = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
-        colors[ImGuiCol_NavHighlight] = ImVec4(0.f, 0.5f, 1.f, 1.f);                   // Gamepad / KBM highlight.
-        colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
-        colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
-        colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
-	};
+    // 
+    // Style Helper Members
+    //
+   
+    // Common window pivot positions
+    const ImVec2 kTopLeftPivot = { 0.f, 0.f };
+    const ImVec2 kTopRightPivot = { 1.f, 0.f };
+    const ImVec2 kCenterPivot = { 0.5f, 0.5f };
+    const ImVec2 kBottomLeftPivot = { 0.f, 1.f };
 };

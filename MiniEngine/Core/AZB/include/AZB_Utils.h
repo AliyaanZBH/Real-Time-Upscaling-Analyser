@@ -28,6 +28,5 @@ struct Resolution
 	uint32_t m_Height = 0u;
 };
 
-
 // Used in ModelViewer.cpp to dictate size of model array
 constexpr int kNumScenes = 2;

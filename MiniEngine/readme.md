@@ -1,7 +1,10 @@
 # MiniEngine by Team Minigraph at Microsoft
 
+Modified by Aliyaan Zulfiqar Bhatti.
+
 ## Getting started:
-* Open ModelViewer/ModelViewer_VS16.sln
+* ~~Open ModelViewer/ModelViewer_VS16.sln~~
+  * Open RTUA/RTUA.sln. This project used the existing ModelViewer as a base. 
 * Select configuration: Debug (full validation), Profile (instrumented), Release
 * Select platform
 * Build and run

@@ -477,7 +477,7 @@ float GameInput::GetTimeCorrectedAnalogInput( AnalogInput ai )
     return s_AnalogsTC[ai];
 }
 
-// [AZB]: Implementation for mouse unaqcuire
+// [AZB]: Bespoke implementation for mouse unaqcuire. Not including the utils and using the macro here to save on recompilation time when toggling macro.
 void GameInput::ReleaseMouseExclusivity()
 {
     s_Mouse->Unacquire();

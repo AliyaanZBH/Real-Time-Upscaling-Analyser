@@ -111,7 +111,7 @@ namespace Graphics
     const uint32_t kNumPredefinedResolutions = 6;
 
     const char* ResolutionLabels[] = { "1280x720", "1600x900", "1920x1080", "2560x1440", "3200x1800", "3840x2160" };
-    EnumVar NativeResolution("Graphics/Display/Native Resolution", k1080p, kNumPredefinedResolutions, ResolutionLabels);
+    EnumVar NativeResolution("Graphics/Display/Native Resolution", k1440p, kNumPredefinedResolutions, ResolutionLabels);
 #ifdef _GAMING_DESKTOP
     // This can set the window size to common dimensions.  It's also possible for the window to take on other dimensions
     // through resizing or going full-screen.
@@ -316,8 +316,7 @@ void Display::Resize(uint32_t width, uint32_t height)
     }
     else
     {
-        // SetPipelineResolution(false, width, height);
-        // [AZB]: Original pre-buffer creation
+        // [AZB]: Original pre-buffer creation is used here as when DLSS is disabled the application should function the same
         g_PreDisplayBuffer.Create(L"PreDisplay Buffer", width, height, 1, SwapChainFormat);
     }
 
@@ -605,7 +604,6 @@ void Graphics::PreparePresentSDR(void)
     Context.SetDynamicDescriptor(0, 0, g_SceneColorBuffer.GetSRV());
 #endif
 
-
 #if AZB_MOD
     // [AZB]: When DLSS is enabled, you no longer need to upscale the scene buffer! This is because we will be rendering using the DLSS output buffer which has already been upscaled
     bool NeedsScaling = !DLSS::m_bDLSS_Enabled && (g_NativeWidth != g_DisplayWidth || g_NativeHeight != g_DisplayHeight);
@@ -726,14 +724,10 @@ void Display::Present(void)
     TemporalEffects::Update((uint32_t)s_FrameIndex);
     
 #if AZB_MOD
-   // [AZB]: Resize according to DLSS
-   //if (DLSS::m_bDLSS_Enabled)
-   //     SetPipelineResolution(true, g_DisplayWidth, g_DisplayHeight);
-   // else
-   //    SetPipelineResolution(false, g_DisplayWidth, g_DisplayHeight);
+    // [AZB]: Do nothing! We no longer want to reset our rendering resolution as the whole purpose of the experiment is to allow users to change resolution and explore the effects of that change for as long as possible.
 #else
 
-    // [AZB]: Original call here to resize internal rendering resolution
+    // [AZB]: Original call here to resize internal rendering resolution back to native
     SetNativeResolution();
 #endif
     SetDisplayResolution();

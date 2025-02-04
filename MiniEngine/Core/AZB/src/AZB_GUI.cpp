@@ -14,14 +14,275 @@
 #include "CommandContext.h"		// For transitioning resources
 #include <TemporalEffects.h>	// For jitter
 #include "Renderer.h"			
-#include "SamplerManager.h"	// For mipBias overriding and control!
+#include "SamplerManager.h"		// For mipBias overriding and control!
 #include <ModelLoader.h>
 
 //===============================================================================
-// Wrapped in macro so it still compiles in source
+// Wrapped in macro so that the source still compiles when macro is disabled
 #if AZB_MOD
 
-void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const DXGI_FORMAT& renderTargetFormat)
+//============================================================================
+//
+// 
+// GUI Style Helper Implementation
+// 
+// 
+//============================================================================
+
+#pragma region GUI Style Helper Implementation
+
+const void GUI_Style::QuarterLineBreak() { ImGui::Dummy(ImVec2(0.0f, 5.0f)); }
+const void GUI_Style::HalfLineBreak() { ImGui::Dummy(ImVec2(0.0f, 10.0f)); }
+const void GUI_Style::SingleLineBreak() { ImGui::Dummy(ImVec2(0.0f, 20.0f)); }
+const void GUI_Style::DoubleLineBreak() { ImGui::Dummy(ImVec2(0.0f, 40.0f)); }
+
+const void GUI_Style::SingleTabSpace() { ImGui::SameLine(0.0f, 20.0f); }
+const void GUI_Style::DoubleTabSpace() { ImGui::SameLine(0.0f, 40.0f); }
+const void GUI_Style::TripleTabSpace() { ImGui::SameLine(0.0f, 60.0f); }
+
+const void GUI_Style::Separator()
+{
+	// Add space between previous item
+	DoubleLineBreak();
+	// Draw separator
+	ImGui::Separator();
+	// Add space for next item
+	DoubleLineBreak();
+}
+
+const void GUI_Style::CenterNextTextItem(const char* text) { ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize(text).x) / 2.f); }
+const void GUI_Style::RightAlignNextTextItem(const char* text) { ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize(text).x)); }
+const void GUI_Style::RightAlignSameLine(const char* text) { ImGui::SameLine(ImGui::GetWindowWidth() - (ImGui::CalcTextSize(text).x + ImGui::GetTextLineHeightWithSpacing())); }
+const void GUI_Style::MakeNextItemFitText(const char* text) { ImGui::PushItemWidth(ImGui::CalcTextSize(text).x + ImGui::GetTextLineHeightWithSpacing()); }
+const void GUI_Style::CenterNextCombo(const char* text) { ImGui::SetCursorPosX(((ImGui::GetWindowWidth() - ImGui::CalcTextSize(text).x) / 2.f) - ImGui::GetFrameHeight()); }
+
+const void GUI_Style::SectionTitle(const char* titleText)
+{
+	CenterNextTextItem(titleText);
+	ImGui::Text(titleText);
+}
+
+const void GUI_Style::WrappedBullet(const char* bulletText)
+{
+	ImGui::Bullet();
+	SingleTabSpace();
+	ImGui::TextWrapped(bulletText);
+}
+
+const void GUI_Style::HighlightTextItem(const char* itemText, bool center, bool wrapped, float spacing, float thickness)
+{
+	if (center)
+		CenterNextTextItem(itemText);
+	if (!wrapped)
+		ImGui::Text(itemText);
+	else
+		ImGui::TextWrapped(itemText);
+	// Calculate position to draw rect of last item
+	ImVec2 firstItemPosMin = ImGui::GetItemRectMin();
+	ImVec2 firstItemPosMax = ImGui::GetItemRectMax();
+
+	// Add an offset to create some space around the item we are highlighting
+	ImVec2 firstRectPosMin = ImVec2(firstItemPosMin.x - spacing, firstItemPosMin.y - spacing);
+	ImVec2 firstRectPosMax = ImVec2(firstItemPosMax.x + spacing, firstItemPosMax.y + spacing);
+
+	// Submit the highlight rectangle to ImGui's draw list!
+	ImGui::GetWindowDrawList()->AddRect(firstRectPosMin, firstRectPosMax, ImColor(ThemeColours::m_HighlightColour), 0, ImDrawFlags_None, thickness);
+}
+
+const void GUI_Style::HelpMarker(const char* desc)
+{
+	ImGui::TextColored(ThemeColours::m_RtuaGold, "(?)");
+	// Added this to give it a custom color
+	ImGui::PushStyleColor(0, ThemeColours::m_RtuaGold);
+	if (ImGui::BeginItemTooltip())
+	{
+		ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+		ImGui::TextUnformatted(desc);
+		ImGui::PopTextWrapPos();
+		ImGui::EndTooltip();
+	}
+	ImGui::PopStyleColor();
+}
+
+const void GUI_Style::TutorialPageButtons(uint8_t& pageNum)
+{
+	const char* btnText = "Previous";
+	MakeNextItemFitText(btnText);
+	ImGui::SetItemDefaultFocus();
+
+	// Return to previous page
+	if (ImGui::Button(btnText))
+	{
+		--pageNum;
+	}
+
+	btnText = "Next";
+	RightAlignSameLine(btnText);
+	MakeNextItemFitText(btnText);
+
+
+	if (ImGui::Button(btnText))
+	{
+		// Advance to next page
+		++pageNum;
+	}
+
+}
+
+//
+// Custom Style Setter
+// 
+
+void GUI_Style::SetStyle()
+{
+	ImVec4* colors = ImGui::GetStyle().Colors;
+
+	colors[ImGuiCol_Text] = ThemeColours::m_PureWhite;
+	colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+	colors[ImGuiCol_WindowBg] = ThemeColours::m_Charcoal;
+	colors[ImGuiCol_ChildBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+	colors[ImGuiCol_PopupBg] = ThemeColours::m_Charcoal;
+	colors[ImGuiCol_Border] = ThemeColours::m_PureBlack;
+	colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+	colors[ImGuiCol_FrameBg] = ThemeColours::m_GunmetalGrey;
+	colors[ImGuiCol_FrameBgHovered] = ThemeColours::m_DarkestGold;
+	colors[ImGuiCol_FrameBgActive] = ThemeColours::m_RtuaGold;
+	colors[ImGuiCol_TitleBg] = ThemeColours::m_DarkerGold;
+	colors[ImGuiCol_TitleBgActive] = ThemeColours::m_DarkerGold;
+	colors[ImGuiCol_TitleBgCollapsed] = ThemeColours::m_DarkestGold;
+	colors[ImGuiCol_MenuBarBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+	colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.53f);
+	colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
+	colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
+	colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
+	colors[ImGuiCol_CheckMark] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+	colors[ImGuiCol_SliderGrab] = ImVec4(0.25f, 0.25f, 0.25f, 0.5f);
+	colors[ImGuiCol_SliderGrabActive] = ImVec4(1.f, 0.171f, 0.f, 0.9f);
+	colors[ImGuiCol_Button] = ThemeColours::m_RtuaBlack;
+	colors[ImGuiCol_ButtonHovered] = ThemeColours::m_DarkestGold;
+	colors[ImGuiCol_ButtonActive] = ThemeColours::m_RtuaGold;
+	colors[ImGuiCol_Header] = ThemeColours::m_RtuaLightBlack;
+	colors[ImGuiCol_HeaderHovered] = ThemeColours::m_DarkestGold;
+	colors[ImGuiCol_HeaderActive] = ThemeColours::m_RtuaGold;
+	colors[ImGuiCol_Separator] = ThemeColours::m_RtuaGold;
+	colors[ImGuiCol_SeparatorHovered] = ImVec4(1.f, 0.171f, 0.f, 1.f);
+	colors[ImGuiCol_SeparatorActive] = ImVec4(1.f, 0.1f, 0.f, 1.f);
+	colors[ImGuiCol_ResizeGrip] = ThemeColours::m_RtuaGold;
+	colors[ImGuiCol_ResizeGripHovered] = ThemeColours::m_DarkerGold;
+	colors[ImGuiCol_ResizeGripActive] = ThemeColours::m_DarkestGold;
+	colors[ImGuiCol_Tab] = ImLerp(colors[ImGuiCol_Header], colors[ImGuiCol_TitleBgActive], 0.80f);
+	colors[ImGuiCol_TabHovered] = colors[ImGuiCol_HeaderHovered];
+	colors[ImGuiCol_TabActive] = ImLerp(colors[ImGuiCol_HeaderActive], colors[ImGuiCol_TitleBgActive], 0.60f);
+	colors[ImGuiCol_TabUnfocused] = ImLerp(colors[ImGuiCol_Tab], colors[ImGuiCol_TitleBg], 0.80f);
+	colors[ImGuiCol_TabUnfocusedActive] = ImLerp(colors[ImGuiCol_TabActive], colors[ImGuiCol_TitleBg], 0.40f);
+	colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
+	colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
+	colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+	colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
+	colors[ImGuiCol_TextSelectedBg] = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
+	colors[ImGuiCol_DragDropTarget] = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
+	colors[ImGuiCol_NavHighlight] = ImVec4(0.f, 0.5f, 1.f, 1.f);                   // Gamepad / KBM highlight.
+	colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
+	colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
+	colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
+};
+
+#pragma endregion
+
+//============================================================================
+//
+// 
+// Main GUI Implementation
+// 
+// 
+//============================================================================
+
+#pragma region Main Gui Implementation
+
+// Using namespace here to keep code easily readable
+using namespace GUI_Style;
+
+//
+// Define namespace members here - matching MiniEngine's design
+//
+namespace RTUA_GUI
+{
+	//
+	// See header file for comments on each member here
+	//
+
+	ID3D12DescriptorHeap* m_pSrvDescriptorHeap = nullptr;
+	ID3D12Device* m_pD3DDevice = nullptr;
+	const Model* m_pScene = nullptr;
+
+	uint32_t m_NewWidth = 0u;
+	uint32_t m_NewHeight = 0u;
+	Resolution m_TitleBarSize{};
+
+
+	bool m_bReady = false;
+	bool m_bEnablePostFX = true;
+	bool m_bEnableMotionVisualisation = true;
+
+	bool m_bShowStartupModal = true;
+	bool m_bFullscreen = false;
+	bool m_bDisplayModeChangePending = false;
+
+
+	// This needs to change if the enum changes
+	std::string m_RenderModeNames[eRenderingMode::NUM_RENDER_MODES] =
+	{
+		"Native"            ,
+		"Bilinear Upscale"  ,
+		"DLSS "
+	};
+	eRenderingMode m_CurrentRenderingMode = eRenderingMode::NATIVE;
+	eRenderingMode m_PreviousRenderingMode = eRenderingMode::NATIVE;
+
+	float m_ScalingFactor = 0.f;
+	Resolution m_BilinearInputRes = { 640, 480 };
+	bool m_bResolutionChangePending = false;
+	bool m_bCommonStateChangePending = false;
+	bool m_bOverrideLodBias = false;
+	float m_ForcedLodBias = 0.f;
+	float m_OriginalLodBias = 0.f;
+
+	bool m_bDLSSUpdatePending = false;
+	bool m_bToggleDLSS = false;
+	bool m_bUpdateDLSSMode = false;
+
+	bool m_ShowHardwareMetrics = false;
+	bool m_ShowFrameRate = false;
+
+
+	ImVec2 m_MainWindowSize{};
+	ImVec2 m_MainWindowPos{};
+
+	ImVec2 m_BufferWindowSize{};
+	ImVec2 m_MetricWindowSize{};
+
+	ImVec2 m_BufferWindowPos{};       // Set at far corner
+	ImVec2 m_HwTimingWindowPos{};     // Set directly next to the main window at the top
+	ImVec2 m_FrameRateWindowPos{};    // Set underneath the other one
+
+	uint8_t m_Page = 1;
+
+	// If the enum changes, you need to change this!
+	std::string m_BufferNames[eGBuffers::NUM_BUFFERS] =
+	{
+		"Main Color"            ,
+		"Depth"                 ,
+		"Motion Vectors Raw"    ,
+		"MV Visualisation"
+	};
+
+	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, NUM_BUFFERS> m_GBuffers{};
+
+}
+
+#pragma region Main Gui Loop
+
+void RTUA_GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const DXGI_FORMAT& renderTargetFormat)
 {
 	// Create ImGui context and get IO to set flags
 	IMGUI_CHECKVERSION();
@@ -95,9 +356,12 @@ void GUI::Init(void* Hwnd, ID3D12Device* pDevice, int numFramesInFlight, const D
 		DEBUGPRINT("Switched to %s mode", m_bFullscreen ? "Fullscreen" : "Windowed");
 	}
 
+	// Set init flag to true so rest of windows app can behave appropriately!
+	m_bReady = true;
+
 }
 
-void GUI::Run(CommandContext& Context)
+void RTUA_GUI::Run(CommandContext& Context)
 {
 	// Start ImGui frame
 	ImGui_ImplDX12_NewFrame();
@@ -146,7 +410,7 @@ void GUI::Run(CommandContext& Context)
 	}
 }
 
-void GUI::UpdateGraphics()
+void RTUA_GUI::UpdateGraphics()
 {
 	// Check if the common graphics state (samplers etc.) needs updating first
 	if (m_bCommonStateChangePending)
@@ -180,7 +444,7 @@ void GUI::UpdateGraphics()
 		m_bCommonStateChangePending = false;
 	}
 
-	// Check if display mode has changed next
+	// Check if display mode has changed - this will happen when alt+tabbing or alt+enter
 	if (m_bDisplayModeChangePending)
 	{
 		// wb for Windows Bool - have to use this when querying the swapchain!
@@ -218,7 +482,17 @@ void GUI::UpdateGraphics()
 
 			// If we are in a different rendering mode, reset those values
 			if (m_CurrentRenderingMode == eRenderingMode::BILINEAR_UPSCALE)
+				// Set bilinear back to the new native, effectively disabling scaling as the factor returns to 1
 				m_BilinearInputRes = { m_NewWidth, m_NewHeight };
+
+			if (m_CurrentRenderingMode == eRenderingMode::DLSS)
+			{
+				// For DLSS, just disable it and return to native
+				m_CurrentRenderingMode = eRenderingMode::NATIVE;
+				DLSS::m_bNeedsReleasing = true;
+				m_bToggleDLSS = false;
+				m_bDLSSUpdatePending = true;
+			}
 		}
 		else
 		{
@@ -308,7 +582,7 @@ void GUI::UpdateGraphics()
 	}
 }
 
-void GUI::Terminate()
+void RTUA_GUI::Terminate()
 {
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplWin32_Shutdown();
@@ -323,7 +597,15 @@ void GUI::Terminate()
 	}
 }
 
-void GUI::StartupModal()
+#pragma endregion
+
+//
+//	Smaller functions that break down individual sections of the GUI. Makes it much more readable and modular!
+//
+
+#pragma region GUI Section Helpers
+
+void RTUA_GUI::StartupModal()
 {
 	ImGui::OpenPopup("Welcome!");
 	// Always center this window when appearing
@@ -334,7 +616,7 @@ void GUI::StartupModal()
 	// Allow window to resize, but only vertically. Restrict horizontal size to a fixed width
 	ImGui::SetNextWindowSizeConstraints(ImVec2(m_MainWindowSize.x, 0), ImVec2(m_MainWindowSize.x, FLT_MAX));
 
-	ImGui::BeginPopupModal("Welcome!", NULL, ImGuiWindowFlags_NoMove | ImGuiChildFlags_AlwaysAutoResize);
+	ImGui::BeginPopupModal("Welcome!", NULL, ImGuiChildFlags_AlwaysAutoResize);
 	{
 		DoubleLineBreak();
 
@@ -410,7 +692,7 @@ void GUI::StartupModal()
 				HighlightTextItem("LSHIFT to change movement speed");
 				DoubleLineBreak();
 
-				TutorialPageButtons();
+				TutorialPageButtons(m_Page);
 
 				break;
 			}
@@ -429,7 +711,7 @@ void GUI::StartupModal()
 				SingleLineBreak();
 				ImGui::TextWrapped("Use the command highlighted above to toggle between inputs when necessary.");
 				SingleLineBreak();
-				ImGui::TextWrapped("Note: This can also be achieved entirely from the keyboard without having to switch.");
+				ImGui::TextWrapped("You can also navigate between windows and move them without having to switch input mode. Note; the following commands will work on the main window, but not in this tutorial section");
 				SingleLineBreak();
 				HighlightTextItem("Hold LCTRL and press TAB once to bring up GUI window select.");
 				SingleLineBreak();
@@ -440,7 +722,7 @@ void GUI::StartupModal()
 				HighlightTextItem("Use Arrow Keys while to move selected window position.");
 				DoubleLineBreak();
 
-				TutorialPageButtons();
+				TutorialPageButtons(m_Page);
 
 				break;
 			}
@@ -451,11 +733,15 @@ void GUI::StartupModal()
 				SectionTitle("Evaluation Guidance");
 				Separator();
 
-				ImGui::TextWrapped("Native rendering should be straightforward to evaluate, however you may find yourself struggling to compare the two upscale methods.");
+				ImGui::TextWrapped("Native rendering should be straightforward to evaluate, however you may find yourself struggling to compare the two upscale methods. The biggest factor in your evaluation should be input resolution.");
 				SingleLineBreak();
-				HighlightTextItem("To best compare upscaling, use similar input resolutions.");
+				HighlightTextItem("To best compare upscaling, use the exact same input resolution.");
 				SingleLineBreak();
-				ImGui::TextWrapped("When swapping between Bilinear or DLSS upscaling, the input resolution you select will be saved.");
+				ImGui::TextWrapped("When swapping between Bilinear or DLSS upscaling, the input resolution you select will be saved. However, not all DLSS input resolutions exist as inputs for Bilinear. As a result, a scaling factor has been provided to help your evaluation.");
+				SingleLineBreak();
+				HighlightTextItem("The scaling factor is your next most important comparison point.");
+				SingleLineBreak();
+				ImGui::TextWrapped("The scaling factor is a simple value that represents the percentage of native rendering we are currently rendering at. 1.0 means that no scaling is taking place and, if you prefer, that we are rendering at 100 percent native. 0.666 means that we are rendering at two-thirds or 66 percent of native resolution and then scaling up.");
 				SingleLineBreak();
 				ImGui::TextWrapped("Additionally, LOD or Mip bias has a great effect on texture resolution when upscaling. DLSS automatically calculates the optimal bias, but you are free to override this and see the effects in real-time.");
 				SingleLineBreak();
@@ -464,7 +750,7 @@ void GUI::StartupModal()
 				HighlightTextItem("Try and test against many surfaces in as many ways as possible.");
 				DoubleLineBreak();
 
-				TutorialPageButtons();
+				TutorialPageButtons(m_Page);
 
 				break;
 			}
@@ -484,6 +770,9 @@ void GUI::StartupModal()
 				ImGui::TextWrapped("And most importantly, let your curiosity drive you. You may come away from this experience with an increased sensitivity and appreciation for rendering quality.");
 				DoubleLineBreak();
 
+
+				// Customised version of the TutorialPageButtons() function for the final page. 
+
 				const char* btnText = "Previous";
 				MakeNextItemFitText(btnText);
 				ImGui::SetItemDefaultFocus();
@@ -497,7 +786,7 @@ void GUI::StartupModal()
 				RightAlignSameLine(btnText);
 				MakeNextItemFitText(btnText);
 
-				// Finally allow them to close the popup
+				// Finally allow the user to close the popup
 				if (ImGui::Button(btnText))
 				{
 					m_bShowStartupModal = false;
@@ -513,7 +802,7 @@ void GUI::StartupModal()
 	}
 }
 
-void GUI::MainWindowTitle()
+void RTUA_GUI::MainWindowTitle()
 {
 	DoubleLineBreak();
 
@@ -618,7 +907,7 @@ void GUI::MainWindowTitle()
 #endif
 }
 
-void GUI::ResolutionDisplay()
+void RTUA_GUI::ResolutionDisplay()
 {
 	// In order to make it clearer to users, create labels
 	const char* labelText;
@@ -643,8 +932,21 @@ void GUI::ResolutionDisplay()
 	CenterNextTextItem(labelText);
 	ImGui::Text(labelText);
 	ImGui::SameLine();
-	HelpMarker("This is the current resolution of internal rendering buffers in the app. This will update as you interact with upscaling techniques.");
+	HelpMarker("This is the current resolution of internal rendering buffers in the app. This will update as you interact with upscaling techniques.\n\nTry finding where DLSS modes (e.g. Quality) and Bilinear inputs (e.g. 1280x800) match for the best comparison points!");
 	labelValue = std::to_string(Graphics::g_NativeWidth) + "x" + std::to_string(Graphics::g_NativeHeight);
+	labelText = labelValue.c_str();
+	CenterNextTextItem(labelText);
+	ImGui::Text(labelText);
+
+	SingleLineBreak();
+
+	labelText = "Current Scale Factor";
+	CenterNextTextItem(labelText);
+	ImGui::Text(labelText);
+	ImGui::SameLine();
+	HelpMarker("This is the magnitude of scaling being applied. When this is 100%, that means that no scaling is taking place.\n0.666 means that we are rendering at a scale of 66% native\n\nTry finding where DLSS modes and Bilinear inputs match for the best comparison points!");
+	m_ScalingFactor = static_cast<float>(Graphics::g_NativeHeight) / static_cast<float>(DLSS::m_MaxNativeResolution.m_Height);	// Calculated by using render height / display height
+	labelValue = std::to_string(m_ScalingFactor);
 	labelText = labelValue.c_str();
 	CenterNextTextItem(labelText);
 	ImGui::Text(labelText);
@@ -671,12 +973,12 @@ void GUI::ResolutionDisplay()
 	m_NewHeight = Graphics::g_NativeHeight;
 }
 
-void GUI::RenderModeSelection()
+void RTUA_GUI::RenderModeSelection()
 {
-	static int mode_current_idx = 0;
+	static int mode_current_idx = m_CurrentRenderingMode;
 
 	const char* comboLabel = "Rendering Mode";
-	const char* comboPreviewValue = m_RenderModeNames[mode_current_idx].c_str();
+	const char* comboPreviewValue = m_RenderModeNames[m_CurrentRenderingMode].c_str();
 
 
 	// Write custom centered label
@@ -805,7 +1107,7 @@ void GUI::RenderModeSelection()
 			CenterNextCombo(res_combo_preview_value);
 			if (ImGui::BeginCombo("##Internal Resolution Combo", res_combo_preview_value, ImGuiComboFlags_WidthFitPreview))
 			{
-				for (int n = 0; n < DLSS::m_NumResolutions; n++)
+				for (uint16_t n = 0; n < DLSS::m_NumResolutions; n++)
 				{
 					const bool is_selected = (res_current_idx == n);
 					if (ImGui::Selectable(DLSS::m_Resolutions[n].first.c_str(), is_selected))
@@ -846,7 +1148,7 @@ void GUI::RenderModeSelection()
 				CenterNextCombo(modes[dlssMode]);
 				if (ImGui::BeginCombo("##DLSS Mode", modes[dlssMode], ImGuiComboFlags_WidthFitPreview))
 				{
-					for (int n = 0; n < std::size(modes); n++)
+					for (uint8_t n = 0; n < std::size(modes); n++)
 					{
 						const bool is_selected = (dlssMode == n);
 						if (ImGui::Selectable(modes[n], is_selected))
@@ -880,7 +1182,7 @@ void GUI::RenderModeSelection()
 	}
 }
 
-void GUI::GraphicsSettings(CommandContext& Context)
+void RTUA_GUI::GraphicsSettings(CommandContext& Context)
 {
 	QuarterLineBreak();
 
@@ -967,9 +1269,6 @@ void GUI::GraphicsSettings(CommandContext& Context)
 					// Repeat for GPU handle
 					D3D12_GPU_DESCRIPTOR_HANDLE newGPUHandle = m_pSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
 					newGPUHandle.ptr += (descriptorIndex * descriptorSize);
-
-					// Create a window for each buffer and dock them together
-					//ImGui::SetNextWindowDockID(0, ImGuiCond_Appearing);
 					
 					// Render our lovely buffer!
 					SingleLineBreak();
@@ -985,7 +1284,7 @@ void GUI::GraphicsSettings(CommandContext& Context)
 #endif
 }
 
-void GUI::PerformanceMetrics()
+void RTUA_GUI::PerformanceMetrics()
 {
 	// Show checkboxes that open windows!
 	ImGui::TextColored(ThemeColours::m_RtuaGold, "Peformance Metrics");
@@ -1022,8 +1321,8 @@ void GUI::PerformanceMetrics()
 		{
 			// Setup axis, x then y. This will be Frame,Ms. Use autofit for now, will mess around with these later
 			ImPlot::SetupAxes("Frame", "Speed(ms)", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
-			ImPlot::PlotLine("CPU Time", cpuTimes.data(), cpuTimes.size());
-			ImPlot::PlotLine("GPU Time", gpuTimes.data(), gpuTimes.size());
+			ImPlot::PlotLine("CPU Time", cpuTimes.data(), (int)cpuTimes.size());
+			ImPlot::PlotLine("GPU Time", gpuTimes.data(), (int)gpuTimes.size());
 			ImPlot::EndPlot();
 		}
 
@@ -1049,7 +1348,7 @@ void GUI::PerformanceMetrics()
 		if (ImPlot::BeginPlot("Frame Rate"))
 		{
 			ImPlot::SetupAxes("Count", "FPS", ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_::ImPlotAxisFlags_AutoFit);
-			ImPlot::PlotLine("Frame Rate", frameTimes.data(), frameTimes.size());
+			ImPlot::PlotLine("Frame Rate", frameTimes.data(), (int)frameTimes.size());
 			ImPlot::EndPlot();
 		}
 
@@ -1057,7 +1356,7 @@ void GUI::PerformanceMetrics()
 	}
 }
 
-void GUI::ResolutionSettingsDebug()
+void RTUA_GUI::ResolutionSettingsDebug()
 {
 	std::string comboValue;
 	// In order to make it clearer to users and devs, create a variable combo label
@@ -1094,7 +1393,7 @@ void GUI::ResolutionSettingsDebug()
 
 		if (ImGui::BeginCombo(comboLabel.c_str(), combo_preview_value))
 		{
-			for (int n = 0; n < DLSS::m_NumResolutions; n++)
+			for (uint16_t n = 0; n < DLSS::m_NumResolutions; n++)
 			{
 				const bool is_selected = (item_current_idx == n);
 				if (ImGui::Selectable(DLSS::m_Resolutions[n].first.c_str(), is_selected))
@@ -1131,7 +1430,7 @@ void GUI::ResolutionSettingsDebug()
 	}
 }
 
-void GUI::DLSSSettings()
+void RTUA_GUI::DLSSSettings()
 {
 	if (ImGui::CollapsingHeader("DLSS Settings"))
 	{
@@ -1156,7 +1455,7 @@ void GUI::DLSSSettings()
 			if (ImGui::BeginCombo("Mode", modes[dlssMode]))
 			{
 
-				for (int n = 0; n < std::size(modes); n++)
+				for (uint8_t n = 0; n < std::size(modes); n++)
 				{
 					const bool is_selected = (dlssMode == n);
 					if (ImGui::Selectable(modes[n], is_selected))
@@ -1193,7 +1492,7 @@ void GUI::DLSSSettings()
 
 }
 
-void GUI::GraphicsSettingsDebug(CommandContext& Context)
+void RTUA_GUI::GraphicsSettingsDebug(CommandContext& Context)
 {
 	if (ImGui::CollapsingHeader("Graphics Settings"))
 	{
@@ -1271,5 +1570,9 @@ void GUI::GraphicsSettingsDebug(CommandContext& Context)
 	}
 
 }
+
+#pragma endregion
+
+#pragma endregion
 
 #endif

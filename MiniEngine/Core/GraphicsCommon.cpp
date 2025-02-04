@@ -130,30 +130,6 @@ namespace BitonicSort
 
 void Graphics::InitializeCommonState(void)
 {
-#if AZB_MOD
-
-    // [AZB]: Only do this once at program start
-   //if (!m_bOverrideLodBias)
-   //{
-   //    float lodBias = 0.f;
-   //    // [AZB]: Set this default LOD based on the max queried resolution
-   //    float texLodXDimension = DLSS::m_MaxNativeResolution.m_Width;
-   //
-   //    // [AZB]: Use the formula of the DLSS programming guide for determining the LOD Bias...
-   //    lodBias = std::log2f(texLodXDimension / DLSS::m_MaxNativeResolution.m_Width) - 2.0f;
-   //
-   //    // [AZB]: Set mip bias for all samplers before they get created
-   //    SamplerLinearWrapDesc.MipLODBias = lodBias;
-   //    SamplerLinearClampDesc.MipLODBias = lodBias;
-   //    SamplerLinearBorderDesc.MipLODBias = lodBias;
-   //    SamplerPointClampDesc.MipLODBias = lodBias;
-   //    SamplerPointBorderDesc.MipLODBias = lodBias;
-   //    SamplerAnisoWrapDesc.MipLODBias = lodBias;
-   //
-   //    m_DefaultLodBias = lodBias;
-   //}
-#endif
-
     SamplerLinearWrapDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
     SamplerLinearWrap = SamplerLinearWrapDesc.CreateDescriptor();
 
